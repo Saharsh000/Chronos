@@ -907,7 +907,7 @@ class Database:
         """Directly add raw XP (no time change) to a user's stats.
         Floors at 0 - a negative amount can remove at most the XP the
         user currently has."""
-        old_level, new_level = await self._apply_time_and_xp(user_id, guild_id, None, 0, amount)
+        old_level, new_level, _ = await self._apply_time_and_xp(user_id, guild_id, None, 0, amount)
         return {"old_level": old_level, "new_level": new_level, "leveled_up": new_level > old_level}
 
     async def grant_coins(self, user_id: int, guild_id: int, amount: int) -> int:

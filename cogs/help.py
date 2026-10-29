@@ -32,14 +32,14 @@ class HelpPaginator(ChronosView):
         self.next_btn.disabled = self.current_page >= len(self.pages) - 1
         self.page_label.label = f"{self.current_page + 1} / {len(self.pages)}"
 
-    async def _refresh(self, interaction: discord.Interaction) -> None:
+    async def _refresh_page(self, interaction: discord.Interaction) -> None:
         self._sync_buttons()
         await interaction.response.edit_message(embed=self.pages[self.current_page], view=self)
 
     @discord.ui.button(label="\u25c0\ufe0f Prev", style=discord.ButtonStyle.primary, row=0)
     async def prev_btn(self, interaction: discord.Interaction, button: discord.ui.Button) -> None:
         self.current_page = max(0, self.current_page - 1)
-        await self._refresh(interaction)
+        await self._refresh_page(interaction)
 
     @discord.ui.button(label="1 / 8", style=discord.ButtonStyle.secondary, disabled=True, row=0)
     async def page_label(self, interaction: discord.Interaction, button: discord.ui.Button) -> None:
@@ -48,12 +48,12 @@ class HelpPaginator(ChronosView):
     @discord.ui.button(label="\u25b6\ufe0f Next", style=discord.ButtonStyle.primary, row=0)
     async def next_btn(self, interaction: discord.Interaction, button: discord.ui.Button) -> None:
         self.current_page = min(len(self.pages) - 1, self.current_page + 1)
-        await self._refresh(interaction)
+        await self._refresh_page(interaction)
 
     @discord.ui.button(label="\U0001F3E0 Home", style=discord.ButtonStyle.success, row=0)
     async def home_btn(self, interaction: discord.Interaction, button: discord.ui.Button) -> None:
         self.current_page = 0
-        await self._refresh(interaction)
+        await self._refresh_page(interaction)
 
 
 # --------------------------------------------------------------------- #
