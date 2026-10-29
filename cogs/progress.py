@@ -292,11 +292,13 @@ class Progress(commands.Cog, name="Progress"):
         recent = await self.db.get_recent_milestones(target.id, ctx.guild.id, limit=5)
         if recent:
             type_emoji = {"chapter": "\U0001F4D1", "subtopic": "\U0001F9E9", "book": "\U0001F4D7", "pyq": "\U0001F4DD", "revision": "\U0001F501"}
+            default_bullet = "\u2022"
             lines = []
             for m in recent:
                 subj = f" ({m['subject']})" if m["subject"] else ""
                 chap = f" \u2014 {m['chapter']}" if m.get("chapter") else ""
-                lines.append(f"{type_emoji.get(m['type'], '\u2022')} {m['label']}{chap}{subj}")
+                emoji = type_emoji.get(m['type'], default_bullet)
+                lines.append(f"{emoji} {m['label']}{chap}{subj}")
             embed.add_field(name="Recently Logged", value="\n".join(lines), inline=False)
 
         embed.set_footer(text=f"{embeds.FOOTER_TEXT} \u2022 {ctx.prefix}syllabus \u2022 .chapterdone / .subtopicdone / .bookdone / .pyq / .revision")

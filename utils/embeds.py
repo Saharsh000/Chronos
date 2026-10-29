@@ -53,11 +53,12 @@ BULLET = "\u25B8"
 SPARKLE = "\u2728"
 ARROW_RIGHT = "\u25B9"
 
-# Compact stat line: "Label \u00B7\u00B7\u00B7\u00B7\u00B7 Value"
+# Compact stat line: "Label ····· Value"
 def stat_line(label: str, value: str, width: int = 28) -> str:
     """Format a label-value pair with dot-fill for aligned stat displays."""
     dots_needed = max(2, width - len(label) - len(value))
-    return f"**{label}** {'`\u00B7`' * dots_needed} {value}"
+    dots = '`\u00B7`' * dots_needed
+    return f"**{label}** {dots} {value}"
 
 def section_header(emoji: str, title: str) -> str:
     """Return a visually distinct section header for embed descriptions."""
