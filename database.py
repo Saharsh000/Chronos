@@ -45,6 +45,7 @@ drops or rewrites a column, so old data is preserved untouched.
 from __future__ import annotations
 
 import logging
+import os
 import random
 import time
 from typing import Any, Optional
@@ -337,7 +338,24 @@ class Database:
         await self._conn.executescript(SCHEMA)
         await self._conn.commit()
         await self._migrate()
+        await self._auto_seed()
         log.info(f"Connected to SQLite database at '{self.path}' (WAL mode).")
+
+    async def _auto_seed(self) -> None:
+        """Seed previous progress if database is empty/fresh and seed_data.sql exists."""
+        seed_path = os.path.join(os.path.dirname(os.path.abspath(__file__)), "seed_data.sql")
+        if not os.path.exists(seed_path):
+            return
+
+        cur = await self._conn.execute("SELECT COUNT(*) as count FROM sessions")
+        row = await cur.fetchone()
+        if row and row["count"] == 0:
+            log.info("Fresh database detected. Auto-seeding previous progress from seed_data.sql...")
+            with open(seed_path, "r", encoding="utf-8") as f:
+                seed_sql = f.read()
+            await self._conn.executescript(seed_sql)
+            await self._conn.commit()
+            log.info("Auto-seeding complete! Restored all user progress, streaks, and sessions.")
 
     async def _migrate(self) -> None:
         """Add any columns introduced after the initial release to

@@ -10,6 +10,7 @@ from typing import Optional
 import discord
 from discord.ext import commands
 
+import config
 from utils import embeds
 from utils.checks import is_dev
 from utils.subjects import SUBJECT_ALIASES, SUBJECT_HINT, SUBJECT_INFO, normalize_subject_key
@@ -227,12 +228,46 @@ class Dev(commands.Cog, name="Dev"):
             f"Removed **{amount}** coins from {member.mention}. New balance: **{new_balance:,}**.",
         ))
 
+    @commands.command(name="backupdb")
+    @is_dev()
+    async def backup_db_cmd(self, ctx: commands.Context) -> None:
+        """[Dev only] Download the current SQLite database directly in Discord."""
+        await self.db.conn.commit()
+        await ctx.send(
+            content="\U0001F4BE **Here is your live database backup:**",
+            file=discord.File(config.DB_PATH, filename="chronos.sqlite3")
+        )
+
+    @commands.command(name="restoredb")
+    @is_dev()
+    async def restore_db_cmd(self, ctx: commands.Context) -> None:
+        """[Dev only] Restore the SQLite database by attaching a .sqlite3 or .sql file."""
+        if not ctx.message.attachments:
+            await ctx.send(embed=embeds.error_embed("Please attach your `chronos.sqlite3` file to this command!"))
+            return
+
+        att = ctx.message.attachments[0]
+        if not (att.filename.endswith(".sqlite3") or att.filename.endswith(".db")):
+            await ctx.send(embed=embeds.error_embed("Attachment must be a `.sqlite3` or `.db` file."))
+            return
+
+        await self.db.close()
+        await att.save(config.DB_PATH)
+        await self.db.connect()
+
+        await ctx.send(embed=embeds.success_embed(
+            "Database Restored",
+            f"Successfully restored `{config.DB_PATH}`! All progress, stats, and streaks are live.",
+        ))
+
     @add_time_cmd.error
     @add_xp_cmd.error
     @add_coins_cmd.error
     @remove_time_cmd.error
     @remove_xp_cmd.error
     @remove_coins_cmd.error
+    @backup_db_cmd.error
+    @restore_db_cmd.error
     async def dev_error(self, ctx: commands.Context, error: commands.CommandError) -> None:
         if isinstance(error, commands.CheckFailure):
             await ctx.send(embed=embeds.error_embed("This command is restricted to the bot's developer."))
