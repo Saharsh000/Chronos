@@ -1,0 +1,32 @@
+name: Auto Deploy to LemonHost
+
+on:
+  push:
+    branches:
+      - main
+
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+    steps:
+      - name: 📥 Checkout Code
+        uses: actions/checkout@v4
+
+      - name: 🚀 Sync Files to LemonHost via SFTP
+        uses: SamKirkland/FTP-Deploy-Action@v4.3.5
+        with:
+          server: ${{ secrets.LEMONHOST_SERVER }}
+          username: ${{ secrets.LEMONHOST_USERNAME }}
+          password: ${{ secrets.LEMONHOST_PASSWORD }}
+          port: ${{ secrets.LEMONHOST_PORT || 2022 }}
+          protocol: sftp
+          exclude: |
+            **/.git*
+            **/.git*/**
+            **/__pycache__/**
+            **/.venv/**
+            .env.example
+            README.md
+            LICENSE
+            *.zip
+            *.tar.gz
