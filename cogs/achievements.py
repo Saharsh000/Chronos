@@ -111,10 +111,11 @@ class Achievements(commands.Cog, name="Achievements"):
 
         lines = []
         for a in items:
+            reward = f" (+{a.reward_coins:,} coins)" if a.reward_coins else ""
             if a.id in unlocked_at:
-                lines.append(f"\u2705 {a.emoji} **{a.name}** \u2014 {a.description}")
+                lines.append(f"\u2705 {a.emoji} **{a.name}** \u2014 {a.description}{reward}")
             else:
-                lines.append(f"\U0001F512 {a.emoji} {a.name} \u2014 {a.description}")
+                lines.append(f"\U0001F512 {a.emoji} {a.name} \u2014 {a.description}{reward}")
 
         # Embed field values cap at 1024 chars - chunk if a category gets long.
         chunk: list[str] = []

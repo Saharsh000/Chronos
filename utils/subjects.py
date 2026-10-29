@@ -31,10 +31,24 @@ SUBJECT_INFO: dict[str, dict[str, str]] = {
 }
 
 SUBJECT_ALIASES: dict[str, str] = {
-    "physics": "physics", "phy": "physics", "phys": "physics", "p": "physics",
-    "chemistry": "chemistry", "chem": "chemistry", "c": "chemistry",
-    "maths": "maths", "math": "maths", "mathematics": "maths", "m": "maths",
+    "physics": "physics", "phy": "physics", "phys": "physics", "physic": "physics", "p": "physics",
+    "chemistry": "chemistry", "chem": "chemistry", "chm": "chemistry", "c": "chemistry",
+    "maths": "maths", "math": "maths", "mathematics": "maths", "mats": "maths", "m": "maths",
 }
+
+
+def normalize_subject_key(text: str) -> str:
+    """Lowercase + strip whitespace and trailing punctuation (periods,
+    commas, etc.) so `"Phy."`, `" PHY "`, and `"phy"` all resolve the
+    same way. Used everywhere a subject alias is looked up."""
+    return text.strip().lower().strip(".,!?;:")
+
+
+# Shown in every "unknown subject" error so the accepted shorthands are
+# discoverable rather than hidden in the source.
+SUBJECT_HINT = (
+    "Try `physics`/`phy`/`p`, `chemistry`/`chem`/`c`, or `maths`/`math`/`m`."
+)
 
 
 def detect_subject(guild_config: dict, channel_id: Optional[int]) -> Optional[str]:

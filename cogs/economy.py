@@ -41,10 +41,16 @@ class Economy(commands.Cog, name="Economy"):
         """Check your (or someone else's) coin balance."""
         target = member or ctx.author
         currency = await self.db.get_or_create_currency(target.id, ctx.guild.id)
-        embed = embeds.base_embed(title=f"\U0001FA99 {target.display_name}'s Wallet", color=embeds.COLOR_PRIMARY)
+        embed = embeds.base_embed(
+            title=f"\U0001FA99 {target.display_name}'s Wallet",
+            description=(
+                "\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\n"
+                f"\U0001F4B0 Balance \u00B7\u00B7\u00B7 **{currency['coins']:,}** coins\n"
+                f"\U0001F4C8 Lifetime \u00B7\u00B7\u00B7 **{currency['lifetime_earned']:,}** coins earned"
+            ),
+            color=embeds.COLOR_ECONOMY,
+        )
         embed.set_thumbnail(url=target.display_avatar.url)
-        embed.add_field(name="Balance", value=f"{currency['coins']:,} coins", inline=True)
-        embed.add_field(name="Lifetime Earned", value=f"{currency['lifetime_earned']:,} coins", inline=True)
         await ctx.send(embed=embed)
 
     # ------------------------------------------------------------------ #
@@ -57,24 +63,27 @@ class Economy(commands.Cog, name="Economy"):
         currency = await self.db.get_or_create_currency(ctx.author.id, ctx.guild.id)
         embed = embeds.base_embed(
             title="\U0001F6D2 Chronos Shop",
-            description=f"You have **{currency['coins']:,}** coins. Buy with `{ctx.prefix}buy <item>`.",
-            color=embeds.COLOR_PRIMARY,
+            description=(
+                f"\U0001FA99 You have **{currency['coins']:,}** coins\n"
+                "\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501"
+            ),
+            color=embeds.COLOR_ECONOMY,
         )
         for i, item_id in enumerate(economy.SHOP_ORDER, start=1):
             item = economy.SHOP_ITEMS[item_id]
             embed.add_field(
-                name=f"{i}. {item['emoji']} {item['name']} \u2014 {item['price']:,} coins",
-                value=item["description"],
+                name=f"`{i}.` {item['emoji']} {item['name']} \u2014 **{item['price']:,}** \U0001FA99",
+                value=f"\u25B9 {item['description']}",
                 inline=False,
             )
         custom_tags = await self.db.get_custom_tags(ctx.guild.id)
         for item_id, item in custom_tags.items():
             embed.add_field(
-                name=f"{item['emoji']} {item['name']} \u2014 {item['price']:,} coins",
-                value=item["description"],
+                name=f"{item['emoji']} {item['name']} \u2014 **{item['price']:,}** \U0001FA99",
+                value=f"\u25B9 {item['description']}",
                 inline=False,
             )
-        embed.set_footer(text=f"{embeds.FOOTER_TEXT} \u2022 e.g. \"{ctx.prefix}buy mystery box 5\" or \"{ctx.prefix}buy 1\"")
+        embed.set_footer(text=f"{embeds.FOOTER_TEXT} \u2022 {ctx.prefix}buy <item> [qty]")
         await ctx.send(embed=embed)
 
     @commands.command(name="buy")
@@ -349,6 +358,33 @@ class Economy(commands.Cog, name="Economy"):
         await ctx.send(embed=embed)
         await self._announce_achievements(ctx)
 
+    @commands.command(name="beg")
+    @commands.guild_only()
+    async def beg_cmd(self, ctx: commands.Context) -> None:
+        """Beg for a few coins. Very short cooldown, small payout, and a chance of nothing."""
+        result = await self.db.claim_beg(ctx.author.id, ctx.guild.id)
+        if not result["success"]:
+            await ctx.send(embed=embeds.info_embed(
+                "\u23F0 Not yet",
+                f"You can `{ctx.prefix}beg` again in {format_duration(result['retry_after'])}.",
+            ))
+            return
+
+        if result["coins"] == 0:
+            embed = embeds.base_embed(
+                title="\U0001F937 Nothing",
+                description="Nobody had any spare coins for you this time. Try again soon.",
+                color=embeds.COLOR_WARNING,
+            )
+        else:
+            embed = embeds.success_embed(
+                "A kind soul dropped some coins",
+                f"+{result['coins']:,} coins. New balance: {result['new_balance']:,} coins.",
+            )
+        log.info(f"BEG CLAIM     | {ctx.author} ({ctx.author.id}) claimed in guild {ctx.guild.id} (coins={result['coins']})")
+        await ctx.send(embed=embed)
+        await self._announce_achievements(ctx)
+
     @commands.command(name="weekly")
     @commands.guild_only()
     async def weekly_cmd(self, ctx: commands.Context) -> None:
@@ -403,6 +439,7 @@ class Economy(commands.Cog, name="Economy"):
     @daily_cmd.error
     @inventory_cmd.error
     @work_cmd.error
+    @beg_cmd.error
     @weekly_cmd.error
     async def economy_error(self, ctx: commands.Context, error: commands.CommandError) -> None:
         if isinstance(error, commands.MissingRequiredArgument):

@@ -22,7 +22,7 @@ from discord.ext import commands
 
 from utils import economy, embeds
 from utils import syllabus as syllabus_data
-from utils.subjects import SUBJECT_ALIASES, SUBJECT_INFO
+from utils.subjects import SUBJECT_ALIASES, SUBJECT_HINT, SUBJECT_INFO, normalize_subject_key
 
 log = logging.getLogger("progress")
 
@@ -34,7 +34,7 @@ def _normalize_subject(text: Optional[str]) -> Optional[str]:
     anything else is kept as free text (title-cased)."""
     if not text:
         return None
-    key = text.strip().lower()
+    key = normalize_subject_key(text)
     return SUBJECT_ALIASES.get(key, text.strip().title())
 
 
@@ -64,7 +64,7 @@ class Progress(commands.Cog, name="Progress"):
 
     @staticmethod
     def _resolve_syllabus_subject(subject: str) -> Optional[str]:
-        key = subject.strip().lower()
+        key = normalize_subject_key(subject)
         key = SUBJECT_ALIASES.get(key, key)
         return key if key in SUBJECTS_WITH_SYLLABUS else None
 
@@ -85,7 +85,9 @@ class Progress(commands.Cog, name="Progress"):
                 description=(
                     "A reference copy of the JEE Main syllabus, used to validate `.chapterdone`/`.subtopicdone`.\n"
                     f"Pick a subject: `{ctx.prefix}syllabus physics`, `{ctx.prefix}syllabus chemistry`, "
-                    f"`{ctx.prefix}syllabus maths`"
+                    f"`{ctx.prefix}syllabus maths`\n"
+                    f"Shorthands work too \u2014 `{ctx.prefix}syllabus phy`, `{ctx.prefix}syllabus chem`, "
+                    f"`{ctx.prefix}syllabus math` (or just `p` / `c` / `m`)."
                 ),
                 color=embeds.COLOR_PRIMARY,
             )
@@ -102,7 +104,7 @@ class Progress(commands.Cog, name="Progress"):
         subject_key = self._resolve_syllabus_subject(subject)
         if subject_key is None:
             await ctx.send(embed=embeds.error_embed(
-                f"Unknown subject `{subject}`. Try `physics`, `chemistry`, or `maths`."
+                f"Unknown subject `{subject}`. {SUBJECT_HINT}"
             ))
             return
 
@@ -152,7 +154,7 @@ class Progress(commands.Cog, name="Progress"):
         subject_key = self._resolve_syllabus_subject(subject)
         if subject_key is None:
             await ctx.send(embed=embeds.error_embed(
-                f"Unknown subject `{subject}`. Try `physics`, `chemistry`, or `maths`."
+                f"Unknown subject `{subject}`. {SUBJECT_HINT}"
             ))
             return
 
@@ -182,7 +184,7 @@ class Progress(commands.Cog, name="Progress"):
         subject_key = self._resolve_syllabus_subject(subject)
         if subject_key is None:
             await ctx.send(embed=embeds.error_embed(
-                f"Unknown subject `{subject}`. Try `physics`, `chemistry`, or `maths`."
+                f"Unknown subject `{subject}`. {SUBJECT_HINT}"
             ))
             return
 

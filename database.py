@@ -472,11 +472,11 @@ class Database:
         delta_coins: int = 0,
         increment_session_count: bool = False,
         now: Optional[int] = None,
-    ) -> tuple[int, int]:
+    ) -> tuple[int, int, Optional[streaks.StreakResult]]:
         """Roll additional seconds/XP/coins into user_stats (and
         subject_stats, if `subject` is set). If any actual study time
         was credited (`delta_seconds > 0`), also rolls that day into
-        the user's daily study streak. Returns (old_level, new_level)."""
+        the user's daily study streak. Returns (old_level, new_level, streak_result)."""
         now = now if now is not None else int(time.time())
         stats = await self.get_or_create_user_stats(user_id, guild_id)
         old_level = stats["level"]
@@ -511,10 +511,11 @@ class Database:
 
         await self.conn.commit()
 
+        streak_res = None
         if delta_seconds > 0:
-            await self._record_study_activity(user_id, guild_id, now)
+            streak_res = await self._record_study_activity(user_id, guild_id, now)
 
-        return old_level, new_level
+        return old_level, new_level, streak_res
 
     async def _add_coins_raw(self, user_id: int, guild_id: int, amount: int) -> None:
         """INSERT/UPDATE user_currency without committing - callers
@@ -533,7 +534,7 @@ class Database:
             (amount, lifetime_delta, user_id, guild_id),
         )
 
-    async def _record_study_activity(self, user_id: int, guild_id: int, now: int) -> None:
+    async def _record_study_activity(self, user_id: int, guild_id: int, now: int) -> Optional[streaks.StreakResult]:
         """Roll one day of confirmed study time into the user's streak
         (see utils/streaks.py). Automatically spends a Streak Freeze
         from inventory if one is needed and available to bridge a
@@ -546,7 +547,7 @@ class Database:
             today, freeze_available=freeze_qty > 0,
         )
         if not result.changed:
-            return
+            return None
 
         if result.freeze_consumed:
             await self.conn.execute(
@@ -564,6 +565,28 @@ class Database:
             (result.current_streak, result.longest_streak, result.last_active_date, user_id, guild_id),
         )
         await self.conn.commit()
+
+        # Losing streak penalty: deduct coins proportional to the
+        # streak that was just lost.
+        if result.streak_broken_from > 0 and config.STREAK_BREAK_COINS_PER_DAY > 0:
+            penalty = min(
+                result.streak_broken_from * config.STREAK_BREAK_COINS_PER_DAY,
+                config.STREAK_BREAK_COINS_CAP,
+            )
+            currency = await self.get_or_create_currency(user_id, guild_id)
+            actual_penalty = min(penalty, currency["coins"])  # never go negative
+            if actual_penalty > 0:
+                await self.conn.execute(
+                    "UPDATE user_currency SET coins = coins - ? WHERE user_id = ? AND guild_id = ?",
+                    (actual_penalty, user_id, guild_id),
+                )
+                await self.conn.commit()
+                log.info(
+                    f"STREAK BREAK  | user={user_id} guild={guild_id} lost {result.streak_broken_from}-day streak, "
+                    f"penalty={actual_penalty} coins"
+                )
+
+        return result
 
     # ------------------------------------------------------------------ #
     # Sessions
@@ -686,7 +709,7 @@ class Database:
         )
         await self.conn.commit()
 
-        old_level, new_level = await self._apply_time_and_xp(
+        old_level, new_level, streak_res = await self._apply_time_and_xp(
             session["user_id"], session["guild_id"], session["subject"], delta_seconds, delta_xp,
             delta_coins=delta_coins, now=now,
         )
@@ -707,6 +730,7 @@ class Database:
             "leveled_up": new_level > old_level,
             "delta_pet_xp": delta_pet_xp,
             "pet_result": pet_result,
+            "streak_broken_from": streak_res.streak_broken_from if streak_res else 0,
         }
 
     async def end_session(
@@ -742,7 +766,7 @@ class Database:
         )
         await self.conn.commit()
 
-        old_level, new_level = await self._apply_time_and_xp(
+        old_level, new_level, streak_res = await self._apply_time_and_xp(
             session["user_id"], session["guild_id"], session["subject"],
             leftover_seconds, 0, increment_session_count=True, now=end_time,
         )
@@ -778,6 +802,7 @@ class Database:
             "new_level": new_level,
             "leveled_up": new_level > old_level,
             "reason": reason,
+            "streak_broken_from": streak_res.streak_broken_from if streak_res else 0,
         }
 
     # ------------------------------------------------------------------ #
@@ -796,7 +821,7 @@ class Database:
         xp_earned = _random_minute_xp(minutes)
         coins_earned = _random_minute_coins(minutes)
 
-        old_level, new_level = await self._apply_time_and_xp(
+        old_level, new_level, _ = await self._apply_time_and_xp(
             user_id, guild_id, subject, seconds, xp_earned, delta_coins=coins_earned, now=now,
         )
 
@@ -1357,6 +1382,27 @@ class Database:
         xp_result = await self.grant_xp(user_id, guild_id, xp)
         return {"success": True, "coins": coins, "xp": xp, "new_balance": new_balance, **xp_result}
 
+    async def claim_beg(self, user_id: int, guild_id: int, now: Optional[int] = None) -> dict[str, Any]:
+        """`.beg` - an even-shorter-cooldown coin grant than `.work`,
+        with a chance of coming up empty (see config.BEG_FAIL_CHANCE) -
+        pure flavor, meant to be spammed between study blocks. Returns
+        {'success': False, 'reason': 'cooldown', 'retry_after': int} or
+        {'success': True, 'coins': int (0 on a whiff), 'new_balance': int}."""
+        now = now if now is not None else int(time.time())
+        last = await self.get_cooldown(user_id, guild_id, "beg")
+        if last is not None and now - last < config.BEG_COOLDOWN_SECONDS:
+            return {"success": False, "reason": "cooldown", "retry_after": config.BEG_COOLDOWN_SECONDS - (now - last)}
+
+        await self._set_cooldown(user_id, guild_id, "beg", now)
+        await self.conn.commit()
+        if random.random() < config.BEG_FAIL_CHANCE:
+            currency = await self.get_or_create_currency(user_id, guild_id)
+            return {"success": True, "coins": 0, "new_balance": currency["coins"]}
+
+        coins = random.randint(config.BEG_COINS_MIN, config.BEG_COINS_MAX)
+        new_balance = await self.add_coins(user_id, guild_id, coins)
+        return {"success": True, "coins": coins, "new_balance": new_balance}
+
     async def claim_weekly(self, user_id: int, guild_id: int, now: Optional[int] = None) -> dict[str, Any]:
         """`.weekly` - a large, once-a-week coin grant plus a free
         Mystery Box. Returns {'success': False, 'reason': 'cooldown',
@@ -1648,8 +1694,10 @@ class Database:
 
     async def check_achievements(self, user_id: int, guild_id: int, now: Optional[int] = None) -> list[Achievement]:
         """Evaluate every achievement against current stats, persist
-        any newly-earned ones, and return them so callers can announce
-        them (see cogs/sessions.py, cogs/economy.py)."""
+        any newly-earned ones (crediting each one's one-time
+        `reward_coins` payout - see utils/achievements.py), and return
+        them so callers can announce them (see cogs/sessions.py,
+        cogs/economy.py)."""
         now = now if now is not None else int(time.time())
         unlocked = await self.get_unlocked_achievement_ids(user_id, guild_id)
         context = await self.get_achievement_context(user_id, guild_id, now)
@@ -1662,6 +1710,8 @@ class Database:
                 "VALUES (?, ?, ?, ?)",
                 (user_id, guild_id, achievement.id, now),
             )
+            if achievement.reward_coins:
+                await self._add_coins_raw(user_id, guild_id, achievement.reward_coins)
         await self.conn.commit()
         return newly
 

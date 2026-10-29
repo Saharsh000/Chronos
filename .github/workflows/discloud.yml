@@ -1,0 +1,18 @@
+name: Discloud Auto Deploy
+
+on:
+  push:
+    branches:
+      - main
+
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Deploy to Discloud
+        uses: discloud/deploy-action@v1
+        with:
+          token: ${{ secrets.DISCLOUD_TOKEN }}

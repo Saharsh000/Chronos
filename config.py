@@ -71,6 +71,21 @@ WORK_COINS_MAX = int(os.getenv("WORK_COINS_MAX", "180"))
 WORK_XP_MIN = int(os.getenv("WORK_XP_MIN", "10"))
 WORK_XP_MAX = int(os.getenv("WORK_XP_MAX", "25"))
 
+# `.beg` - a much shorter cooldown than `.work`, smaller (and sometimes
+# zero) payout, purely for flavor/frequent small top-ups.
+BEG_COOLDOWN_SECONDS = int(os.getenv("BEG_COOLDOWN_SECONDS", str(10 * 60)))
+BEG_COINS_MIN = int(os.getenv("BEG_COINS_MIN", "10"))
+BEG_COINS_MAX = int(os.getenv("BEG_COINS_MAX", "45"))
+BEG_FAIL_CHANCE = float(os.getenv("BEG_FAIL_CHANCE", "0.25"))
+
+# --- Streak break penalty ----------------------------------------------------
+# When a study streak resets (missed more than 1 day without a Streak
+# Freeze), the user loses coins proportional to the streak they just
+# lost. The formula is: min(old_streak * STREAK_BREAK_COINS_PER_DAY, STREAK_BREAK_COINS_CAP)
+# Set STREAK_BREAK_COINS_PER_DAY to 0 to disable the penalty entirely.
+STREAK_BREAK_COINS_PER_DAY = int(os.getenv("STREAK_BREAK_COINS_PER_DAY", "5"))
+STREAK_BREAK_COINS_CAP = int(os.getenv("STREAK_BREAK_COINS_CAP", "500"))
+
 WEEKLY_COOLDOWN_SECONDS = int(os.getenv("WEEKLY_COOLDOWN_SECONDS", str(7 * 24 * 60 * 60)))
 WEEKLY_COINS_MIN = int(os.getenv("WEEKLY_COINS_MIN", "900"))
 WEEKLY_COINS_MAX = int(os.getenv("WEEKLY_COINS_MAX", "1500"))

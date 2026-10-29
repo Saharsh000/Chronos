@@ -12,7 +12,7 @@ from discord.ext import commands
 
 from utils import embeds
 from utils.checks import is_dev
-from utils.subjects import SUBJECT_ALIASES, SUBJECT_INFO
+from utils.subjects import SUBJECT_ALIASES, SUBJECT_HINT, SUBJECT_INFO, normalize_subject_key
 from utils.time_format import format_duration, parse_duration
 from utils.xp import tier_for_level
 
@@ -43,10 +43,10 @@ class Dev(commands.Cog, name="Dev"):
 
         subject_key = None
         if subject:
-            subject_key = SUBJECT_ALIASES.get(subject.lower())
+            subject_key = SUBJECT_ALIASES.get(normalize_subject_key(subject))
             if subject_key is None:
                 await ctx.send(embed=embeds.error_embed(
-                    f"Unknown subject `{subject}`. Try `physics`, `chemistry`, or `maths`."
+                    f"Unknown subject `{subject}`. {SUBJECT_HINT}"
                 ))
                 return
 
@@ -146,10 +146,10 @@ class Dev(commands.Cog, name="Dev"):
 
         subject_key = None
         if subject:
-            subject_key = SUBJECT_ALIASES.get(subject.lower())
+            subject_key = SUBJECT_ALIASES.get(normalize_subject_key(subject))
             if subject_key is None:
                 await ctx.send(embed=embeds.error_embed(
-                    f"Unknown subject `{subject}`. Try `physics`, `chemistry`, or `maths`."
+                    f"Unknown subject `{subject}`. {SUBJECT_HINT}"
                 ))
                 return
 

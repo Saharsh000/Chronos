@@ -22,6 +22,7 @@ from discord.ext import commands
 
 import config
 from utils import embeds
+from utils.views import LeaderboardView
 from utils import xp as xp_utils
 from utils.achievements import ACHIEVEMENTS
 from utils.subjects import SUBJECT_ALIASES, SUBJECT_INFO, SUBJECTS
@@ -182,7 +183,7 @@ class Stats(commands.Cog, name="Stats"):
         current_into, needed_for_next, level = xp_utils.xp_progress(stats["xp"])
         effective_tiers = await self.db.get_effective_tiers(ctx.guild.id)
         tier = xp_utils.tier_for_level(level, effective_tiers)
-        bar = xp_utils.progress_bar(current_into, needed_for_next)
+        progress_bar = xp_utils.progress_bar(current_into, needed_for_next)
 
         today_totals = await self._period_totals(ctx.guild.id, "today")
         week_totals = await self._period_totals(ctx.guild.id, "week")
@@ -190,65 +191,68 @@ class Stats(commands.Cog, name="Stats"):
         ranking = sorted(alltime_totals.items(), key=lambda kv: kv[1], reverse=True)
         rank_position = next((i + 1 for i, (uid, _) in enumerate(ranking) if uid == target.id), None)
 
-        header = f"\U0001F4CA Study Stats \u2014 {target.display_name}"
+        # --- Build description-based layout for cleaner look --- #
+        header = f"\u23F3 **{target.display_name}**"
         if stats.get("equipped_title"):
             header += f"  \u00B7  \u201C{stats['equipped_title']}\u201D"
 
-        embed = embeds.base_embed(title=header, color=embeds.COLOR_PRIMARY)
-        embed.set_thumbnail(url=target.display_avatar.url)
-
-        # --- Core progression ------------------------------------------------ #
-        embed.add_field(name="Tier / Level", value=f"{tier} \u00B7 **Lv. {level}**", inline=True)
-        embed.add_field(name="XP", value=f"{stats['xp']:,} XP", inline=True)
-        embed.add_field(name="Server Rank", value=f"#{rank_position}" if rank_position else "Unranked", inline=True)
-        embed.add_field(name="Progress to next level", value=f"`{bar}` {current_into}/{needed_for_next} XP", inline=False)
-
-        # --- Time totals ------------------------------------------------------#
-        embed.add_field(name="Today", value=format_duration(today_totals.get(target.id, 0)), inline=True)
-        embed.add_field(name="This Week", value=format_duration(week_totals.get(target.id, 0)), inline=True)
-        embed.add_field(name="All Time", value=format_duration(stats["total_seconds"] + live_uncredited), inline=True)
-
-        # --- Streaks & economy -------------------------------------------------#
-        embed.add_field(
-            name="\U0001F525 Study Streak",
-            value=f"{stats['current_streak']} days (best: {stats['longest_streak']})",
-            inline=True,
-        )
-        embed.add_field(name="\U0001FA99 Coins", value=f"{currency['coins']:,}", inline=True)
-        embed.add_field(
-            name="\U0001F3C5 Achievements",
-            value=f"{len(unlocked_ids)}/{len(ACHIEVEMENTS)}",
-            inline=True,
-        )
-
-        # --- Session analysis ----------------------------------------------- #
-        embed.add_field(name="Sessions Completed", value=str(stats["sessions_count"]), inline=True)
-        embed.add_field(
-            name="Avg Session Length",
-            value=format_duration(analytics["avg_session_seconds"]) if analytics["sessions_logged"] else "\u2014",
-            inline=True,
-        )
-        embed.add_field(
-            name="Longest Session",
-            value=format_duration(analytics["longest_session_seconds"]) if analytics["sessions_logged"] else "\u2014",
-            inline=True,
-        )
-
-        if analytics["weekday_seconds"]:
-            best_weekday, best_seconds = max(analytics["weekday_seconds"].items(), key=lambda kv: kv[1])
-            embed.add_field(
-                name="Most Active Day",
-                value=f"{WEEKDAY_NAMES[best_weekday]} ({format_duration(best_seconds)})",
-                inline=True,
-            )
-        if analytics["favorite_subject"]:
-            info = SUBJECT_INFO[analytics["favorite_subject"]]
-            embed.add_field(name="Favorite Subject", value=f"{info['emoji']} {info['label']}", inline=True)
-
+        # Active session indicator
+        active_line = ""
         if active_session:
             live_total = now - active_session["start_time"]
-            embed.add_field(name="Right now", value=f"\U0001F7E2 In progress \u2014 {format_duration(live_total)} so far", inline=True)
+            active_line = f"\n\U0001F7E2 **In session** \u2014 {format_duration(live_total)} and counting\n"
 
+        desc_lines = [
+            f"{header}",
+            f"\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501",
+            f"{active_line}",
+            f"\U0001F3C5 {tier} \u00B7 **Level {level}** \u00B7 #{rank_position or '—'}",
+            f"`{progress_bar}` {current_into:,}/{needed_for_next:,} XP",
+            f"",
+            f"\u25B8 **Total XP** \u2014 {stats['xp']:,}",
+            f"\u25B8 **Coins** \u2014 {currency['coins']:,} \U0001FA99",
+            f"\u25B8 **Achievements** \u2014 {len(unlocked_ids)}/{len(ACHIEVEMENTS)} \U0001F3C5",
+        ]
+
+        embed = embeds.base_embed(description="\n".join(desc_lines), color=embeds.COLOR_PRIMARY)
+        embed.set_thumbnail(url=target.display_avatar.url)
+
+        # --- Time breakdown --- #
+        embed.add_field(
+            name="\u23F1\uFE0F Study Time",
+            value=(
+                f"Today \u00B7\u00B7\u00B7 **{format_duration(today_totals.get(target.id, 0))}**\n"
+                f"This Week \u00B7\u00B7\u00B7 **{format_duration(week_totals.get(target.id, 0))}**\n"
+                f"All Time \u00B7\u00B7\u00B7 **{format_duration(stats['total_seconds'] + live_uncredited)}**"
+            ),
+            inline=True,
+        )
+
+        # --- Streaks & sessions --- #
+        avg_session = format_duration(analytics["avg_session_seconds"]) if analytics["sessions_logged"] else "\u2014"
+        longest_session = format_duration(analytics["longest_session_seconds"]) if analytics["sessions_logged"] else "\u2014"
+        embed.add_field(
+            name="\U0001F525 Activity",
+            value=(
+                f"Streak \u00B7\u00B7\u00B7 **{stats['current_streak']}d** (best: {stats['longest_streak']})\n"
+                f"Sessions \u00B7\u00B7\u00B7 **{stats['sessions_count']}** completed\n"
+                f"Avg \u00B7\u00B7\u00B7 {avg_session} \u00B7 Best \u00B7\u00B7\u00B7 {longest_session}"
+            ),
+            inline=True,
+        )
+
+        # --- Analytics insights --- #
+        insights = []
+        if analytics["weekday_seconds"]:
+            best_weekday, best_seconds = max(analytics["weekday_seconds"].items(), key=lambda kv: kv[1])
+            insights.append(f"\U0001F4C5 Most active: **{WEEKDAY_NAMES[best_weekday]}** ({format_duration(best_seconds)})")
+        if analytics["favorite_subject"]:
+            info = SUBJECT_INFO[analytics["favorite_subject"]]
+            insights.append(f"{info['emoji']} Favorite: **{info['label']}**")
+        if insights:
+            embed.add_field(name="\U0001F4CA Insights", value="\n".join(insights), inline=False)
+
+        # --- Subject breakdown (if configured) --- #
         cfg = await self.db.get_guild_config(ctx.guild.id)
         if any(cfg.get(f"{s}_channel_id") for s in SUBJECTS):
             subj_totals = await self.db.get_subject_stats(target.id, ctx.guild.id)
@@ -258,7 +262,7 @@ class Stats(commands.Cog, name="Stats"):
                 f"{SUBJECT_INFO[s]['emoji']} {format_duration(subj_totals.get(s, 0), always_show_seconds=False)}"
                 for s in SUBJECTS
             )
-            embed.add_field(name="Subjects", value=subj_text, inline=False)
+            embed.add_field(name="\U0001F4DA Subjects", value=subj_text, inline=False)
 
         embed.set_footer(text=f"{embeds.FOOTER_TEXT} \u2022 {ctx.prefix}achievements \u00B7 {ctx.prefix}compare \u00B7 {ctx.prefix}halloffame")
         await ctx.send(embed=embed)
@@ -307,11 +311,54 @@ class Stats(commands.Cog, name="Stats"):
         embed.add_field(name="Next level in", value=f"`{bar}` {needed_for_next - current_into} XP to go", inline=False)
         await ctx.send(embed=embed)
 
+    async def _render_leaderboard(
+        self, ctx: commands.Context, period: str, subject: Optional[str],
+    ) -> discord.Embed:
+        """Build the leaderboard embed for one period. Called on the
+        initial send and again each time a period button is pressed
+        (see utils/views.py LeaderboardView)."""
+        totals = await self._totals(ctx.guild.id, period, subject)
+        ranking = sorted(totals.items(), key=lambda kv: kv[1], reverse=True)
+
+        title = f"\U0001F3C6 Leaderboard \u2014 {PERIOD_LABELS[period]}"
+        if subject:
+            info = SUBJECT_INFO[subject]
+            title += f" \u00B7 {info['emoji']} {info['label']}"
+
+        if not ranking or ranking[0][1] <= 0:
+            return embeds.base_embed(
+                title=title,
+                description="No study time has been logged yet for this filter.",
+                color=embeds.COLOR_MUTED,
+            )
+
+        medals = ["\U0001F947", "\U0001F948", "\U0001F949"]
+        lines = []
+        for i, (user_id, seconds) in enumerate(ranking[:10]):
+            if seconds <= 0:
+                break
+            member = ctx.guild.get_member(user_id)
+            name = member.display_name if member else f"Unknown User ({user_id})"
+            prefix = medals[i] if i < 3 else f"`#{i + 1:>2}`"
+            you = " \u2190 *you*" if user_id == ctx.author.id else ""
+            lines.append(f"{prefix} **{name}** \u2014 {format_duration(seconds)}{you}")
+
+        embed = embeds.base_embed(title=title, description="\n".join(lines), color=embeds.COLOR_LEVELUP)
+
+        author_position = next((i + 1 for i, (uid, _) in enumerate(ranking) if uid == ctx.author.id), None)
+        if author_position and author_position > 10:
+            embed.set_footer(
+                text=f"You're ranked #{author_position} with {format_duration(totals[ctx.author.id])}"
+            )
+        return embed
+
     @commands.command(name="leaderboard", aliases=["lb", "top"])
     async def leaderboard_cmd(self, ctx: commands.Context, *args: str) -> None:
-        """Server leaderboard. Optional filters, in any order:
-        a period (today/week/month/alltime) and/or a subject
-        (physics/chemistry/maths). Examples:
+        """Server leaderboard with clickable period switching.
+
+        Opens on All Time by default; the Today / This Week / This
+        Month / All Time buttons re-query live. Optional filters, in
+        any order: a period and/or a subject.
           .leaderboard
           .leaderboard week
           .leaderboard physics
@@ -332,36 +379,12 @@ class Stats(commands.Cog, name="Stats"):
                 ))
                 return
 
-        totals = await self._totals(ctx.guild.id, period, subject)
-        ranking = sorted(totals.items(), key=lambda kv: kv[1], reverse=True)
+        async def render(selected_period: str) -> discord.Embed:
+            return await self._render_leaderboard(ctx, selected_period, subject)
 
-        title = f"\U0001F3C6 Leaderboard \u2014 {PERIOD_LABELS[period]}"
-        if subject:
-            info = SUBJECT_INFO[subject]
-            title += f" \u00B7 {info['emoji']} {info['label']}"
-
-        if not ranking or ranking[0][1] <= 0:
-            await ctx.send(embed=embeds.info_embed(
-                title, "No study time has been logged yet for this filter."
-            ))
-            return
-
-        medals = ["\U0001F947", "\U0001F948", "\U0001F949"]
-        lines = []
-        for i, (user_id, seconds) in enumerate(ranking[:10]):
-            if seconds <= 0:
-                break
-            member = ctx.guild.get_member(user_id)
-            name = member.display_name if member else f"Unknown User ({user_id})"
-            prefix = medals[i] if i < 3 else f"`#{i + 1}`"
-            lines.append(f"{prefix} **{name}** \u2014 {format_duration(seconds)}")
-
-        embed = embeds.base_embed(title=title, description="\n".join(lines), color=embeds.COLOR_LEVELUP)
-
-        author_position = next((i + 1 for i, (uid, _) in enumerate(ranking) if uid == ctx.author.id), None)
-        if author_position and author_position > 10:
-            embed.set_footer(text=f"You're ranked #{author_position} with {format_duration(totals[ctx.author.id])}")
-        await ctx.send(embed=embed)
+        view = LeaderboardView(author_id=ctx.author.id, initial_period=period, render=render)
+        embed = await self._render_leaderboard(ctx, period, subject)
+        view.message = await ctx.send(embed=embed, view=view)
 
 
 async def setup(bot: commands.Bot) -> None:

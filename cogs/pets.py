@@ -21,24 +21,115 @@ import config
 from utils import embeds
 from utils import food as food_catalog
 from utils import pets as pet_catalog
+from utils.views import ShopPaginator
 from utils.xp import progress_bar
 
 log = logging.getLogger("pets")
 
+# Items per shop page. Kept under 9 so the header embed plus the item
+# cards stay within Discord's 10-embeds-per-message limit.
+PETS_PER_PAGE = 6
+FOODS_PER_PAGE = 8
 
-def _pet_line(species_id: str, pet_row: dict) -> str:
-    species = pet_catalog.PETS[species_id]
-    tier = pet_catalog.TIER_INFO[species["tier"]]
-    stage = pet_catalog.stage_for_level(species_id, pet_row["level"])
-    star = " \u2B50" if pet_row["equipped"] else ""
-    return (
-        f"{tier['emoji']} **{pet_row['nickname']}** ({stage['name']}) "
-        f"\u2014 Lv. {pet_row['level']}{star}"
+
+def count_pet_shop_pages(tier: str) -> int:
+    total = len(pet_catalog.PETS_BY_TIER.get(tier, []))
+    return max(1, -(-total // PETS_PER_PAGE))
+
+
+def count_food_shop_pages(tier: str) -> int:
+    total = len(food_catalog.FOODS_BY_TIER.get(tier, []))
+    return max(1, -(-total // FOODS_PER_PAGE))
+
+
+def build_pet_shop_page(
+    tier: str, page: int, owned_ids: set[str], prefix: str, coins: int, level: int,
+) -> list[discord.Embed]:
+    """Header embed + one card per pet for a single shop page. Pure -
+    no database access - so it can be unit-tested directly."""
+    info = pet_catalog.TIER_INFO[tier]
+    species_ids = pet_catalog.PETS_BY_TIER[tier]
+    total_pages = count_pet_shop_pages(tier)
+    page = max(0, min(page, total_pages - 1))
+    window = species_ids[page * PETS_PER_PAGE:(page + 1) * PETS_PER_PAGE]
+
+    owned_here = sum(1 for sid in species_ids if sid in owned_ids)
+    gate = "" if level >= config.PET_UNLOCK_LEVEL else (
+        f"\n\u26A0\uFE0F You need **Level {config.PET_UNLOCK_LEVEL}** to buy a pet (you're Level {level})."
     )
+    header = embeds.base_embed(
+        title=f"{info['emoji']} Pet Shop \u2014 {info['label']}",
+        description=(
+            f"\U0001FA99 **{coins:,}** coins \u00B7 owned **{owned_here}/{len(species_ids)}** in this tier\n"
+            f"Buy with `{prefix}buypet <name>` \u00B7 \u2B50 = already owned{gate}"
+        ),
+        color=info["color"],
+    )
+    header.set_footer(text=f"{embeds.FOOTER_TEXT} \u2022 Page {page + 1}/{total_pages}")
+
+    cards = [header]
+    for species_id in window:
+        species = pet_catalog.PETS[species_id]
+        price = pet_catalog.pet_cost(species_id)
+        chain = " \u2192 ".join(s["name"] for s in species["stages"])
+        owned = species_id in owned_ids
+        affordable = coins >= price
+        mark = " \u2B50" if owned else ("" if affordable else " \U0001F512")
+        cards.append(embeds.card_embed(
+            title=f"{species['name']} \u2014 {price:,} coins{mark}",
+            description=f"*{species['species']}. {species['desc']}*\n{chain}",
+            color=info["color"] if (owned or affordable) else embeds.COLOR_MUTED,
+            thumbnail=species["stages"][0]["sprite"],
+        ))
+    return cards
+
+
+def build_food_shop_page(
+    tier: str, page: int, prefix: str, coins: int, owned: dict[str, int],
+) -> list[discord.Embed]:
+    """Header embed + one card per food for a single shop page."""
+    info = food_catalog.FOOD_TIER_INFO[tier]
+    food_ids = food_catalog.FOODS_BY_TIER[tier]
+    total_pages = count_food_shop_pages(tier)
+    page = max(0, min(page, total_pages - 1))
+    window = food_ids[page * FOODS_PER_PAGE:(page + 1) * FOODS_PER_PAGE]
+
+    header = embeds.base_embed(
+        title=f"{info['emoji']} Food Shop \u2014 {info['label']}",
+        description=(
+            f"\U0001FA99 **{coins:,}** coins\n"
+            f"Buy with `{prefix}buyfood <name> [qty]` \u00B7 feed with `{prefix}feed <name> [qty]`"
+        ),
+        color=info["color"],
+    )
+    header.set_footer(text=f"{embeds.FOOTER_TEXT} \u2022 Page {page + 1}/{total_pages}")
+
+    cards = [header]
+    for food_id in window:
+        f = food_catalog.FOODS[food_id]
+        have = owned.get(food_id, 0)
+        have_text = f" \u00B7 you have **{have}**" if have else ""
+        affordable = coins >= f["cost"]
+        cards.append(embeds.card_embed(
+            title=f"{f['name']} \u2014 {f['cost']:,} coins",
+            description=f"+{f['xp']:,} pet XP{have_text}",
+            color=info["color"] if affordable else embeds.COLOR_MUTED,
+            thumbnail=f["sprite"],
+        ))
+    return cards
 
 
 def _pet_embed_color(species_id: str) -> int:
     return pet_catalog.TIER_INFO[pet_catalog.PETS[species_id]["tier"]]["color"]
+
+
+async def _send_embed_grid(ctx: commands.Context, embed_list: list[discord.Embed], chunk_size: int = 10) -> None:
+    """Send a list of embeds as one or more messages, respecting
+    Discord's 10-embeds-per-message limit - used to show a whole shop
+    tier (or a whole pet collection) as a grid of sprite thumbnails
+    instead of one cramped text embed."""
+    for i in range(0, len(embed_list), chunk_size):
+        await ctx.send(embeds=embed_list[i:i + chunk_size])
 
 
 class Pets(commands.Cog, name="Pets"):
@@ -72,61 +163,43 @@ class Pets(commands.Cog, name="Pets"):
     @commands.command(name="petshop", aliases=["pshop"])
     @commands.guild_only()
     async def petshop_cmd(self, ctx: commands.Context, tier: Optional[str] = None) -> None:
-        """Browse buyable pets. `.petshop` for the tier overview, or
-        `.petshop <tier>` (common/uncommon/rare/epic/legendary) to see
-        every pet in that tier and its price."""
-        if tier is None:
-            currency = await self.db.get_or_create_currency(ctx.author.id, ctx.guild.id)
-            stats = await self.db.get_or_create_user_stats(ctx.author.id, ctx.guild.id)
-            embed = embeds.base_embed(
-                title="\U0001F43E Chronos Pet Shop",
-                description=(
-                    f"You have **{currency['coins']:,}** coins and are **Level {stats['level']}** "
-                    f"(pets unlock at Level {config.PET_UNLOCK_LEVEL}).\n"
-                    f"Use `{ctx.prefix}petshop <tier>` to see pets in a tier, then "
-                    f"`{ctx.prefix}buypet <name>` to buy one."
-                ),
-                color=embeds.COLOR_PRIMARY,
-            )
-            for t in pet_catalog.TIER_ORDER:
-                info = pet_catalog.TIER_INFO[t]
-                ids = pet_catalog.PETS_BY_TIER[t]
-                prices = sorted({pet_catalog.pet_cost(i) for i in ids})
-                price_text = f"{prices[0]:,}" if len(prices) == 1 else f"{prices[0]:,}\u2013{prices[-1]:,}"
-                embed.add_field(
-                    name=f"{info['emoji']} {info['label']} ({len(ids)} pets)",
-                    value=f"{price_text} coins",
-                    inline=True,
-                )
-            embed.set_footer(text=f"{embeds.FOOTER_TEXT} \u2022 e.g. \"{ctx.prefix}petshop rare\"")
-            await ctx.send(embed=embed)
-            return
+        """Browse buyable pets in an interactive, paginated menu.
 
-        tier_key = tier.strip().lower()
-        if tier_key not in pet_catalog.TIER_INFO:
-            await ctx.send(embed=embeds.error_embed(
-                f"Unknown tier `{tier}`. Try one of: {', '.join(pet_catalog.TIER_ORDER)}."
-            ))
-            return
+        `.petshop` opens at the Common tier; `.petshop <tier>` jumps
+        straight to that tier. Use the dropdown to switch tiers and the
+        arrows to page through them.
+        """
+        tier_key = "common"
+        if tier is not None:
+            candidate = tier.strip().lower()
+            if candidate not in pet_catalog.TIER_INFO:
+                await ctx.send(embed=embeds.error_embed(
+                    f"Unknown tier `{tier}`. Try one of: {', '.join(pet_catalog.TIER_ORDER)}."
+                ))
+                return
+            tier_key = candidate
 
-        info = pet_catalog.TIER_INFO[tier_key]
         owned_ids = {p["species_id"] for p in await self.db.get_owned_pets(ctx.author.id, ctx.guild.id)}
-        embed = embeds.base_embed(
-            title=f"{info['emoji']} {info['label']} Pets",
-            description=f"Buy with `{ctx.prefix}buypet <name>`. \u2B50 = already owned.",
-            color=info["color"],
-        )
-        for species_id in pet_catalog.PETS_BY_TIER[tier_key]:
-            species = pet_catalog.PETS[species_id]
-            price = pet_catalog.pet_cost(species_id)
-            chain = " \u2192 ".join(s["name"] for s in species["stages"])
-            owned_mark = " \u2B50" if species_id in owned_ids else ""
-            embed.add_field(
-                name=f"{species['name']} \u2014 {species['species']} ({price:,} coins){owned_mark}",
-                value=f"*{species['desc']}*\n{chain}",
-                inline=False,
+        currency = await self.db.get_or_create_currency(ctx.author.id, ctx.guild.id)
+        stats = await self.db.get_or_create_user_stats(ctx.author.id, ctx.guild.id)
+
+        def build(tier_name: str, page: int) -> list[discord.Embed]:
+            return build_pet_shop_page(
+                tier_name, page, owned_ids, ctx.prefix,
+                coins=currency["coins"], level=stats["level"],
             )
-        await ctx.send(embed=embed)
+
+        view = ShopPaginator(
+            author_id=ctx.author.id,
+            tiers=[
+                (key, pet_catalog.TIER_INFO[key]["label"], pet_catalog.TIER_INFO[key]["emoji"])
+                for key in pet_catalog.TIER_ORDER
+            ],
+            initial_tier=tier_key,
+            build_page=build,
+            count_pages=count_pet_shop_pages,
+        )
+        view.message = await ctx.send(embeds=view.embeds(), view=view)
 
     # ------------------------------------------------------------------ #
     # .buypet
@@ -179,17 +252,37 @@ class Pets(commands.Cog, name="Pets"):
         """See your (or someone else's) owned pets."""
         target = member or ctx.author
         owned = await self.db.get_owned_pets(target.id, ctx.guild.id)
-        embed = embeds.base_embed(title=f"\U0001F43E {target.display_name}'s Pets", color=embeds.COLOR_PRIMARY)
-        embed.set_thumbnail(url=target.display_avatar.url)
 
         if not owned:
-            embed.description = f"No pets yet - check out `{ctx.prefix}petshop`."
-        else:
-            lines = [_pet_line(row["species_id"], row) for row in owned]
-            embed.description = "\n".join(lines)
-            embed.set_footer(text=f"{embeds.FOOTER_TEXT} \u2022 {ctx.prefix}pet <name> for details, {ctx.prefix}equip <name> to switch")
+            embed = embeds.base_embed(
+                title=f"\U0001F43E {target.display_name}'s Pets",
+                description=f"No pets yet - check out `{ctx.prefix}petshop`.",
+                color=embeds.COLOR_PETS,
+            )
+            embed.set_thumbnail(url=target.display_avatar.url)
+            await ctx.send(embed=embed)
+            return
 
-        await ctx.send(embed=embed)
+        await ctx.send(embed=embeds.base_embed(
+            title=f"\U0001F43E {target.display_name}'s Pets ({len(owned)})",
+            description=f"{ctx.prefix}pet <name> for details \u2022 {ctx.prefix}equip <name> to switch",
+            color=embeds.COLOR_PETS,
+        ))
+
+        cards = []
+        for row in owned:
+            species = pet_catalog.PETS[row["species_id"]]
+            tier = pet_catalog.TIER_INFO[species["tier"]]
+            stage = pet_catalog.stage_for_level(row["species_id"], row["level"])
+            star = " \u2B50" if row["equipped"] else ""
+            card = discord.Embed(
+                title=f"{tier['emoji']} {row['nickname']} \u2014 Lv. {row['level']}{star}",
+                description=f"{stage['name']} ({pet_catalog.BADGE_LABELS[stage['badge']]})",
+                color=tier["color"],
+            )
+            card.set_thumbnail(url=stage["sprite"])
+            cards.append(card)
+        await _send_embed_grid(ctx, cards)
 
     # ------------------------------------------------------------------ #
     # .pet
@@ -223,7 +316,7 @@ class Pets(commands.Cog, name="Pets"):
             color=tier["color"],
         )
         embed.set_image(url=stage["sprite"])
-        embed.add_field(name="Species", value=f"{species['name']} the {species['species']}", inline=True)
+        embed.add_field(name="Archetype", value=species["species"], inline=True)
         embed.add_field(name="Tier", value=tier["label"], inline=True)
         embed.add_field(name="Level", value=str(row["level"]), inline=True)
         embed.add_field(name="Stage", value=f"{stage['name']} ({pet_catalog.BADGE_LABELS[stage['badge']]})", inline=True)
@@ -292,50 +385,41 @@ class Pets(commands.Cog, name="Pets"):
     @commands.command(name="foodshop", aliases=["fshop"])
     @commands.guild_only()
     async def foodshop_cmd(self, ctx: commands.Context, tier: Optional[str] = None) -> None:
-        """Browse pet food. `.foodshop` for the tier overview, or
-        `.foodshop <tier>` (snack/meal/feast/golden) for the full list."""
-        if tier is None:
-            currency = await self.db.get_or_create_currency(ctx.author.id, ctx.guild.id)
-            embed = embeds.base_embed(
-                title="\U0001F372 Chronos Food Shop",
-                description=(
-                    f"You have **{currency['coins']:,}** coins. Use `{ctx.prefix}foodshop <tier>` to browse, "
-                    f"`{ctx.prefix}buyfood <name>` to buy, and `{ctx.prefix}feed <name>` to feed your equipped pet."
-                ),
-                color=embeds.COLOR_PRIMARY,
+        """Browse pet food in an interactive, paginated menu.
+
+        `.foodshop` opens at the Snack tier; `.foodshop <tier>` jumps
+        straight to that tier. Use the dropdown to switch tiers and the
+        arrows to page through them.
+        """
+        tier_key = "snack"
+        if tier is not None:
+            candidate = tier.strip().lower()
+            if candidate not in food_catalog.FOOD_TIER_INFO:
+                await ctx.send(embed=embeds.error_embed(
+                    f"Unknown tier `{tier}`. Try one of: {', '.join(food_catalog.FOOD_TIER_ORDER)}."
+                ))
+                return
+            tier_key = candidate
+
+        currency = await self.db.get_or_create_currency(ctx.author.id, ctx.guild.id)
+        owned_food = await self.db.get_food_inventory(ctx.author.id, ctx.guild.id)
+
+        def build(tier_name: str, page: int) -> list[discord.Embed]:
+            return build_food_shop_page(
+                tier_name, page, ctx.prefix, coins=currency["coins"], owned=owned_food,
             )
-            for t in food_catalog.FOOD_TIER_ORDER:
-                info = food_catalog.FOOD_TIER_INFO[t]
-                ids = food_catalog.FOODS_BY_TIER[t]
-                prices = [food_catalog.FOODS[i]["cost"] for i in ids]
-                embed.add_field(
-                    name=f"{info['emoji']} {info['label']} ({len(ids)} items)",
-                    value=f"{min(prices):,}\u2013{max(prices):,} coins",
-                    inline=True,
-                )
-            embed.set_footer(text=f"{embeds.FOOTER_TEXT} \u2022 e.g. \"{ctx.prefix}foodshop feast\"")
-            await ctx.send(embed=embed)
-            return
 
-        tier_key = tier.strip().lower()
-        if tier_key not in food_catalog.FOOD_TIER_INFO:
-            await ctx.send(embed=embeds.error_embed(
-                f"Unknown tier `{tier}`. Try one of: {', '.join(food_catalog.FOOD_TIER_ORDER)}."
-            ))
-            return
-
-        info = food_catalog.FOOD_TIER_INFO[tier_key]
-        embed = embeds.base_embed(
-            title=f"{info['emoji']} {info['label']} Food",
-            description=f"Buy with `{ctx.prefix}buyfood <name> [quantity]`.",
-            color=info["color"],
+        view = ShopPaginator(
+            author_id=ctx.author.id,
+            tiers=[
+                (key, food_catalog.FOOD_TIER_INFO[key]["label"], food_catalog.FOOD_TIER_INFO[key]["emoji"])
+                for key in food_catalog.FOOD_TIER_ORDER
+            ],
+            initial_tier=tier_key,
+            build_page=build,
+            count_pages=count_food_shop_pages,
         )
-        lines = []
-        for food_id in food_catalog.FOODS_BY_TIER[tier_key]:
-            f = food_catalog.FOODS[food_id]
-            lines.append(f"**{f['name']}** \u2014 {f['cost']:,} coins \u2192 +{f['xp']:,} pet XP")
-        embed.description += "\n\n" + "\n".join(lines)
-        await ctx.send(embed=embed)
+        view.message = await ctx.send(embeds=view.embeds(), view=view)
 
     # ------------------------------------------------------------------ #
     # .buyfood

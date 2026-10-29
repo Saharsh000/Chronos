@@ -4,6 +4,12 @@ Pure and content-only, like `utils/xp.py`'s TIERS or
 `utils/economy.py`'s SHOP_ITEMS - `database.py` gathers a context dict
 of a user's stats and calls `evaluate()` to see which *new*
 achievements that context satisfies. No database access happens here.
+
+Each achievement also carries a one-time `reward_coins` payout,
+credited by `Database.check_achievements()` the moment it's newly
+unlocked - one more way to earn coins on top of studying/`.daily`/
+`.work`/`.weekly` (see cogs/economy.py), scaled roughly to how hard
+the achievement is to get.
 """
 from __future__ import annotations
 
@@ -19,6 +25,7 @@ class Achievement(NamedTuple):
     description: str
     category: str
     check: Callable[[dict[str, Any]], bool]
+    reward_coins: int = 0
 
 
 def _time(hours: float, name: str, emoji: str) -> Achievement:
@@ -30,6 +37,7 @@ def _time(hours: float, name: str, emoji: str) -> Achievement:
         description=f"Accumulate {hours:g} hours of total study time.",
         category="Time Studied",
         check=lambda c: c["total_seconds"] >= seconds,
+        reward_coins=int(hours * 15),
     )
 
 
@@ -41,6 +49,7 @@ def _sessions(count: int, name: str, emoji: str) -> Achievement:
         description=f"Complete {count} study sessions.",
         category="Sessions",
         check=lambda c: c["sessions_count"] >= count,
+        reward_coins=count * 8,
     )
 
 
@@ -52,6 +61,7 @@ def _streak(days: int, name: str, emoji: str) -> Achievement:
         description=f"Reach a {days}-day study streak.",
         category="Streaks",
         check=lambda c: c["longest_streak"] >= days,
+        reward_coins=days * 20,
     )
 
 
@@ -63,6 +73,7 @@ def _daily_streak(days: int, name: str, emoji: str) -> Achievement:
         description=f"Claim `.daily` {days} days in a row.",
         category="Daily Streaks",
         check=lambda c: c["daily_streak"] >= days,
+        reward_coins=days * 25,
     )
 
 
@@ -74,6 +85,7 @@ def _tier(level: int, tier_name: str, emoji: str) -> Achievement:
         description=f"Reach level {level} and enter the {tier_name} tier.",
         category="Tiers",
         check=lambda c: c["level"] >= level,
+        reward_coins=level * 10,
     )
 
 
@@ -86,6 +98,7 @@ def _subject(subject: str, hours: float, label: str, emoji: str) -> Achievement:
         description=f"Log {hours:g} hours studying {label}.",
         category="Subjects",
         check=lambda c: c["subject_seconds"].get(subject, 0) >= seconds,
+        reward_coins=int(hours * 12),
     )
 
 
@@ -97,6 +110,7 @@ def _milestone_count(kind: str, count: int, name: str, emoji: str, category: str
         description=f"{verb} {count} {kind}{'s' if count != 1 else ''}.",
         category=category,
         check=lambda c, _kind=kind, _count=count: c[f"{_kind}s_completed"] >= _count,
+        reward_coins=count * {"chapter": 10, "subtopic": 8, "book": 100, "pyq": 60}.get(kind, 10),
     )
 
 
@@ -108,6 +122,7 @@ def _revision(n: int, name: str, emoji: str) -> Achievement:
         description=f"Log your {n}{'st' if n == 1 else 'nd' if n == 2 else 'rd' if n == 3 else 'th'} revision pass.",
         category="Revisions",
         check=lambda c: c["max_revision"] >= n,
+        reward_coins=n * 150,
     )
 
 
@@ -168,42 +183,42 @@ ACHIEVEMENTS: list[Achievement] = [
     Achievement(
         id="coins_500", name="Small Change", emoji="\U0001FA99",
         description="Earn 500 lifetime coins.", category="Economy",
-        check=lambda c: c["coins_lifetime"] >= 500,
+        check=lambda c: c["coins_lifetime"] >= 500, reward_coins=100,
     ),
     Achievement(
         id="coins_2500", name="Coin Collector", emoji="\U0001F4B0",
         description="Earn 2,500 lifetime coins.", category="Economy",
-        check=lambda c: c["coins_lifetime"] >= 2500,
+        check=lambda c: c["coins_lifetime"] >= 2500, reward_coins=300,
     ),
     Achievement(
         id="coins_10000", name="High Roller", emoji="\U0001F3B0",
         description="Earn 10,000 lifetime coins.", category="Economy",
-        check=lambda c: c["coins_lifetime"] >= 10000,
+        check=lambda c: c["coins_lifetime"] >= 10000, reward_coins=750,
     ),
     Achievement(
         id="boxes_1", name="What's Inside?", emoji="\U0001F381",
         description="Open your first Mystery Box.", category="Economy",
-        check=lambda c: c["boxes_opened"] >= 1,
+        check=lambda c: c["boxes_opened"] >= 1, reward_coins=50,
     ),
     Achievement(
         id="boxes_10", name="Box Enthusiast", emoji="\U0001F4E6",
         description="Open 10 Mystery Boxes.", category="Economy",
-        check=lambda c: c["boxes_opened"] >= 10,
+        check=lambda c: c["boxes_opened"] >= 10, reward_coins=200,
     ),
     Achievement(
         id="boxes_50", name="Unboxing Addict", emoji="\U0001F3AB",
         description="Open 50 Mystery Boxes.", category="Economy",
-        check=lambda c: c["boxes_opened"] >= 50,
+        check=lambda c: c["boxes_opened"] >= 50, reward_coins=750,
     ),
     Achievement(
         id="purchases_1", name="First Purchase", emoji="\U0001F6D2",
         description="Buy your first item from the shop.", category="Economy",
-        check=lambda c: c["items_purchased"] >= 1,
+        check=lambda c: c["items_purchased"] >= 1, reward_coins=50,
     ),
     Achievement(
         id="purchases_10", name="Big Spender", emoji="\U0001F4B8",
         description="Buy 10 items from the shop.", category="Economy",
-        check=lambda c: c["items_purchased"] >= 10,
+        check=lambda c: c["items_purchased"] >= 10, reward_coins=250,
     ),
 
     # --- Chapters / Books / PYQs / Revisions (manually logged, see cogs/progress.py) --#
@@ -228,27 +243,27 @@ ACHIEVEMENTS: list[Achievement] = [
     Achievement(
         id="early_bird", name="Early Bird", emoji="\U0001F305",
         description="Start a session between 4 AM and 7 AM (IST).", category="Special",
-        check=lambda c: c["early_bird_count"] >= 1,
+        check=lambda c: c["early_bird_count"] >= 1, reward_coins=100,
     ),
     Achievement(
         id="night_owl", name="Night Owl", emoji="\U0001F989",
         description="Start a session between 11 PM and 3 AM (IST).", category="Special",
-        check=lambda c: c["night_owl_count"] >= 1,
+        check=lambda c: c["night_owl_count"] >= 1, reward_coins=100,
     ),
     Achievement(
         id="perfect_week", name="Perfect Week", emoji="\U0001F4AF",
         description="Study on all 7 days of the last week.", category="Special",
-        check=lambda c: c["perfect_week"],
+        check=lambda c: c["perfect_week"], reward_coins=500,
     ),
     Achievement(
         id="collector_10", name="Achievement Hunter", emoji="\U0001F3C5",
         description="Unlock 10 achievements.", category="Special",
-        check=lambda c: c["achievements_count"] >= 10,
+        check=lambda c: c["achievements_count"] >= 10, reward_coins=300,
     ),
     Achievement(
         id="collector_25", name="Completionist", emoji="\U0001F31F",
         description="Unlock 25 achievements.", category="Special",
-        check=lambda c: c["achievements_count"] >= 25,
+        check=lambda c: c["achievements_count"] >= 25, reward_coins=1000,
     ),
 ]
 

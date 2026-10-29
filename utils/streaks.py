@@ -32,6 +32,7 @@ class StreakResult(NamedTuple):
     changed: bool          # did anything actually update?
     extended: bool         # did the streak count go up?
     freeze_consumed: bool  # was a streak-freeze item used to bridge a gap?
+    streak_broken_from: int  # old streak value when reset happened, 0 if no reset
 
 
 def apply_activity(
@@ -50,24 +51,24 @@ def apply_activity(
     - Any larger gap (or no freeze available): streak resets to 1.
     """
     if last_active_date == today:
-        return StreakResult(current_streak, longest_streak, today, False, False, False)
+        return StreakResult(current_streak, longest_streak, today, False, False, False, 0)
 
     if last_active_date is None:
         new_current = 1
-        return StreakResult(new_current, max(longest_streak, new_current), today, True, True, False)
+        return StreakResult(new_current, max(longest_streak, new_current), today, True, True, False, 0)
 
     gap = days_between(last_active_date, today)
     if gap <= 0:
         # Clock skew / out-of-order credit; don't corrupt the streak.
-        return StreakResult(current_streak, longest_streak, last_active_date, False, False, False)
+        return StreakResult(current_streak, longest_streak, last_active_date, False, False, False, 0)
 
     if gap == 1:
         new_current = current_streak + 1
-        return StreakResult(new_current, max(longest_streak, new_current), today, True, True, False)
+        return StreakResult(new_current, max(longest_streak, new_current), today, True, True, False, 0)
 
     if gap == 2 and freeze_available:
         new_current = current_streak + 1
-        return StreakResult(new_current, max(longest_streak, new_current), today, True, True, True)
+        return StreakResult(new_current, max(longest_streak, new_current), today, True, True, True, 0)
 
     new_current = 1
-    return StreakResult(new_current, max(longest_streak, new_current), today, True, False, False)
+    return StreakResult(new_current, max(longest_streak, new_current), today, True, False, False, current_streak)

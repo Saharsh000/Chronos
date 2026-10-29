@@ -25,7 +25,7 @@ from discord.ext import commands, tasks
 
 import config
 from utils import embeds
-from utils.subjects import SUBJECT_ALIASES, SUBJECT_INFO, detect_subject
+from utils.subjects import SUBJECT_ALIASES, SUBJECT_HINT, SUBJECT_INFO, detect_subject, normalize_subject_key
 from utils.time_format import discord_timestamp, format_duration
 from utils.xp import tier_for_level
 
@@ -97,11 +97,10 @@ class Sessions(commands.Cog, name="Sessions"):
         resolved_subject = detect_subject(guild_config, channel_id)
 
         if subject:
-            subject_key = SUBJECT_ALIASES.get(subject.strip().lower())
+            subject_key = SUBJECT_ALIASES.get(normalize_subject_key(subject))
             if subject_key is None:
                 await ctx.send(embed=embeds.error_embed(
-                    f"Unknown subject `{subject}`. Try `physics`/`phy`/`p`, `chemistry`/`chem`/`c`, "
-                    f"or `maths`/`math`/`m`."
+                    f"Unknown subject `{subject}`. {SUBJECT_HINT}"
                 ))
                 return
             resolved_subject = subject_key
@@ -169,6 +168,23 @@ class Sessions(commands.Cog, name="Sessions"):
             )
         await ctx.send(embed=embed)
 
+        if result.get("streak_broken_from", 0) > 0:
+            broken_from = result["streak_broken_from"]
+            penalty = min(
+                broken_from * config.STREAK_BREAK_COINS_PER_DAY,
+                config.STREAK_BREAK_COINS_CAP
+            )
+            break_embed = embeds.base_embed(
+                title="💔 Streak Lost!",
+                description=(
+                    f"<@{ctx.author.id}> lost their **{broken_from}-day** study streak "
+                    f"and was penalized **{penalty} coins**.\n"
+                    f"Study today to start building a new one!"
+                ),
+                color=embeds.COLOR_ERROR,
+            )
+            await ctx.send(embed=break_embed)
+
         newly_unlocked = await self.db.check_achievements(ctx.author.id, ctx.guild.id)
         if newly_unlocked:
             await ctx.send(embed=embeds.achievement_unlock_embed(ctx.author, newly_unlocked))
@@ -191,6 +207,8 @@ class Sessions(commands.Cog, name="Sessions"):
             # instead of only once the session ends.
             credit = await self.db.credit_progress(session["session_id"], now)
             if credit:
+                if credit.get("streak_broken_from", 0) > 0:
+                    await self._announce_streak_break(credit)
                 if credit["leveled_up"]:
                     await self._announce_level_up(credit)
                 if credit.get("pet_result"):
@@ -209,6 +227,35 @@ class Sessions(commands.Cog, name="Sessions"):
     @session_monitor.before_loop
     async def before_session_monitor(self) -> None:
         await self.bot.wait_until_ready()
+
+    async def _announce_streak_break(self, credit: dict) -> None:
+        broken_from = credit.get("streak_broken_from", 0)
+        if broken_from <= 0:
+            return
+            
+        guild_config = await self.db.get_guild_config(credit["guild_id"])
+        channel_id = guild_config.get("checkin_channel_id")
+        channel = self.bot.get_channel(channel_id) if channel_id else None
+        if channel is None:
+            return
+            
+        penalty = min(
+            broken_from * config.STREAK_BREAK_COINS_PER_DAY,
+            config.STREAK_BREAK_COINS_CAP
+        )
+        embed = embeds.base_embed(
+            title="💔 Streak Lost!",
+            description=(
+                f"<@{credit['user_id']}> lost their **{broken_from}-day** study streak "
+                f"and was penalized **{penalty} coins**.\n"
+                f"Study today to start building a new one!"
+            ),
+            color=embeds.COLOR_ERROR,
+        )
+        try:
+            await channel.send(embed=embed)
+        except discord.HTTPException:
+            pass
 
     async def _announce_level_up(self, credit: dict) -> None:
         log.info(f"LEVEL UP      | user={credit['user_id']} -> level {credit['new_level']} (mid-session)")
