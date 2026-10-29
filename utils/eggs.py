@@ -25,7 +25,6 @@ EGGS: dict[str, dict[str, Any]] = {
         "emoji": "🥚",
         "color": 0x94A3B8,  # Slate / Silver
         "incubation_seconds": 600,  # 10 minutes of study
-        "price": 350,
         "desc": "A speckled white egg found frequently while studying. Hatches with basic study warmth.",
         "pet_tier": "common",
         "aliases": ["common", "white", "basic", "egg_common", "c"],
@@ -37,7 +36,6 @@ EGGS: dict[str, dict[str, Any]] = {
         "emoji": "🟢🥚",
         "color": 0x22C55E,  # Emerald Green
         "incubation_seconds": 1500,  # 25 minutes of study
-        "price": 950,
         "desc": "A smooth forest-green egg humming with focus energy. Yields solid coin stashes and pets.",
         "pet_tier": "uncommon",
         "aliases": ["uncommon", "green", "verdant", "egg_uncommon", "u"],
@@ -49,7 +47,6 @@ EGGS: dict[str, dict[str, Any]] = {
         "emoji": "🔵🪺",
         "color": 0x38BDF8,  # Sky Blue
         "incubation_seconds": 2700,  # 45 minutes of study
-        "price": 2500,
         "desc": "A deep azure egg warm to the touch. Contains rare species, high XP, and feast items.",
         "pet_tier": "rare",
         "aliases": ["rare", "blue", "azure", "egg_rare", "r"],
@@ -61,7 +58,6 @@ EGGS: dict[str, dict[str, Any]] = {
         "emoji": "🟣✨",
         "color": 0xA855F7,  # Vivid Purple
         "incubation_seconds": 5400,  # 90 minutes of study
-        "price": 6500,
         "desc": "A pulsating amethyst shell crackling with arcane power. Packed with epic pets and treasures.",
         "pet_tier": "epic",
         "aliases": ["epic", "purple", "mythic", "egg_epic", "e"],
@@ -73,7 +69,6 @@ EGGS: dict[str, dict[str, Any]] = {
         "emoji": "🟡🌟",
         "color": 0xF59E0B,  # Radiant Gold
         "incubation_seconds": 10800,  # 180 minutes (3 hours of study)
-        "price": 25000,
         "desc": "An ancient celestial egg radiating starlight. Holds guaranteed legendary pets and massive jackpots.",
         "pet_tier": "legendary",
         "aliases": ["legendary", "gold", "cosmic", "egg_legendary", "l"],
@@ -134,8 +129,8 @@ def roll_study_egg(new_minutes: int) -> Optional[str]:
     if new_minutes <= 0:
         return None
 
-    # Roll chance: each minute gives a roll
-    chance = min(0.85, 0.05 * new_minutes)
+    # Roll chance: generous study drop rate (~1 egg every 12-15 minutes!)
+    chance = min(0.95, 0.08 * new_minutes)
     if random.random() > chance:
         return None
 

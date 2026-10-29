@@ -1,12 +1,13 @@
 """THE EGG UPDATE - Egg inventory, incubation, and hatching cog for Chronos.
 
+Eggs cannot be bought in any shop — they are wild drops found exclusively through
+study sessions, daily claims, work, begging, and server activity.
+
 Commands:
   .eggs / .incubator     View incubator status & egg inventory
   .incubate <egg>        Start incubating an egg with study time
   .hatch [slot]          Hatch a fully-incubated egg for maximum loot & pets
   .crack <egg>           Instantly crack an egg for quick rewards
-  .eggshop               Browse and purchase eggs from the shop
-  .buyegg <egg> [qty]    Purchase an egg with coins
 """
 from __future__ import annotations
 
@@ -60,10 +61,10 @@ class EggActionView(ChronosView):
         updated_embed = await self.cog._build_incubator_embed(self.ctx.author, self.ctx.guild)
         await interaction.message.edit(embed=updated_embed, view=self)
 
-    @discord.ui.button(label="\U0001F6D2 Egg Shop", style=discord.ButtonStyle.primary, emoji="\U0001F6D2")
-    async def shop_btn(self, interaction: discord.Interaction, button: discord.ui.Button) -> None:
-        shop_embed = self.cog._build_shop_embed(self.ctx)
-        await interaction.response.send_message(embed=shop_embed, ephemeral=True)
+    @discord.ui.button(label="\U0001F504 Refresh", style=discord.ButtonStyle.secondary, emoji="\U0001F504")
+    async def refresh_btn(self, interaction: discord.Interaction, button: discord.ui.Button) -> None:
+        updated_embed = await self.cog._build_incubator_embed(self.ctx.author, self.ctx.guild)
+        await interaction.response.edit_message(embed=updated_embed, view=self)
 
 
 class Eggs(commands.Cog, name="Eggs"):
@@ -79,8 +80,8 @@ class Eggs(commands.Cog, name="Eggs"):
         embed = embeds.base_embed(
             title="\U0001F95A Egg Incubator & Nest",
             description=(
-                f"Eggs warm and hatch by **gaining active study time**! "
-                f"Start a study session with `{config.PREFIX}start` to incubate."
+                f"Eggs are **100% wild drops** and cannot be purchased in any shop!\n"
+                f"They warm and hatch by **gaining active study time** (`{config.PREFIX}start`)."
             ),
             color=embeds.COLOR_PETS,
         )
@@ -137,7 +138,7 @@ class Eggs(commands.Cog, name="Eggs"):
                 name="\U0001F95A Unhatched Eggs",
                 value=(
                     f"*You don't have any eggs in your nest right now.*\n"
-                    f"\u25B8 Study, `{config.PREFIX}daily`, `{config.PREFIX}work`, or check `{config.PREFIX}eggshop`!"
+                    f"\u25B8 Earn them through study sessions (`{config.PREFIX}start`), `{config.PREFIX}daily`, `{config.PREFIX}work`, and `{config.PREFIX}beg`!"
                 ),
                 inline=False,
             )
@@ -209,29 +210,6 @@ class Eggs(commands.Cog, name="Eggs"):
         if result.get("leveled_up"):
             embed.add_field(name="\U0001F389 Level Up!", value="You gained enough XP to level up!", inline=False)
 
-        return embed
-
-    def _build_shop_embed(self, ctx: commands.Context) -> discord.Embed:
-        embed = embeds.base_embed(
-            title="\U0001F95A The Egg Hatchery Shop",
-            description=(
-                f"Purchase eggs to incubate with your study sessions or crack open immediately!\n"
-                f"Buy with `{ctx.prefix}buyegg <tier>` or `{ctx.prefix}buyegg <number>`."
-            ),
-            color=embeds.COLOR_ECONOMY,
-        )
-
-        for i, egg_id in enumerate(egg_catalog.EGG_ORDER, start=1):
-            egg = egg_catalog.EGGS[egg_id]
-            inc_mins = egg["incubation_seconds"] // 60
-            embed.add_field(
-                name=f"`#{i}` {egg['emoji']} {egg['name']} \u2014 {egg['price']:,} coins",
-                value=(
-                    f"{egg['desc']}\n"
-                    f"\u25B8 **Study to Hatch:** {inc_mins} mins \u00B7 **Pet Tier:** {egg['tier'].capitalize()}"
-                ),
-                inline=False,
-            )
         return embed
 
     # ------------------------------------------------------------------ #
@@ -404,59 +382,9 @@ class Eggs(commands.Cog, name="Eggs"):
 
         await ctx.send(embed=embed)
 
-    @commands.command(name="eggshop", aliases=["hatchery"])
-    @commands.guild_only()
-    async def eggshop_cmd(self, ctx: commands.Context) -> None:
-        """Browse all 5 tiers of eggs available in the hatchery."""
-        embed = self._build_shop_embed(ctx)
-        await ctx.send(embed=embed)
-
-    @commands.command(name="buyegg")
-    @commands.guild_only()
-    async def buyegg_cmd(self, ctx: commands.Context, egg_query: str, quantity: int = 1) -> None:
-        """Purchase eggs with coins directly from the hatchery.
-
-        Usage: .buyegg common / .buyegg rare 2 / .buyegg 3
-        """
-        if quantity <= 0:
-            await ctx.send(embed=embeds.error_embed("Quantity must be positive."))
-            return
-
-        egg_id = egg_catalog.resolve_egg_id(egg_query)
-        if not egg_id:
-            await ctx.send(embed=embeds.error_embed(f"Unknown egg tier `{egg_query}`. See `{ctx.prefix}eggshop`."))
-            return
-
-        egg = egg_catalog.get_egg(egg_id)
-        total_price = egg["price"] * quantity
-
-        spent = await self.db.spend_coins(ctx.author.id, ctx.guild.id, total_price)
-        if not spent:
-            currency = await self.db.get_currency(ctx.author.id, ctx.guild.id)
-            bal = currency.get("coins", 0) if currency else 0
-            await ctx.send(
-                embed=embeds.error_embed(
-                    f"You don't have enough coins! Total cost: **{total_price:,}** coins (You have: **{bal:,}**)."
-                )
-            )
-            return
-
-        await self.db.add_item(ctx.author.id, ctx.guild.id, egg_id, quantity)
-        currency = await self.db.get_currency(ctx.author.id, ctx.guild.id)
-        new_balance = currency.get("coins", 0) if currency else 0
-
-        embed = embeds.success_embed(
-            f"{egg['emoji']} Eggs Purchased!",
-            f"Bought **\u00D7{quantity} {egg['name']}** for **{total_price:,}** coins.\n"
-            f"New Balance: **{new_balance:,}** coins.\n\n"
-            f"\u25B8 Incubate with `{ctx.prefix}incubate {egg['tier']}` or check `{ctx.prefix}eggs`!",
-        )
-        await ctx.send(embed=embed)
-
     @incubate_cmd.error
     @hatch_cmd.error
     @crack_cmd.error
-    @buyegg_cmd.error
     async def egg_error(self, ctx: commands.Context, error: commands.CommandError) -> None:
         if isinstance(error, commands.MissingRequiredArgument):
             await ctx.send(embed=embeds.error_embed(f"Usage: `{ctx.prefix}{ctx.command.name} <tier>`"))
