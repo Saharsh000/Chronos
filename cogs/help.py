@@ -65,7 +65,7 @@ PAGE_KEYWORDS: dict[str, int] = {
     "achievements": 2, "badges": 2, "ach": 2,
     "syllabus": 3, "progress": 3, "jee": 3, "chapter": 3,
     "economy": 4, "coins": 4, "shop": 4, "daily": 4, "work": 4, "buy": 4,
-    "pets": 5, "food": 5, "pet": 5, "feed": 5,
+    "pets": 5, "food": 5, "pet": 5, "feed": 5, "eggs": 5, "egg": 5, "incubate": 5, "hatch": 5, "crack": 5,
     "pomodoro": 6, "pomo": 6, "admin": 6, "config": 6, "tiers": 6, "tags": 6,
     "how": 7, "info": 7, "works": 7,
 }
@@ -172,6 +172,12 @@ def _build_pages(prefix: str) -> list[discord.Embed]:
         f"`{prefix}pet [name]` \u2014 detailed stats for one pet\n"
         f"`{prefix}equip <name>` \u2014 set your active pet\n"
         f"`{prefix}nickname <pet> <new name>` \u2014 rename a pet (`{prefix}nick`)\n\n"
+        f"**\U0001F95A Eggs & Incubator (THE EGG UPDATE)**\n"
+        f"`{prefix}eggs` \u2014 view incubator & unhatched eggs (`{prefix}nest`)\n"
+        f"`{prefix}incubate <tier>` \u2014 place egg in incubator to hatch via study\n"
+        f"`{prefix}hatch [slot]` \u2014 hatch ready egg for pets & max loot!\n"
+        f"`{prefix}crack <tier>` \u2014 instantly crack an egg for quick rewards\n"
+        f"`{prefix}eggshop` \u2014 purchase eggs from the hatchery\n\n"
         f"**Food**\n"
         f"`{prefix}foodshop [tier]` \u2014 browse pet food (`{prefix}fshop`)\n"
         f"`{prefix}buyfood <name> [qty]` \u2014 buy food\n"

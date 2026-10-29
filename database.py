@@ -54,6 +54,7 @@ import aiosqlite
 
 import config
 from utils import economy, streaks
+from utils import eggs as egg_catalog
 from utils import food as food_catalog
 from utils import pets as pet_catalog
 from utils.achievements import Achievement
@@ -271,6 +272,19 @@ CREATE TABLE IF NOT EXISTS user_cooldowns (
     last_used   INTEGER NOT NULL,
     PRIMARY KEY (user_id, guild_id, cooldown_id)
 );
+
+-- Incubator slots for hatching eggs via study progress.
+-- Up to 2 slots per user per server. credited_seconds increases with active study time.
+CREATE TABLE IF NOT EXISTS user_incubator (
+    user_id           INTEGER NOT NULL,
+    guild_id          INTEGER NOT NULL,
+    slot              INTEGER NOT NULL,
+    egg_id            TEXT NOT NULL,
+    started_at        INTEGER NOT NULL,
+    required_seconds  INTEGER NOT NULL,
+    credited_seconds  INTEGER NOT NULL DEFAULT 0,
+    PRIMARY KEY (user_id, guild_id, slot)
+);
 """
 
 # Columns added to `user_stats` after its original release. Applied by
@@ -363,6 +377,18 @@ class Database:
         only added if it isn't already there."""
         await self._migrate_table("user_stats", USER_STATS_MIGRATIONS)
         await self._migrate_table("sessions", SESSIONS_MIGRATIONS)
+        await self._conn.execute("""
+        CREATE TABLE IF NOT EXISTS user_incubator (
+            user_id           INTEGER NOT NULL,
+            guild_id          INTEGER NOT NULL,
+            slot              INTEGER NOT NULL,
+            egg_id            TEXT NOT NULL,
+            started_at        INTEGER NOT NULL,
+            required_seconds  INTEGER NOT NULL,
+            credited_seconds  INTEGER NOT NULL DEFAULT 0,
+            PRIMARY KEY (user_id, guild_id, slot)
+        );
+        """)
 
     async def _migrate_table(self, table: str, migrations: dict[str, str]) -> None:
         cur = await self._conn.execute(f"PRAGMA table_info({table})")
@@ -736,6 +762,14 @@ class Database:
         # (returns None) if the user has no pet equipped in this guild.
         pet_result = await self.grant_pet_xp(session["user_id"], session["guild_id"], delta_pet_xp)
 
+        # Warm and progress active incubator slots with study seconds
+        ready_incubators = await self.credit_incubator(session["user_id"], session["guild_id"], delta_seconds)
+
+        # Roll for a surprise egg drop while studying!
+        egg_dropped = egg_catalog.roll_study_egg(new_minutes)
+        if egg_dropped:
+            await self.add_item(session["user_id"], session["guild_id"], egg_dropped, 1)
+
         return {
             "user_id": session["user_id"],
             "guild_id": session["guild_id"],
@@ -749,6 +783,8 @@ class Database:
             "delta_pet_xp": delta_pet_xp,
             "pet_result": pet_result,
             "streak_broken_from": streak_res.streak_broken_from if streak_res else 0,
+            "egg_drop": egg_dropped,
+            "ready_incubators": ready_incubators,
         }
 
     async def end_session(
@@ -1938,3 +1974,235 @@ class Database:
             "UPDATE pomodoro_sessions SET active = 0 WHERE channel_id = ?", (channel_id,)
         )
         await self.conn.commit()
+
+    # ------------------------------------------------------------------ #
+    # Eggs & Incubator (THE EGG UPDATE)
+    # ------------------------------------------------------------------ #
+
+    async def get_incubators(self, user_id: int, guild_id: int) -> list[dict[str, Any]]:
+        """Return all active incubator slots for a user."""
+        cur = await self.conn.execute(
+            "SELECT * FROM user_incubator WHERE user_id = ? AND guild_id = ? ORDER BY slot ASC",
+            (user_id, guild_id),
+        )
+        return [dict(r) for r in await cur.fetchall()]
+
+    async def get_incubator_slot(self, user_id: int, guild_id: int, slot: int) -> Optional[dict[str, Any]]:
+        """Return a specific incubator slot."""
+        cur = await self.conn.execute(
+            "SELECT * FROM user_incubator WHERE user_id = ? AND guild_id = ? AND slot = ?",
+            (user_id, guild_id, slot),
+        )
+        row = await cur.fetchone()
+        return dict(row) if row else None
+
+    async def start_incubation(
+        self, user_id: int, guild_id: int, egg_id: str, max_slots: int = 2
+    ) -> dict[str, Any]:
+        """Place an egg from inventory into an available incubator slot."""
+        egg = egg_catalog.get_egg(egg_id)
+        if not egg:
+            return {"success": False, "reason": "invalid_egg"}
+
+        qty = await self.get_item_qty(user_id, guild_id, egg_id)
+        if qty <= 0:
+            return {"success": False, "reason": "not_owned"}
+
+        cur = await self.conn.execute(
+            "SELECT slot FROM user_incubator WHERE user_id = ? AND guild_id = ?",
+            (user_id, guild_id),
+        )
+        occupied = {row["slot"] for row in await cur.fetchall()}
+        free_slot = next((s for s in range(1, max_slots + 1) if s not in occupied), None)
+        if free_slot is None:
+            return {"success": False, "reason": "slots_full", "max_slots": max_slots}
+
+        # Deduct egg from inventory
+        await self.add_item(user_id, guild_id, egg_id, -1)
+
+        now = int(time.time())
+        await self.conn.execute(
+            """
+            INSERT INTO user_incubator (user_id, guild_id, slot, egg_id, started_at, required_seconds, credited_seconds)
+            VALUES (?, ?, ?, ?, ?, ?, 0)
+            """,
+            (user_id, guild_id, free_slot, egg_id, now, egg["incubation_seconds"]),
+        )
+        await self.conn.commit()
+
+        return {
+            "success": True,
+            "slot": free_slot,
+            "egg": egg,
+            "required_seconds": egg["incubation_seconds"],
+        }
+
+    async def credit_incubator(self, user_id: int, guild_id: int, delta_seconds: int) -> list[dict[str, Any]]:
+        """Add study seconds to incubating eggs. Returns any slots that newly finished."""
+        if delta_seconds <= 0:
+            return []
+
+        cur = await self.conn.execute(
+            """
+            SELECT slot, egg_id, required_seconds, credited_seconds
+            FROM user_incubator
+            WHERE user_id = ? AND guild_id = ? AND credited_seconds < required_seconds
+            """,
+            (user_id, guild_id),
+        )
+        before = [dict(r) for r in await cur.fetchall()]
+        if not before:
+            return []
+
+        await self.conn.execute(
+            """
+            UPDATE user_incubator
+            SET credited_seconds = MIN(required_seconds, credited_seconds + ?)
+            WHERE user_id = ? AND guild_id = ? AND credited_seconds < required_seconds
+            """,
+            (delta_seconds, user_id, guild_id),
+        )
+        await self.conn.commit()
+
+        newly_ready = []
+        for slot_info in before:
+            new_credited = slot_info["credited_seconds"] + delta_seconds
+            if new_credited >= slot_info["required_seconds"]:
+                egg = egg_catalog.get_egg(slot_info["egg_id"])
+                newly_ready.append({
+                    "slot": slot_info["slot"],
+                    "egg_id": slot_info["egg_id"],
+                    "egg": egg,
+                })
+        return newly_ready
+
+    async def grant_hatched_pet(self, user_id: int, guild_id: int, species_id: str) -> dict[str, Any]:
+        """Grant a pet hatched from an egg. If duplicate, award pet XP and bonus coins."""
+        existing = await self.get_pet(user_id, guild_id, species_id)
+        if existing:
+            bonus_coins = 500
+            bonus_pet_xp = 600
+            await self.add_coins(user_id, guild_id, bonus_coins)
+            await self.grant_pet_xp(user_id, guild_id, bonus_pet_xp)
+            return {
+                "new_pet": False,
+                "species_id": species_id,
+                "pet_xp_bonus": bonus_pet_xp,
+                "coin_bonus": bonus_coins,
+            }
+
+        now = int(time.time())
+        owned = bool(await self.get_owned_pets(user_id, guild_id))
+        auto_equip = not owned
+        if auto_equip:
+            await self.conn.execute(
+                "UPDATE user_pets SET equipped = 0 WHERE user_id = ? AND guild_id = ?",
+                (user_id, guild_id),
+            )
+        nickname = pet_catalog.PETS.get(species_id, {}).get("name", species_id.capitalize())
+        await self.conn.execute(
+            """
+            INSERT INTO user_pets (user_id, guild_id, species_id, nickname, level, xp, equipped, acquired_at)
+            VALUES (?, ?, ?, ?, 1, 0, ?, ?)
+            """,
+            (user_id, guild_id, species_id, nickname, int(auto_equip), now),
+        )
+        await self.conn.commit()
+        return {
+            "new_pet": True,
+            "species_id": species_id,
+            "nickname": nickname,
+            "auto_equipped": auto_equip,
+        }
+
+    async def claim_hatch(self, user_id: int, guild_id: int, slot: int) -> dict[str, Any]:
+        """Hatch a fully-incubated egg from a specific slot."""
+        slot_info = await self.get_incubator_slot(user_id, guild_id, slot)
+        if not slot_info:
+            return {"success": False, "reason": "not_found"}
+
+        if slot_info["credited_seconds"] < slot_info["required_seconds"]:
+            return {
+                "success": False,
+                "reason": "still_incubating",
+                "remaining_seconds": slot_info["required_seconds"] - slot_info["credited_seconds"],
+            }
+
+        await self.conn.execute(
+            "DELETE FROM user_incubator WHERE user_id = ? AND guild_id = ? AND slot = ?",
+            (user_id, guild_id, slot),
+        )
+        await self.conn.commit()
+
+        egg_id = slot_info["egg_id"]
+        egg = egg_catalog.get_egg(egg_id)
+        loot = egg_catalog.generate_hatch_loot(egg_id, is_incubated=True)
+
+        coins = loot.get("coins", 0)
+        xp = loot.get("xp", 0)
+        new_balance = await self.add_coins(user_id, guild_id, coins) if coins else 0
+        xp_res = await self.grant_xp(user_id, guild_id, xp) if xp else {"leveled_up": False}
+
+        pet_res = None
+        if loot.get("type") == "pet" and loot.get("species_id"):
+            pet_res = await self.grant_hatched_pet(user_id, guild_id, loot["species_id"])
+
+        if loot.get("type") == "food" and loot.get("food_id"):
+            await self.add_item(user_id, guild_id, loot["food_id"], loot.get("qty", 1))
+
+        if loot.get("type") == "item" and loot.get("item_id"):
+            await self.add_item(user_id, guild_id, loot["item_id"], loot.get("qty", 1))
+
+        if loot.get("type") == "jackpot":
+            if loot.get("item_id"):
+                await self.add_item(user_id, guild_id, loot["item_id"], loot.get("qty", 1))
+            if loot.get("title"):
+                await self.set_equipped_title(user_id, guild_id, loot["title"])
+
+        return {
+            "success": True,
+            "egg": egg,
+            "loot": loot,
+            "pet_result": pet_res,
+            "coins": coins,
+            "xp": xp,
+            "new_balance": new_balance,
+            "leveled_up": xp_res.get("leveled_up", False),
+        }
+
+    async def crack_egg_direct(self, user_id: int, guild_id: int, egg_id: str) -> dict[str, Any]:
+        """Instantly crack an egg without waiting for incubation (reduced loot)."""
+        egg = egg_catalog.get_egg(egg_id)
+        if not egg:
+            return {"success": False, "reason": "invalid_egg"}
+
+        qty = await self.get_item_qty(user_id, guild_id, egg_id)
+        if qty <= 0:
+            return {"success": False, "reason": "not_owned"}
+
+        await self.add_item(user_id, guild_id, egg_id, -1)
+
+        loot = egg_catalog.generate_hatch_loot(egg_id, is_incubated=False)
+
+        coins = loot.get("coins", 0)
+        xp = loot.get("xp", 0)
+        new_balance = await self.add_coins(user_id, guild_id, coins) if coins else 0
+        xp_res = await self.grant_xp(user_id, guild_id, xp) if xp else {"leveled_up": False}
+
+        pet_res = None
+        if loot.get("type") == "pet" and loot.get("species_id"):
+            pet_res = await self.grant_hatched_pet(user_id, guild_id, loot["species_id"])
+
+        if loot.get("type") == "food" and loot.get("food_id"):
+            await self.add_item(user_id, guild_id, loot["food_id"], loot.get("qty", 1))
+
+        return {
+            "success": True,
+            "egg": egg,
+            "loot": loot,
+            "pet_result": pet_res,
+            "coins": coins,
+            "xp": xp,
+            "new_balance": new_balance,
+            "leveled_up": xp_res.get("leveled_up", False),
+        }

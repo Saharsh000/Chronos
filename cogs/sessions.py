@@ -213,6 +213,10 @@ class Sessions(commands.Cog, name="Sessions"):
                     await self._announce_level_up(credit)
                 if credit.get("pet_result"):
                     await self._announce_pet_progress(credit["user_id"], credit["guild_id"], credit["pet_result"])
+                if credit.get("egg_drop"):
+                    await self._announce_egg_drop(credit["user_id"], credit["guild_id"], credit["egg_drop"], credit.get("subject"))
+                if credit.get("ready_incubators"):
+                    await self._announce_egg_ready(credit["user_id"], credit["guild_id"], credit["ready_incubators"])
                 newly_unlocked = await self.db.check_achievements(credit["user_id"], credit["guild_id"], now)
                 if newly_unlocked:
                     await self._announce_achievements(credit["user_id"], credit["guild_id"], newly_unlocked)
@@ -333,6 +337,55 @@ class Sessions(commands.Cog, name="Sessions"):
             await channel.send(embed=embeds.achievement_unlock_embed(member, newly_unlocked))
         except discord.HTTPException:
             pass
+
+    async def _announce_egg_drop(self, user_id: int, guild_id: int, egg_id: str, subject: Optional[str]) -> None:
+        from utils import eggs as egg_catalog
+        egg = egg_catalog.get_egg(egg_id)
+        if not egg:
+            return
+
+        guild_config = await self.db.get_guild_config(guild_id)
+        channel_id = guild_config.get("checkin_channel_id")
+        channel = self.bot.get_channel(channel_id) if channel_id else None
+        if channel is None:
+            return
+
+        subject_str = f" while studying {subject.capitalize()}" if subject else " while studying"
+        embed = embeds.base_embed(
+            title=f"{egg['emoji']} Egg Discovered!",
+            description=(
+                f"<@{user_id}> found a **{egg['name']}**{subject_str}!\n"
+                f"Use `{config.PREFIX}incubate {egg['tier']}` to hatch it with your study time, "
+                f"or `{config.PREFIX}crack {egg['tier']}` to open it right away!"
+            ),
+            color=egg["color"],
+        )
+        try:
+            await channel.send(embed=embed)
+        except discord.HTTPException:
+            pass
+
+    async def _announce_egg_ready(self, user_id: int, guild_id: int, ready_slots: list[dict]) -> None:
+        guild_config = await self.db.get_guild_config(guild_id)
+        channel_id = guild_config.get("checkin_channel_id")
+        channel = self.bot.get_channel(channel_id) if channel_id else None
+        if channel is None:
+            return
+
+        for item in ready_slots:
+            egg = item.get("egg") or {}
+            embed = embeds.base_embed(
+                title=f"\U0001F423 Egg Ready to Hatch!",
+                description=(
+                    f"<@{user_id}>, your **{egg.get('name', 'Egg')}** in Slot {item['slot']} is fully incubated!\n"
+                    f"Run `{config.PREFIX}hatch {item['slot']}` to reveal your pet & rewards!"
+                ),
+                color=embeds.COLOR_SUCCESS,
+            )
+            try:
+                await channel.send(embed=embed)
+            except discord.HTTPException:
+                pass
 
     async def _send_checkin_prompt(self, session: dict, now: int) -> None:
         guild = self.bot.get_guild(session["guild_id"])

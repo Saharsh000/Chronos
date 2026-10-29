@@ -8,6 +8,7 @@ cog is just the spending/claiming side of the economy.
 from __future__ import annotations
 
 import logging
+import random
 import time
 from typing import Optional
 
@@ -16,6 +17,7 @@ from discord.ext import commands
 
 from utils import economy
 from utils import embeds
+from utils import eggs as egg_catalog
 from utils import food as food_catalog
 from utils.time_format import format_duration
 
@@ -314,6 +316,25 @@ class Economy(commands.Cog, name="Economy"):
         elif result["bonus_box"]:
             embed.add_field(name="\U0001F381 Bonus!", value="A free Mystery Box was added to your inventory!", inline=False)
 
+        # THE EGG UPDATE: Daily Egg Reward
+        streak = result["daily_streak"]
+        if streak >= 30:
+            daily_egg = "egg_epic"
+        elif streak >= 7:
+            daily_egg = "egg_rare"
+        elif random.random() < 0.35:
+            daily_egg = "egg_uncommon"
+        else:
+            daily_egg = "egg_common"
+
+        await self.db.add_item(ctx.author.id, ctx.guild.id, daily_egg, 1)
+        egg_info = egg_catalog.get_egg(daily_egg)
+        embed.add_field(
+            name=f"{egg_info['emoji']} Daily Egg!",
+            value=f"You received a **{egg_info['name']}**! Incubate it with `{ctx.prefix}incubate {egg_info['tier']}`.",
+            inline=False,
+        )
+
         if result["leveled_up"]:
             embed.add_field(
                 name="\U0001F389 Level Up!",
@@ -348,6 +369,14 @@ class Economy(commands.Cog, name="Economy"):
         embed.add_field(name="Coins Earned", value=f"+{result['coins']:,}", inline=True)
         embed.add_field(name="XP Earned", value=f"+{result['xp']} XP", inline=True)
         embed.add_field(name="New Balance", value=f"{result['new_balance']:,} coins", inline=True)
+
+        # THE EGG UPDATE: Chance to find an egg while working
+        if random.random() < 0.35:
+            work_egg = random.choices(["egg_common", "egg_uncommon", "egg_rare"], weights=[0.75, 0.20, 0.05])[0]
+            await self.db.add_item(ctx.author.id, ctx.guild.id, work_egg, 1)
+            egg_info = egg_catalog.get_egg(work_egg)
+            embed.add_field(name=f"{egg_info['emoji']} Egg Found!", value=f"You stumbled upon a **{egg_info['name']}** on the job!", inline=False)
+
         if result["leveled_up"]:
             embed.add_field(
                 name="\U0001F389 Level Up!",
@@ -381,6 +410,14 @@ class Economy(commands.Cog, name="Economy"):
                 "A kind soul dropped some coins",
                 f"+{result['coins']:,} coins. New balance: {result['new_balance']:,} coins.",
             )
+
+        # THE EGG UPDATE: Chance to receive an egg while begging
+        if random.random() < 0.22:
+            beg_egg = "egg_common" if random.random() < 0.85 else "egg_uncommon"
+            await self.db.add_item(ctx.author.id, ctx.guild.id, beg_egg, 1)
+            egg_info = egg_catalog.get_egg(beg_egg)
+            embed.add_field(name=f"{egg_info['emoji']} Surprise Gift!", value=f"A passerby handed you a **{egg_info['name']}**!", inline=False)
+
         log.info(f"BEG CLAIM     | {ctx.author} ({ctx.author.id}) claimed in guild {ctx.guild.id} (coins={result['coins']})")
         await ctx.send(embed=embed)
         await self._announce_achievements(ctx)
@@ -401,6 +438,13 @@ class Economy(commands.Cog, name="Economy"):
         embed.add_field(name="Coins Earned", value=f"+{result['coins']:,}", inline=True)
         embed.add_field(name="New Balance", value=f"{result['new_balance']:,} coins", inline=True)
         embed.add_field(name="Bonus", value="\U0001F381 Free Mystery Box", inline=True)
+
+        # THE EGG UPDATE: Guaranteed Mythic/Cosmic Egg
+        weekly_egg = "egg_legendary" if random.random() < 0.20 else "egg_epic"
+        await self.db.add_item(ctx.author.id, ctx.guild.id, weekly_egg, 1)
+        egg_info = egg_catalog.get_egg(weekly_egg)
+        embed.add_field(name=f"{egg_info['emoji']} Weekly Rare Egg!", value=f"Received a prestigious **{egg_info['name']}**!", inline=False)
+
         log.info(f"WEEKLY CLAIM  | {ctx.author} ({ctx.author.id}) claimed in guild {ctx.guild.id} (coins={result['coins']})")
         await ctx.send(embed=embed)
         await self._announce_achievements(ctx)

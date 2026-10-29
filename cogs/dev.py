@@ -228,6 +228,31 @@ class Dev(commands.Cog, name="Dev"):
             f"Removed **{amount}** coins from {member.mention}. New balance: **{new_balance:,}**.",
         ))
 
+    @commands.command(name="addegg")
+    @is_dev()
+    @commands.guild_only()
+    async def add_egg_cmd(
+        self, ctx: commands.Context, member: discord.Member, egg_query: str, quantity: int = 1
+    ) -> None:
+        """[Dev only] Grant eggs to a user directly.
+
+        Usage: .addegg @user common / .addegg @user legendary 3
+        """
+        from utils import eggs as egg_catalog
+        egg_id = egg_catalog.resolve_egg_id(egg_query)
+        if not egg_id:
+            await ctx.send(embed=embeds.error_embed(f"Unknown egg tier `{egg_query}`."))
+            return
+
+        egg = egg_catalog.get_egg(egg_id)
+        await self.db.add_item(member.id, ctx.guild.id, egg_id, quantity)
+        await ctx.send(
+            embed=embeds.success_embed(
+                f"{egg['emoji']} Eggs Granted",
+                f"Gave **\u00D7{quantity} {egg['name']}** to {member.mention}!",
+            )
+        )
+
     @commands.command(name="backupdb")
     @is_dev()
     async def backup_db_cmd(self, ctx: commands.Context) -> None:
@@ -266,6 +291,7 @@ class Dev(commands.Cog, name="Dev"):
     @remove_time_cmd.error
     @remove_xp_cmd.error
     @remove_coins_cmd.error
+    @add_egg_cmd.error
     @backup_db_cmd.error
     @restore_db_cmd.error
     async def dev_error(self, ctx: commands.Context, error: commands.CommandError) -> None:
