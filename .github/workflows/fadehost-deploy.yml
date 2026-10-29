@@ -1,4 +1,4 @@
-name: Auto Deploy to LemonHost
+name: Auto Deploy to FadeHost
 
 on:
   push:
@@ -12,13 +12,13 @@ jobs:
       - name: 📥 Checkout Code
         uses: actions/checkout@v4
 
-      - name: 🚀 Sync Files to LemonHost via SFTP
+      - name: 🚀 Sync Files to FadeHost via SFTP
         uses: SamKirkland/FTP-Deploy-Action@v4.3.5
         with:
-          server: ${{ secrets.LEMONHOST_SERVER }}
-          username: ${{ secrets.LEMONHOST_USERNAME }}
-          password: ${{ secrets.LEMONHOST_PASSWORD }}
-          port: ${{ secrets.LEMONHOST_PORT || 2022 }}
+          server: ${{ secrets.FADEHOST_SERVER }}
+          username: ${{ secrets.FADEHOST_USERNAME }}
+          password: ${{ secrets.LEMONHOST_PASSWORD || secrets.FADEHOST_PASSWORD }}
+          port: ${{ secrets.FADEHOST_PORT || 2022 }}
           protocol: sftp
           exclude: |
             **/.git*
