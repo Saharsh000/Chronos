@@ -17,8 +17,8 @@ from discord.ext import commands
 
 from utils import economy
 from utils import embeds
-from utils import eggs as egg_catalog
 from utils import food as food_catalog
+from utils import halloween as halloween_catalog
 from utils.time_format import format_duration
 
 log = logging.getLogger("economy")
@@ -43,11 +43,13 @@ class Economy(commands.Cog, name="Economy"):
         """Check your (or someone else's) coin balance."""
         target = member or ctx.author
         currency = await self.db.get_or_create_currency(target.id, ctx.guild.id)
+        candy = currency.get("candy", 0)
         embed = embeds.base_embed(
             title=f"\U0001FA99 {target.display_name}'s Wallet",
             description=(
                 "\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\n"
                 f"\U0001F4B0 Balance \u00B7\u00B7\u00B7 **{currency['coins']:,}** coins\n"
+                f"\U0001F36C Candy \u00B7\u00B7\u00B7\u00B7\u00B7 **{candy:,}** candy\n"
                 f"\U0001F4C8 Lifetime \u00B7\u00B7\u00B7 **{currency['lifetime_earned']:,}** coins earned"
             ),
             color=embeds.COLOR_ECONOMY,
@@ -118,6 +120,7 @@ class Economy(commands.Cog, name="Economy"):
                 "already_owned": "You already own that title.",
                 "not_found": "That item doesn't exist.",
                 "title_quantity": "You can only buy 1 of a title at a time - it's a one-time unlock.",
+                "event_item": f"That's a Halloween event item - get it from `{ctx.prefix}candyshop` or `{ctx.prefix}pumpkin` rewards.",
             }
             await ctx.send(embed=embeds.error_embed(reasons.get(result["reason"], "Purchase failed.")))
             return
@@ -164,6 +167,18 @@ class Economy(commands.Cog, name="Economy"):
                     continue
                 lines.append(f"{item['emoji']} **{item['name']}** \u00D7{qty}")
             embed.description = "\n".join(lines) if lines else f"Nothing yet - check out `{ctx.prefix}shop`."
+
+        box_lines = [
+            f"{halloween_catalog.HALLO_BOXES[bid]['emoji']} **{halloween_catalog.HALLO_BOXES[bid]['name']}** \u00D7{inventory[bid]}"
+            for bid in halloween_catalog.HALLO_BOX_ORDER
+            if inventory.get(bid, 0) > 0
+        ]
+        if box_lines:
+            embed.add_field(
+                name="\U0001F383 Hallo-Boxes",
+                value="\n".join(box_lines) + f"\nOpen with `{ctx.prefix}openbox <tier>`",
+                inline=False,
+            )
 
         food_inventory = await self.db.get_food_inventory(target.id, ctx.guild.id)
         if food_inventory:
@@ -212,37 +227,6 @@ class Economy(commands.Cog, name="Economy"):
             f"while you have an active `{ctx.prefix}start` session running.",
         ))
 
-    @commands.command(name="openbox", aliases=["open"])
-    @commands.guild_only()
-    async def openbox_cmd(self, ctx: commands.Context) -> None:
-        """Open a Mystery Box from your inventory."""
-        result = await self.db.open_mystery_box(ctx.author.id, ctx.guild.id)
-        if not result["success"]:
-            await ctx.send(embed=embeds.error_embed(
-                f"You don't have a Mystery Box. Buy one with `{ctx.prefix}buy mystery box`."
-            ))
-            return
-
-        reward = result["reward"]
-        if reward["kind"] == "coins":
-            desc = f"\U0001FA99 You got **{reward['amount']:,} coins**!"
-        elif reward["kind"] == "xp":
-            desc = f"\u2728 You got **{reward['amount']:,} XP**!"
-        else:
-            item = economy.SHOP_ITEMS.get(reward["item_id"], {})
-            desc = f"{item.get('emoji', '')} You got a **{item.get('name', reward['item_id'])}**!"
-
-        embed = embeds.base_embed(title="\U0001F381 Mystery Box Opened!", description=desc, color=embeds.COLOR_LEVELUP)
-        if result["leveled_up"]:
-            embed.add_field(
-                name="\U0001F389 Level Up!",
-                value=f"Level {result['old_level']} \u2192 **Level {result['new_level']}**",
-                inline=False,
-            )
-        log.info(f"BOX OPEN      | {ctx.author} ({ctx.author.id}) opened a box in guild {ctx.guild.id}: {reward}")
-        await ctx.send(embed=embed)
-        await self._announce_achievements(ctx)
-
     @commands.command(name="settitle")
     @commands.guild_only()
     async def settitle_cmd(self, ctx: commands.Context, *, title: str) -> None:
@@ -271,9 +255,11 @@ class Economy(commands.Cog, name="Economy"):
 
         owned_qty = await self.db.get_item_qty(ctx.author.id, ctx.guild.id, item_id)
         if owned_qty <= 0:
-            await ctx.send(embed=embeds.error_embed(
-                f"You don't own that title yet. Buy it with `{ctx.prefix}buy {match['title_text']}`."
-            ))
+            if match.get("price", 0) <= 0:
+                hint = f"It's a Halloween event title - earn it via `{ctx.prefix}candyshop` or `{ctx.prefix}pumpkin`."
+            else:
+                hint = f"Buy it with `{ctx.prefix}buy {match['title_text']}`."
+            await ctx.send(embed=embeds.error_embed(f"You don't own that title yet. {hint}"))
             return
 
         await self.db.set_equipped_title(ctx.author.id, ctx.guild.id, match["title_text"])
@@ -316,22 +302,25 @@ class Economy(commands.Cog, name="Economy"):
         elif result["bonus_box"]:
             embed.add_field(name="\U0001F381 Bonus!", value="A free Mystery Box was added to your inventory!", inline=False)
 
-        # THE EGG UPDATE: Daily Egg Reward
+        # HALLOWEEN EVENT: Daily Candy & Hallo-Box Reward
+        daily_candy = random.randint(30, 60)
+        await self.db.add_candy(ctx.author.id, ctx.guild.id, daily_candy)
+
         streak = result["daily_streak"]
         if streak >= 30:
-            daily_egg = "egg_epic"
+            daily_box = "hbox_epic"
         elif streak >= 7:
-            daily_egg = "egg_rare"
+            daily_box = "hbox_rare"
         elif random.random() < 0.35:
-            daily_egg = "egg_uncommon"
+            daily_box = "hbox_uncommon"
         else:
-            daily_egg = "egg_common"
+            daily_box = "hbox_common"
 
-        await self.db.add_item(ctx.author.id, ctx.guild.id, daily_egg, 1)
-        egg_info = egg_catalog.get_egg(daily_egg)
+        await self.db.add_item(ctx.author.id, ctx.guild.id, daily_box, 1)
+        box_info = halloween_catalog.get_box(daily_box)
         embed.add_field(
-            name=f"{egg_info['emoji']} Daily Egg!",
-            value=f"You received a **{egg_info['name']}**! Incubate it with `{ctx.prefix}incubate {egg_info['tier']}`.",
+            name=f"{box_info['emoji']} Daily Hallo-Box & Candy!",
+            value=f"You received a **{box_info['name']}** + **+{daily_candy} \U0001F36C Candy**!\nOpen instantly with `{ctx.prefix}openbox {box_info['tier']}`.",
             inline=False,
         )
 
@@ -370,12 +359,18 @@ class Economy(commands.Cog, name="Economy"):
         embed.add_field(name="XP Earned", value=f"+{result['xp']} XP", inline=True)
         embed.add_field(name="New Balance", value=f"{result['new_balance']:,} coins", inline=True)
 
-        # THE EGG UPDATE: Chance to find an egg while working
+        # HALLOWEEN EVENT: Chance to find a Hallo-Box + Candy while working
         if random.random() < 0.35:
-            work_egg = random.choices(["egg_common", "egg_uncommon", "egg_rare"], weights=[0.75, 0.20, 0.05])[0]
-            await self.db.add_item(ctx.author.id, ctx.guild.id, work_egg, 1)
-            egg_info = egg_catalog.get_egg(work_egg)
-            embed.add_field(name=f"{egg_info['emoji']} Egg Found!", value=f"You stumbled upon a **{egg_info['name']}** on the job!", inline=False)
+            work_box = random.choices(["hbox_common", "hbox_uncommon", "hbox_rare"], weights=[0.75, 0.20, 0.05])[0]
+            work_candy = random.randint(8, 18)
+            await self.db.add_item(ctx.author.id, ctx.guild.id, work_box, 1)
+            await self.db.add_candy(ctx.author.id, ctx.guild.id, work_candy)
+            box_info = halloween_catalog.get_box(work_box)
+            embed.add_field(
+                name=f"{box_info['emoji']} Hallo-Box Found!",
+                value=f"You stumbled upon a **{box_info['name']}** + **+{work_candy} \U0001F36C Candy** on the job!\nOpen with `{ctx.prefix}openbox {box_info['tier']}`.",
+                inline=False,
+            )
 
         if result["leveled_up"]:
             embed.add_field(
@@ -411,12 +406,18 @@ class Economy(commands.Cog, name="Economy"):
                 f"+{result['coins']:,} coins. New balance: {result['new_balance']:,} coins.",
             )
 
-        # THE EGG UPDATE: Chance to receive an egg while begging
-        if random.random() < 0.22:
-            beg_egg = "egg_common" if random.random() < 0.85 else "egg_uncommon"
-            await self.db.add_item(ctx.author.id, ctx.guild.id, beg_egg, 1)
-            egg_info = egg_catalog.get_egg(beg_egg)
-            embed.add_field(name=f"{egg_info['emoji']} Surprise Gift!", value=f"A passerby handed you a **{egg_info['name']}**!", inline=False)
+        # HALLOWEEN EVENT: Chance to receive a Hallo-Box + Candy while begging
+        if random.random() < 0.25:
+            beg_box = "hbox_common" if random.random() < 0.85 else "hbox_uncommon"
+            beg_candy = random.randint(4, 10)
+            await self.db.add_item(ctx.author.id, ctx.guild.id, beg_box, 1)
+            await self.db.add_candy(ctx.author.id, ctx.guild.id, beg_candy)
+            box_info = halloween_catalog.get_box(beg_box)
+            embed.add_field(
+                name=f"{box_info['emoji']} Surprise Treat!",
+                value=f"A kind stranger handed you a **{box_info['name']}** + **+{beg_candy} \U0001F36C Candy**!\nOpen with `{ctx.prefix}openbox {box_info['tier']}`.",
+                inline=False,
+            )
 
         log.info(f"BEG CLAIM     | {ctx.author} ({ctx.author.id}) claimed in guild {ctx.guild.id} (coins={result['coins']})")
         await ctx.send(embed=embed)
@@ -439,11 +440,17 @@ class Economy(commands.Cog, name="Economy"):
         embed.add_field(name="New Balance", value=f"{result['new_balance']:,} coins", inline=True)
         embed.add_field(name="Bonus", value="\U0001F381 Free Mystery Box", inline=True)
 
-        # THE EGG UPDATE: Guaranteed Mythic/Cosmic Egg
-        weekly_egg = "egg_legendary" if random.random() < 0.20 else "egg_epic"
-        await self.db.add_item(ctx.author.id, ctx.guild.id, weekly_egg, 1)
-        egg_info = egg_catalog.get_egg(weekly_egg)
-        embed.add_field(name=f"{egg_info['emoji']} Weekly Rare Egg!", value=f"Received a prestigious **{egg_info['name']}**!", inline=False)
+        # HALLOWEEN EVENT: Guaranteed High-Tier Hallo-Box & Big Candy Stash
+        weekly_box = "hbox_legendary" if random.random() < 0.20 else "hbox_epic"
+        weekly_candy = random.randint(180, 300)
+        await self.db.add_item(ctx.author.id, ctx.guild.id, weekly_box, 1)
+        await self.db.add_candy(ctx.author.id, ctx.guild.id, weekly_candy)
+        box_info = halloween_catalog.get_box(weekly_box)
+        embed.add_field(
+            name=f"{box_info['emoji']} Weekly Hallo-Box Jackpot!",
+            value=f"Received a prestigious **{box_info['name']}** + **+{weekly_candy} \U0001F36C Candy**!\nOpen with `{ctx.prefix}openbox {box_info['tier']}`.",
+            inline=False,
+        )
 
         log.info(f"WEEKLY CLAIM  | {ctx.author} ({ctx.author.id}) claimed in guild {ctx.guild.id} (coins={result['coins']})")
         await ctx.send(embed=embed)
@@ -476,7 +483,6 @@ class Economy(commands.Cog, name="Economy"):
 
     @buy_cmd.error
     @use_cmd.error
-    @openbox_cmd.error
     @settitle_cmd.error
     @shop_cmd.error
     @balance_cmd.error

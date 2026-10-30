@@ -45,6 +45,7 @@ TIER_INFO: dict[str, dict[str, Any]] = {
     "rare":      {"label": "Rare",      "base_price": 2500,  "color": 0x22D3EE, "emoji": "\U0001F535"},
     "epic":      {"label": "Epic",      "base_price": 5000,  "color": 0xA78BFA, "emoji": "\U0001F7E3"},
     "legendary": {"label": "Legendary", "base_price": 50000, "color": 0xFBBF24, "emoji": "\U0001F7E1"},
+    "event":     {"label": "Seasonal Event", "base_price": 0, "color": 0xFF7518, "emoji": "\U0001F383"},
 }
 TIER_ORDER: list[str] = ["common", "uncommon", "rare", "epic", "legendary"]
 
@@ -364,6 +365,15 @@ PETS: dict[str, dict[str, Any]] = {
             _stage("Mega Charizard X", _mega("charizard-mega-x"), 75, "mega"),
             _stage("Mega Charizard Y", _mega("charizard-mega-y"), 75, "mega"),
         ]},
+
+    # ============ SEASONAL EVENT EXCLUSIVE ============
+    "pumpkaboo": {"name": "Spooky", "species": "Pumpkin", "tier": "event", "stage_type": "two",
+        "exclusive": True,
+        "desc": "Carries wandering spirits. Grows warmer and brighter the more you study.",
+        "stages": [
+            _stage("Pumpkaboo", "https://raw.githubusercontent.com/PokeAPI/sprites/master/sprites/pokemon/other/showdown/710.gif", 1, "base"),
+            _stage("Gourgeist", "https://raw.githubusercontent.com/PokeAPI/sprites/master/sprites/pokemon/other/showdown/711.gif", 36, "final"),
+        ]},
 }
 
 PETS_BY_TIER: dict[str, list[str]] = {
@@ -377,6 +387,8 @@ def pet_cost(species_id: str) -> int:
     off its tier's base price depending on how long its evolution
     line is (a 3-stage line costs more than a 2-stage one)."""
     pet = PETS[species_id]
+    if pet["tier"] == "event" or pet.get("exclusive"):
+        return 0
     if pet["tier"] == "legendary":
         return 50000
     base = TIER_INFO[pet["tier"]]["base_price"]

@@ -228,28 +228,70 @@ class Dev(commands.Cog, name="Dev"):
             f"Removed **{amount}** coins from {member.mention}. New balance: **{new_balance:,}**.",
         ))
 
-    @commands.command(name="addegg")
+    @commands.command(name="addcandy")
     @is_dev()
     @commands.guild_only()
-    async def add_egg_cmd(
-        self, ctx: commands.Context, member: discord.Member, egg_query: str, quantity: int = 1
+    async def add_candy_cmd(
+        self, ctx: commands.Context, member: discord.Member, amount: int
     ) -> None:
-        """[Dev only] Grant eggs to a user directly.
-
-        Usage: .addegg @user common / .addegg @user legendary 3
+        """[Dev only] Grant seasonal Candy to a user.
+        
+        Usage: .addcandy @user 500
         """
-        from utils import eggs as egg_catalog
-        egg_id = egg_catalog.resolve_egg_id(egg_query)
-        if not egg_id:
-            await ctx.send(embed=embeds.error_embed(f"Unknown egg tier `{egg_query}`."))
-            return
-
-        egg = egg_catalog.get_egg(egg_id)
-        await self.db.add_item(member.id, ctx.guild.id, egg_id, quantity)
+        new_balance = await self.db.add_candy(member.id, ctx.guild.id, amount)
         await ctx.send(
             embed=embeds.success_embed(
-                f"{egg['emoji']} Eggs Granted",
-                f"Gave **\u00D7{quantity} {egg['name']}** to {member.mention}!",
+                "\U0001F36C Candy Granted",
+                f"Gave **{amount:,} 🍬 Candy** to {member.mention}! New balance: **{new_balance:,} 🍬**.",
+            )
+        )
+
+    @commands.command(name="addbox")
+    @is_dev()
+    @commands.guild_only()
+    async def add_box_cmd(
+        self, ctx: commands.Context, member: discord.Member, tier_query: str, quantity: int = 1
+    ) -> None:
+        """[Dev only] Grant Hallo-Boxes to a user directly.
+
+        Usage: .addbox @user common / .addbox @user legendary 3
+        """
+        from utils import halloween as halloween_catalog
+        box_id = halloween_catalog.resolve_box_id(tier_query)
+        if not box_id:
+            await ctx.send(embed=embeds.error_embed(f"Unknown box tier `{tier_query}`."))
+            return
+
+        box = halloween_catalog.get_box(box_id)
+        await self.db.add_item(member.id, ctx.guild.id, box_id, quantity)
+        await ctx.send(
+            embed=embeds.success_embed(
+                f"{box['emoji']} Hallo-Boxes Granted",
+                f"Gave **\u00D7{quantity} {box['name']}** to {member.mention}!",
+            )
+        )
+
+    @commands.command(name="addpasstime")
+    @is_dev()
+    @commands.guild_only()
+    async def add_pass_time_cmd(
+        self, ctx: commands.Context, member: discord.Member, minutes: int
+    ) -> None:
+        """[Dev only] Credit Halloween Season Pass study minutes to test carving progression.
+        
+        Usage: .addpasstime @user 120 (adds 2 hours of pass progress)
+        """
+        seconds = minutes * 60
+        result = await self.db.credit_halloween_study(member.id, ctx.guild.id, seconds)
+        pass_data = result["pass"]
+        total_m = pass_data["study_seconds"] // 60
+        unlocked = result.get("new_level_unlocked")
+        unlocked_msg = f"\n🎉 **Unlocked Level {unlocked['level']}: {unlocked['level_name']}!**" if unlocked else ""
+        await ctx.send(
+            embed=embeds.success_embed(
+                "🎃 Pass Progress Credited",
+                f"Added **{minutes} minutes** of pass study time to {member.mention}.\n"
+                f"Total event study time: **{total_m}m** ({total_m / 60:.1f}h).{unlocked_msg}",
             )
         )
 
@@ -385,7 +427,9 @@ class Dev(commands.Cog, name="Dev"):
     @remove_time_cmd.error
     @remove_xp_cmd.error
     @remove_coins_cmd.error
-    @add_egg_cmd.error
+    @add_candy_cmd.error
+    @add_box_cmd.error
+    @add_pass_time_cmd.error
     @check_db_cmd.error
     @force_seed_cmd.error
     @sync_guild_cmd.error

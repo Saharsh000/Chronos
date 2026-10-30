@@ -54,8 +54,8 @@ import aiosqlite
 
 import config
 from utils import economy, streaks
-from utils import eggs as egg_catalog
 from utils import food as food_catalog
+from utils import halloween as halloween_catalog
 from utils import pets as pet_catalog
 from utils.achievements import Achievement
 from utils.achievements import evaluate as evaluate_achievements
@@ -156,6 +156,7 @@ CREATE TABLE IF NOT EXISTS user_currency (
     lifetime_earned INTEGER NOT NULL DEFAULT 0,
     boxes_opened    INTEGER NOT NULL DEFAULT 0,
     items_purchased INTEGER NOT NULL DEFAULT 0,
+    candy           INTEGER NOT NULL DEFAULT 0,
     PRIMARY KEY (user_id, guild_id)
 );
 
@@ -285,6 +286,17 @@ CREATE TABLE IF NOT EXISTS user_incubator (
     credited_seconds  INTEGER NOT NULL DEFAULT 0,
     PRIMARY KEY (user_id, guild_id, slot)
 );
+
+-- Halloween Seasonal Event: Jack-o'-Lantern Season Pass
+CREATE TABLE IF NOT EXISTS halloween_pass (
+    user_id           INTEGER NOT NULL,
+    guild_id          INTEGER NOT NULL,
+    study_seconds     INTEGER NOT NULL DEFAULT 0,
+    claimed_level     INTEGER NOT NULL DEFAULT 0,
+    created_at        INTEGER NOT NULL,
+    updated_at        INTEGER NOT NULL,
+    PRIMARY KEY (user_id, guild_id)
+);
 """
 
 # Columns added to `user_stats` after its original release. Applied by
@@ -302,6 +314,11 @@ USER_STATS_MIGRATIONS: dict[str, str] = {
 # total coins earned for the session that just ended.
 SESSIONS_MIGRATIONS: dict[str, str] = {
     "credited_coins": "ALTER TABLE sessions ADD COLUMN credited_coins INTEGER NOT NULL DEFAULT 0",
+}
+
+# Halloween Event: Seasonal currency (Candy)
+USER_CURRENCY_MIGRATIONS: dict[str, str] = {
+    "candy": "ALTER TABLE user_currency ADD COLUMN candy INTEGER NOT NULL DEFAULT 0",
 }
 
 
@@ -419,7 +436,8 @@ class Database:
         """Copy all user data (stats, currency, inventory, achievements, pets) from one guild to another."""
         tables = [
             "user_stats", "subject_stats", "user_currency", "user_inventory",
-            "achievements_unlocked", "user_pets", "user_daily", "user_cooldowns"
+            "achievements_unlocked", "user_pets", "user_daily", "user_cooldowns",
+            "halloween_pass",
         ]
         total_synced = 0
         for table in tables:
@@ -446,6 +464,7 @@ class Database:
         only added if it isn't already there."""
         await self._migrate_table("user_stats", USER_STATS_MIGRATIONS)
         await self._migrate_table("sessions", SESSIONS_MIGRATIONS)
+        await self._migrate_table("user_currency", USER_CURRENCY_MIGRATIONS)
         await self._conn.execute("""
         CREATE TABLE IF NOT EXISTS user_incubator (
             user_id           INTEGER NOT NULL,
@@ -456,6 +475,17 @@ class Database:
             required_seconds  INTEGER NOT NULL,
             credited_seconds  INTEGER NOT NULL DEFAULT 0,
             PRIMARY KEY (user_id, guild_id, slot)
+        );
+        """)
+        await self._conn.execute("""
+        CREATE TABLE IF NOT EXISTS halloween_pass (
+            user_id           INTEGER NOT NULL,
+            guild_id          INTEGER NOT NULL,
+            study_seconds     INTEGER NOT NULL DEFAULT 0,
+            claimed_level     INTEGER NOT NULL DEFAULT 0,
+            created_at        INTEGER NOT NULL,
+            updated_at        INTEGER NOT NULL,
+            PRIMARY KEY (user_id, guild_id)
         );
         """)
 
@@ -859,13 +889,18 @@ class Database:
         # (returns None) if the user has no pet equipped in this guild.
         pet_result = await self.grant_pet_xp(session["user_id"], session["guild_id"], delta_pet_xp)
 
-        # Warm and progress active incubator slots with study seconds
-        ready_incubators = await self.credit_incubator(session["user_id"], session["guild_id"], delta_seconds)
+        # Jack-o'-Lantern Season Pass: credit active study seconds
+        pass_res = await self.credit_halloween_study(session["user_id"], session["guild_id"], delta_seconds)
 
-        # Roll for a surprise egg drop while studying!
-        egg_dropped = egg_catalog.roll_study_egg(new_minutes)
-        if egg_dropped:
-            await self.add_item(session["user_id"], session["guild_id"], egg_dropped, 1)
+        # Roll for a surprise Hallo-Box drop while studying (~1 box every 15-20 min)!
+        hallo_box_dropped = halloween_catalog.roll_study_hallo_box(new_minutes)
+        if hallo_box_dropped:
+            await self.add_item(session["user_id"], session["guild_id"], hallo_box_dropped, 1)
+
+        # Roll for direct Candy drops earned while studying!
+        candy_earned = halloween_catalog.roll_study_candy(new_minutes)
+        if candy_earned > 0:
+            await self._add_candy_raw(session["user_id"], session["guild_id"], candy_earned)
 
         return {
             "user_id": session["user_id"],
@@ -880,8 +915,9 @@ class Database:
             "delta_pet_xp": delta_pet_xp,
             "pet_result": pet_result,
             "streak_broken_from": streak_res.streak_broken_from if streak_res else 0,
-            "egg_drop": egg_dropped,
-            "ready_incubators": ready_incubators,
+            "hallo_box_drop": hallo_box_dropped,
+            "candy_earned": candy_earned,
+            "pass_level_up": pass_res.get("new_level_unlocked"),
         }
 
     async def end_session(
@@ -1098,14 +1134,16 @@ class Database:
         if donor:
             donor_dict = dict(donor)
             donor_dict["guild_id"] = guild_id
+            candy_val = donor_dict.get("candy", 0)
             await self.conn.execute(
                 """
-                INSERT OR REPLACE INTO user_currency (user_id, guild_id, coins, lifetime_earned, boxes_opened, items_purchased)
-                VALUES (?, ?, ?, ?, ?, ?)
+                INSERT OR REPLACE INTO user_currency (user_id, guild_id, coins, lifetime_earned, boxes_opened, items_purchased, candy)
+                VALUES (?, ?, ?, ?, ?, ?, ?)
                 """,
-                (user_id, guild_id, donor_dict["coins"], donor_dict["lifetime_earned"], donor_dict["boxes_opened"], donor_dict["items_purchased"]),
+                (user_id, guild_id, donor_dict["coins"], donor_dict["lifetime_earned"], donor_dict["boxes_opened"], donor_dict["items_purchased"], candy_val),
             )
             await self.conn.commit()
+            donor_dict.setdefault("candy", candy_val)
             return donor_dict
 
         if not row:
@@ -1118,7 +1156,9 @@ class Database:
                 "SELECT * FROM user_currency WHERE user_id = ? AND guild_id = ?", (user_id, guild_id)
             )
             row = await cur.fetchone()
-        return dict(row)
+        res = dict(row) if row else {"user_id": user_id, "guild_id": guild_id, "coins": 0, "lifetime_earned": 0, "boxes_opened": 0, "items_purchased": 0, "candy": 0}
+        res.setdefault("candy", 0)
+        return res
 
     async def add_coins(self, user_id: int, guild_id: int, amount: int) -> int:
         """Add (or, with a negative amount, remove) coins outside of the
@@ -1138,6 +1178,41 @@ class Database:
         await self.conn.execute(
             "UPDATE user_currency SET coins = coins - ? WHERE user_id = ? AND guild_id = ?",
             (amount, user_id, guild_id),
+        )
+        await self.conn.commit()
+        return True
+
+    # ------------------------------------------------------------------ #
+    # Candy (Seasonal Event Currency)
+    # ------------------------------------------------------------------ #
+    async def _add_candy_raw(self, user_id: int, guild_id: int, amount: int) -> None:
+        """INSERT/UPDATE user_currency candy without committing - callers batch this with other writes."""
+        await self.conn.execute(
+            "INSERT OR IGNORE INTO user_currency (user_id, guild_id) VALUES (?, ?)",
+            (user_id, guild_id),
+        )
+        await self.conn.execute(
+            "UPDATE user_currency SET candy = MAX(0, candy + ?) WHERE user_id = ? AND guild_id = ?",
+            (amount, user_id, guild_id),
+        )
+
+    async def add_candy(self, user_id: int, guild_id: int, amount: int) -> int:
+        """Add (or remove) Candy. Returns the new Candy balance."""
+        await self._add_candy_raw(user_id, guild_id, amount)
+        await self.conn.commit()
+        curr = await self.get_or_create_currency(user_id, guild_id)
+        return curr.get("candy", 0)
+
+    async def spend_candy(self, user_id: int, guild_id: int, amount: int) -> bool:
+        """Deduct candy if user has at least `amount`. Returns False if balance is insufficient."""
+        if amount <= 0:
+            return True
+        curr = await self.get_or_create_currency(user_id, guild_id)
+        if curr.get("candy", 0) < amount:
+            return False
+        await self.conn.execute(
+            "UPDATE user_currency SET candy = candy - ? WHERE user_id = ? AND guild_id = ? AND candy >= ?",
+            (amount, user_id, guild_id, amount),
         )
         await self.conn.commit()
         return True
@@ -1278,6 +1353,8 @@ class Database:
             item = custom.get(item_id)
         if item is None:
             return {"success": False, "reason": "not_found"}
+        if item.get("price", 0) <= 0 or item_id in ("sugar_rush", "title_inorganic", "title_shift1", "title_great_pumpkin"):
+            return {"success": False, "reason": "event_item"}
 
         if item["type"] == "title":
             if quantity != 1:
@@ -1411,6 +1488,8 @@ class Database:
         """
         if species_id not in pet_catalog.PETS:
             return {"success": False, "reason": "not_found"}
+        if pet_catalog.PETS[species_id].get("exclusive") or pet_catalog.PETS[species_id]["tier"] == "event":
+            return {"success": False, "reason": "event_exclusive"}
         if await self.get_pet(user_id, guild_id, species_id):
             return {"success": False, "reason": "already_owned"}
 
@@ -2140,108 +2219,10 @@ class Database:
         await self.conn.commit()
 
     # ------------------------------------------------------------------ #
-    # Eggs & Incubator (THE EGG UPDATE)
+    # Pet granting (used by Hallo-Boxes & Candy Shop)
     # ------------------------------------------------------------------ #
-
-    async def get_incubators(self, user_id: int, guild_id: int) -> list[dict[str, Any]]:
-        """Return all active incubator slots for a user."""
-        cur = await self.conn.execute(
-            "SELECT * FROM user_incubator WHERE user_id = ? AND guild_id = ? ORDER BY slot ASC",
-            (user_id, guild_id),
-        )
-        return [dict(r) for r in await cur.fetchall()]
-
-    async def get_incubator_slot(self, user_id: int, guild_id: int, slot: int) -> Optional[dict[str, Any]]:
-        """Return a specific incubator slot."""
-        cur = await self.conn.execute(
-            "SELECT * FROM user_incubator WHERE user_id = ? AND guild_id = ? AND slot = ?",
-            (user_id, guild_id, slot),
-        )
-        row = await cur.fetchone()
-        return dict(row) if row else None
-
-    async def start_incubation(
-        self, user_id: int, guild_id: int, egg_id: str, max_slots: int = 2
-    ) -> dict[str, Any]:
-        """Place an egg from inventory into an available incubator slot."""
-        egg = egg_catalog.get_egg(egg_id)
-        if not egg:
-            return {"success": False, "reason": "invalid_egg"}
-
-        qty = await self.get_item_qty(user_id, guild_id, egg_id)
-        if qty <= 0:
-            return {"success": False, "reason": "not_owned"}
-
-        cur = await self.conn.execute(
-            "SELECT slot FROM user_incubator WHERE user_id = ? AND guild_id = ?",
-            (user_id, guild_id),
-        )
-        occupied = {row["slot"] for row in await cur.fetchall()}
-        free_slot = next((s for s in range(1, max_slots + 1) if s not in occupied), None)
-        if free_slot is None:
-            return {"success": False, "reason": "slots_full", "max_slots": max_slots}
-
-        # Deduct egg from inventory
-        await self.add_item(user_id, guild_id, egg_id, -1)
-
-        now = int(time.time())
-        await self.conn.execute(
-            """
-            INSERT INTO user_incubator (user_id, guild_id, slot, egg_id, started_at, required_seconds, credited_seconds)
-            VALUES (?, ?, ?, ?, ?, ?, 0)
-            """,
-            (user_id, guild_id, free_slot, egg_id, now, egg["incubation_seconds"]),
-        )
-        await self.conn.commit()
-
-        return {
-            "success": True,
-            "slot": free_slot,
-            "egg": egg,
-            "required_seconds": egg["incubation_seconds"],
-        }
-
-    async def credit_incubator(self, user_id: int, guild_id: int, delta_seconds: int) -> list[dict[str, Any]]:
-        """Add study seconds to incubating eggs. Returns any slots that newly finished."""
-        if delta_seconds <= 0:
-            return []
-
-        cur = await self.conn.execute(
-            """
-            SELECT slot, egg_id, required_seconds, credited_seconds
-            FROM user_incubator
-            WHERE user_id = ? AND guild_id = ? AND credited_seconds < required_seconds
-            """,
-            (user_id, guild_id),
-        )
-        before = [dict(r) for r in await cur.fetchall()]
-        if not before:
-            return []
-
-        await self.conn.execute(
-            """
-            UPDATE user_incubator
-            SET credited_seconds = MIN(required_seconds, credited_seconds + ?)
-            WHERE user_id = ? AND guild_id = ? AND credited_seconds < required_seconds
-            """,
-            (delta_seconds, user_id, guild_id),
-        )
-        await self.conn.commit()
-
-        newly_ready = []
-        for slot_info in before:
-            new_credited = slot_info["credited_seconds"] + delta_seconds
-            if new_credited >= slot_info["required_seconds"]:
-                egg = egg_catalog.get_egg(slot_info["egg_id"])
-                newly_ready.append({
-                    "slot": slot_info["slot"],
-                    "egg_id": slot_info["egg_id"],
-                    "egg": egg,
-                })
-        return newly_ready
-
     async def grant_hatched_pet(self, user_id: int, guild_id: int, species_id: str) -> dict[str, Any]:
-        """Grant a pet hatched from an egg. If duplicate, award pet XP and bonus coins."""
+        """Grant a pet from a box/shop. If duplicate, award pet XP and bonus coins."""
         existing = await self.get_pet(user_id, guild_id, species_id)
         if existing:
             bonus_coins = 500
@@ -2279,94 +2260,258 @@ class Database:
             "auto_equipped": auto_equip,
         }
 
-    async def claim_hatch(self, user_id: int, guild_id: int, slot: int) -> dict[str, Any]:
-        """Hatch a fully-incubated egg from a specific slot."""
-        slot_info = await self.get_incubator_slot(user_id, guild_id, slot)
-        if not slot_info:
-            return {"success": False, "reason": "not_found"}
+    # ------------------------------------------------------------------ #
+    # Halloween Seasonal Event Methods
+    # ------------------------------------------------------------------ #
+    async def get_or_create_halloween_pass(self, user_id: int, guild_id: int) -> dict[str, Any]:
+        """Fetch or initialize the user's 1 personal Jack-o'-Lantern Season Pass."""
+        cur = await self.conn.execute(
+            "SELECT * FROM halloween_pass WHERE user_id = ? AND guild_id = ?",
+            (user_id, guild_id),
+        )
+        row = await cur.fetchone()
+        if row:
+            return dict(row)
 
-        if slot_info["credited_seconds"] < slot_info["required_seconds"]:
-            return {
-                "success": False,
-                "reason": "still_incubating",
-                "remaining_seconds": slot_info["required_seconds"] - slot_info["credited_seconds"],
-            }
+        now = int(time.time())
+        # Cross-guild fallback: check if user has a pass in ANY guild
+        cur_any = await self.conn.execute(
+            "SELECT * FROM halloween_pass WHERE user_id = ? ORDER BY study_seconds DESC LIMIT 1",
+            (user_id,),
+        )
+        donor = await cur_any.fetchone()
+        if donor:
+            donor_dict = dict(donor)
+            donor_dict["guild_id"] = guild_id
+            await self.conn.execute(
+                """
+                INSERT OR REPLACE INTO halloween_pass (user_id, guild_id, study_seconds, claimed_level, created_at, updated_at)
+                VALUES (?, ?, ?, ?, ?, ?)
+                """,
+                (user_id, guild_id, donor_dict["study_seconds"], donor_dict["claimed_level"], donor_dict["created_at"], now),
+            )
+            await self.conn.commit()
+            return donor_dict
 
         await self.conn.execute(
-            "DELETE FROM user_incubator WHERE user_id = ? AND guild_id = ? AND slot = ?",
-            (user_id, guild_id, slot),
+            """
+            INSERT OR IGNORE INTO halloween_pass (user_id, guild_id, study_seconds, claimed_level, created_at, updated_at)
+            VALUES (?, ?, 0, 0, ?, ?)
+            """,
+            (user_id, guild_id, now, now),
+        )
+        await self.conn.commit()
+        cur = await self.conn.execute(
+            "SELECT * FROM halloween_pass WHERE user_id = ? AND guild_id = ?",
+            (user_id, guild_id),
+        )
+        row = await cur.fetchone()
+        return dict(row) if row else {"user_id": user_id, "guild_id": guild_id, "study_seconds": 0, "claimed_level": 0}
+
+    async def credit_halloween_study(self, user_id: int, guild_id: int, delta_seconds: int) -> dict[str, Any]:
+        """Credit study seconds to the Jack-o'-Lantern Season Pass across all user profiles."""
+        pass_data = await self.get_or_create_halloween_pass(user_id, guild_id)
+        if delta_seconds <= 0:
+            return {"pass": pass_data, "new_level_unlocked": None}
+
+        old_seconds = pass_data["study_seconds"]
+        new_seconds = old_seconds + delta_seconds
+        now = int(time.time())
+
+        # Update across all guilds for this user so it's truly 1 personal pass per account!
+        await self.conn.execute(
+            "UPDATE halloween_pass SET study_seconds = study_seconds + ?, updated_at = ? WHERE user_id = ?",
+            (delta_seconds, now, user_id),
         )
         await self.conn.commit()
 
-        egg_id = slot_info["egg_id"]
-        egg = egg_catalog.get_egg(egg_id)
-        loot = egg_catalog.generate_hatch_loot(egg_id, is_incubated=True)
+        old_lvl = halloween_catalog.get_current_pass_level(old_seconds)
+        new_lvl = halloween_catalog.get_current_pass_level(new_seconds)
+        new_level_unlocked = new_lvl if new_lvl["level"] > old_lvl["level"] else None
 
-        coins = loot.get("coins", 0)
-        xp = loot.get("xp", 0)
-        new_balance = await self.add_coins(user_id, guild_id, coins) if coins else 0
-        xp_res = await self.grant_xp(user_id, guild_id, xp) if xp else {"leveled_up": False}
+        updated_pass = await self.get_or_create_halloween_pass(user_id, guild_id)
+        return {"pass": updated_pass, "new_level_unlocked": new_level_unlocked}
 
-        pet_res = None
-        if loot.get("type") == "pet" and loot.get("species_id"):
-            pet_res = await self.grant_hatched_pet(user_id, guild_id, loot["species_id"])
+    async def claim_all_halloween_rewards(self, user_id: int, guild_id: int) -> dict[str, Any]:
+        """Claim all unlocked and unclaimed Jack-o'-Lantern season pass levels."""
+        pass_data = await self.get_or_create_halloween_pass(user_id, guild_id)
+        study_seconds = pass_data["study_seconds"]
+        claimed_level = pass_data["claimed_level"]
 
-        if loot.get("type") == "food" and loot.get("food_id"):
-            await self.add_item(user_id, guild_id, loot["food_id"], loot.get("qty", 1))
+        current_level_info = halloween_catalog.get_current_pass_level(study_seconds)
+        max_unlocked_level = current_level_info["level"]
 
-        if loot.get("type") == "item" and loot.get("item_id"):
-            await self.add_item(user_id, guild_id, loot["item_id"], loot.get("qty", 1))
+        if max_unlocked_level <= claimed_level:
+            return {
+                "success": False,
+                "reason": "already_claimed",
+                "claimed_level": claimed_level,
+                "current_level": current_level_info,
+            }
 
-        if loot.get("type") == "jackpot":
-            if loot.get("item_id"):
-                await self.add_item(user_id, guild_id, loot["item_id"], loot.get("qty", 1))
-            if loot.get("title"):
-                await self.set_equipped_title(user_id, guild_id, loot["title"])
+        total_candy = 0
+        total_coins = 0
+        total_boxes: dict[str, int] = {}
+        total_items: list[tuple[str, int]] = []
+        unlocked_titles: list[str] = []
+        claimed_levels_list = []
+
+        for lvl_num in range(claimed_level + 1, max_unlocked_level + 1):
+            lvl = halloween_catalog.get_pass_level(lvl_num)
+            if not lvl:
+                continue
+            claimed_levels_list.append(lvl)
+            total_candy += lvl.get("candy", 0)
+            total_coins += lvl.get("coins", 0)
+            for box_id, qty in lvl.get("boxes", []):
+                total_boxes[box_id] = total_boxes.get(box_id, 0) + qty
+            for item_id, qty in lvl.get("items", []):
+                total_items.append((item_id, qty))
+            if lvl.get("title"):
+                unlocked_titles.append(lvl["title"])
+
+        # Grant rewards
+        if total_candy > 0:
+            await self._add_candy_raw(user_id, guild_id, total_candy)
+        if total_coins > 0:
+            await self._add_coins_raw(user_id, guild_id, total_coins)
+        for box_id, qty in total_boxes.items():
+            await self.add_item(user_id, guild_id, box_id, qty)
+        for item_id, qty in total_items:
+            await self.add_item(user_id, guild_id, item_id, qty)
+        for title in unlocked_titles:
+            if title == "The Great Pumpkin":
+                await self.add_item(user_id, guild_id, "title_great_pumpkin", 1)
+
+        # Update pass claimed_level across all guilds for this user
+        now = int(time.time())
+        await self.conn.execute(
+            "UPDATE halloween_pass SET claimed_level = ?, updated_at = ? WHERE user_id = ?",
+            (max_unlocked_level, now, user_id),
+        )
+        await self.conn.commit()
 
         return {
             "success": True,
-            "egg": egg,
-            "loot": loot,
-            "pet_result": pet_res,
-            "coins": coins,
-            "xp": xp,
-            "new_balance": new_balance,
-            "leveled_up": xp_res.get("leveled_up", False),
+            "claimed_levels": claimed_levels_list,
+            "new_claimed_level": max_unlocked_level,
+            "candy": total_candy,
+            "coins": total_coins,
+            "boxes": total_boxes,
+            "items": total_items,
+            "titles": unlocked_titles,
         }
 
-    async def crack_egg_direct(self, user_id: int, guild_id: int, egg_id: str) -> dict[str, Any]:
-        """Instantly crack an egg without waiting for incubation (reduced loot)."""
-        egg = egg_catalog.get_egg(egg_id)
-        if not egg:
-            return {"success": False, "reason": "invalid_egg"}
+    async def open_hallo_box(self, user_id: int, guild_id: int, box_id: str, qty: int = 1) -> dict[str, Any]:
+        """Instantly open 1 or more Hallo-Boxes from inventory."""
+        box = halloween_catalog.get_box(box_id)
+        if not box:
+            return {"success": False, "reason": "invalid_box"}
 
-        qty = await self.get_item_qty(user_id, guild_id, egg_id)
-        if qty <= 0:
-            return {"success": False, "reason": "not_owned"}
+        owned = await self.get_item_qty(user_id, guild_id, box_id)
+        if owned < qty:
+            return {"success": False, "reason": "insufficient_qty", "owned": owned}
 
-        await self.add_item(user_id, guild_id, egg_id, -1)
+        # Deduct boxes
+        await self.add_item(user_id, guild_id, box_id, -qty)
 
-        loot = egg_catalog.generate_hatch_loot(egg_id, is_incubated=False)
+        # Track boxes_opened in user_currency
+        await self.conn.execute(
+            "UPDATE user_currency SET boxes_opened = boxes_opened + ? WHERE user_id = ? AND guild_id = ?",
+            (qty, user_id, guild_id),
+        )
 
-        coins = loot.get("coins", 0)
-        xp = loot.get("xp", 0)
-        new_balance = await self.add_coins(user_id, guild_id, coins) if coins else 0
-        xp_res = await self.grant_xp(user_id, guild_id, xp) if xp else {"leveled_up": False}
+        total_candy = 0
+        total_coins = 0
+        pets_granted = []
+        food_granted: dict[str, int] = {}
+        items_granted: dict[str, int] = {}
 
-        pet_res = None
-        if loot.get("type") == "pet" and loot.get("species_id"):
-            pet_res = await self.grant_hatched_pet(user_id, guild_id, loot["species_id"])
+        for _ in range(qty):
+            loot = halloween_catalog.generate_box_loot(box_id)
+            total_candy += loot["candy"]
+            total_coins += loot["coins"]
 
-        if loot.get("type") == "food" and loot.get("food_id"):
-            await self.add_item(user_id, guild_id, loot["food_id"], loot.get("qty", 1))
+            if loot.get("pet"):
+                pet_res = await self.grant_hatched_pet(user_id, guild_id, loot["pet"])
+                pets_granted.append(pet_res)
+
+            if loot.get("food") and loot.get("food_qty", 0) > 0:
+                fid = loot["food"]
+                fqty = loot["food_qty"]
+                food_granted[fid] = food_granted.get(fid, 0) + fqty
+                await self.add_item(user_id, guild_id, fid, fqty)
+
+            if loot.get("item") and loot.get("item_qty", 0) > 0:
+                iid = loot["item"]
+                iqty = loot["item_qty"]
+                items_granted[iid] = items_granted.get(iid, 0) + iqty
+                await self.add_item(user_id, guild_id, iid, iqty)
+
+        # Add total coins and candy
+        await self._add_coins_raw(user_id, guild_id, total_coins)
+        await self._add_candy_raw(user_id, guild_id, total_candy)
+        await self.conn.commit()
 
         return {
             "success": True,
-            "egg": egg,
-            "loot": loot,
-            "pet_result": pet_res,
-            "coins": coins,
-            "xp": xp,
-            "new_balance": new_balance,
-            "leveled_up": xp_res.get("leveled_up", False),
+            "box": box,
+            "quantity": qty,
+            "candy": total_candy,
+            "coins": total_coins,
+            "pets": pets_granted,
+            "food": food_granted,
+            "items": items_granted,
         }
+
+    async def buy_candy_item(self, user_id: int, guild_id: int, item_key: str, qty: int = 1) -> dict[str, Any]:
+        """Purchase an item from the Halloween Candy Shop using Candy."""
+        item = halloween_catalog.resolve_candy_shop_item(item_key)
+        if not item:
+            return {"success": False, "reason": "not_found"}
+
+        item_type = item["type"]
+        unit_price = item["candy_price"]
+        total_price = unit_price * qty
+
+        if item_type in ("pet", "title") and qty > 1:
+            return {"success": False, "reason": "single_only"}
+
+        curr = await self.get_or_create_currency(user_id, guild_id)
+        if curr.get("candy", 0) < total_price:
+            return {
+                "success": False,
+                "reason": "insufficient_candy",
+                "required": total_price,
+                "current": curr.get("candy", 0),
+            }
+
+        if item_type == "pet":
+            species_id = item["species_id"]
+            if await self.get_pet(user_id, guild_id, species_id):
+                return {"success": False, "reason": "already_owned"}
+            spent = await self.spend_candy(user_id, guild_id, total_price)
+            if not spent:
+                return {"success": False, "reason": "insufficient_candy"}
+            pet_res = await self.grant_hatched_pet(user_id, guild_id, species_id)
+            return {"success": True, "item": item, "pet_result": pet_res, "price": total_price}
+
+        elif item_type == "title":
+            title_id = item["id"]
+            owned = await self.get_item_qty(user_id, guild_id, title_id)
+            if owned > 0:
+                return {"success": False, "reason": "already_owned"}
+            spent = await self.spend_candy(user_id, guild_id, total_price)
+            if not spent:
+                return {"success": False, "reason": "insufficient_candy"}
+            await self.add_item(user_id, guild_id, title_id, 1)
+            return {"success": True, "item": item, "price": total_price}
+
+        elif item_type == "boost":
+            spent = await self.spend_candy(user_id, guild_id, total_price)
+            if not spent:
+                return {"success": False, "reason": "insufficient_candy"}
+            await self.add_item(user_id, guild_id, item["id"], qty)
+            return {"success": True, "item": item, "quantity": qty, "price": total_price}
+
+        return {"success": False, "reason": "unknown_type"}

@@ -85,6 +85,41 @@ SHOP_ITEMS: dict[str, dict[str, Any]] = {
         "title_text": "Legend",
         "description": "A prestige title for the truly dedicated.",
     },
+    # Halloween Event Items (not listed in standard coin .shop)
+    "sugar_rush": {
+        "name": "Sugar Rush",
+        "emoji": "\u26A1",
+        "price": 0,
+        "type": "boost",
+        "effect_id": "xp_boost",
+        "duration_minutes": 60,
+        "multiplier": 2,
+        "description": "Consumable from Halloween: double study XP for 60 minutes.",
+    },
+    "title_inorganic": {
+        "name": "Title: Inorganic Nightmare",
+        "emoji": "\U0001F9EA",
+        "price": 0,
+        "type": "title",
+        "title_text": "Inorganic Nightmare",
+        "description": "Exclusive JEE Halloween title for surviving qualitative analysis and p-block horrors.",
+    },
+    "title_shift1": {
+        "name": "Title: The Shift 1 Phantom",
+        "emoji": "\U0001F47B",
+        "price": 0,
+        "type": "title",
+        "title_text": "The Shift 1 Phantom",
+        "description": "Exclusive JEE Halloween title for braving the legendary 27 Jan Shift 1.",
+    },
+    "title_great_pumpkin": {
+        "name": "Title: The Great Pumpkin",
+        "emoji": "\U0001F451",
+        "price": 0,
+        "type": "title",
+        "title_text": "The Great Pumpkin",
+        "description": "Grand masterwork title unlocked by maxing out the Jack-o'-Lantern pass.",
+    },
 }
 
 # Stable display order for `.shop`.

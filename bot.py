@@ -23,7 +23,7 @@ INITIAL_EXTENSIONS = (
     "cogs.stats",
     "cogs.economy",
     "cogs.pets",
-    "cogs.eggs",
+    "cogs.halloween",
     "cogs.achievements",
     "cogs.social",
     "cogs.progress",
