@@ -24,6 +24,15 @@ from utils.time_format import format_duration
 log = logging.getLogger("halloween")
 
 
+def _hm(hours: float) -> str:
+    """Format a fractional hour count as e.g. '2h 28m'."""
+    total_min = int(round(hours * 60))
+    hh, mm = divmod(total_min, 60)
+    if hh <= 0:
+        return f"{mm}m"
+    return f"{hh}h {mm:02d}m" if mm else f"{hh}h"
+
+
 # --------------------------------------------------------------------- #
 # Interactive UI Views
 # --------------------------------------------------------------------- #
@@ -547,6 +556,7 @@ class Halloween(commands.Cog, name="Halloween"):
     # ------------------------------------------------------------------ #
     # 3. THE LIMITED CANDY SHOP
     # ------------------------------------------------------------------ #
+
     @commands.command(name="candyshop", aliases=["spookyshop", "cshop", "halloween"])
     @commands.guild_only()
     async def candyshop_cmd(self, ctx: commands.Context) -> None:
@@ -660,6 +670,121 @@ class Halloween(commands.Cog, name="Halloween"):
             await ctx_or_interaction.followup.send(embed=embed)
         else:
             await ctx_or_interaction.send(embed=embed)
+
+    # ------------------------------------------------------------------ #
+    # 4. EVENT ANNOUNCEMENT (prefix-aware, rates pulled from the catalog)
+    # ------------------------------------------------------------------ #
+    @commands.command(name="event", aliases=["halloweeninfo", "spooky", "eventinfo"])
+    @commands.guild_only()
+    async def event_cmd(self, ctx: commands.Context) -> None:
+        """Post the Halloween event announcement with live drop rates and reward maths."""
+        p = ctx.prefix
+        cat = halloween_catalog
+
+        chances = cat.tier_chances()
+        per_box = cat.expected_box_rates()
+        hourly = cat.study_hourly_estimate()
+        totals = cat.pass_reward_totals()
+        max_hours = cat.JACK_O_LANTERN_LEVELS[-1]["required_seconds"] / 3600.0
+        per_hour = hourly["candy_total"]
+        shop = cat.CANDY_SHOP_ITEMS
+
+        supply = " · ".join(
+            f"{cat.HALLO_BOXES[bid]['emoji']} {cat.HALLO_BOXES[bid]['tier'].capitalize()} "
+            f"**{chances[bid] * 100:.0f}%**"
+            for bid, _ in cat.STUDY_BOX_ROLL_WEIGHTS
+        )
+        box_totals = " ".join(
+            f"{cat.HALLO_BOXES[bid]['emoji']} {qty}" for bid, qty in totals["boxes"].items()
+        )
+
+        embed = embeds.base_embed(
+            title="\U0001F383 CHRONOS HALLOWEEN EVENT \u00B7 10 Days",
+            description=(
+                "> *Something is stirring in the pumpkin patch...*\n"
+                "> The patch pays in **\U0001F36C Candy** now: study, carve, and spend before the candles go out.\n\n"
+                "**\U0001F36C Candy** \u00B7 event currency, shown in "
+                f"`{p}balance`. Earned while studying, from dailies, and from every box.\n"
+                "**\U0001F383 Jack-o'-Lantern** \u00B7 one per account, carved by your study time. No timers.\n"
+                "**\U0001F4E6 Hallo-Boxes** \u00B7 100% drop-only, **opened instantly, no incubation**."
+            ),
+            color=0xFF7518,
+        )
+
+        embed.add_field(
+            name="\U0001F383 Your Jack-o'-Lantern",
+            value=(
+                "Levels up through 5 carving stages as you study:\n"
+                "\U0001FAB5 Raw Gourd (0h) \u2192 \U0001F56F\uFE0F Candlelit (2h) \u2192 "
+                "\U0001F383 Smiling Jack (5h) \u2192 \U0001FAA6 Haunted Jack (10h) \u2192 "
+                "\U0001F451 The Great Pumpkin (20h)\n"
+                f"14 milestone levels \u00B7 claim with `{p}pumpkin claim`"
+            ),
+            inline=False,
+        )
+        embed.add_field(
+            name="\U0001F4E6 Where boxes come from",
+            value=(
+                f"Study drops (~1 every 18 min), plus `{p}daily`, `{p}work`, `{p}beg`, "
+                f"`{p}weekly`, and pass milestones.\n"
+                f"Open: `{p}openbox <tier> [qty]` or `{p}openbox all`"
+            ),
+            inline=False,
+        )
+        embed.add_field(
+            name="\U0001F56F\uFE0F The Drop Table (lore of the patch)",
+            value=(
+                f"{supply}\n"
+                "*The patch is generous with kindling and stingy with crowns: one box in a hundred "
+                "is Legendary. When the Great Pumpkin blinks, you blink back.*\n\n"
+                f"Per box on average: **~{per_box['candy']:.0f} \U0001F36C**, "
+                f"**~{per_box['coins']:,.0f} \U0001F4B0**, "
+                f"{per_box['pet'] * 100:.0f}% pet \u00B7 {per_box['food'] * 100:.0f}% food \u00B7 "
+                f"{per_box['item'] * 100:.1f}% boost/mystery"
+            ),
+            inline=False,
+        )
+        embed.add_field(
+            name="\U0001F4CA The Maths of the Patch (per hour of study)",
+            value=(
+                f"\U0001F4E6 **{hourly['boxes']:.1f} boxes** \u00B7 "
+                f"\U0001F36C **~{hourly['candy_total']:.0f} Candy** "
+                f"({hourly['candy_direct']:.0f} study + {hourly['candy_boxes']:.0f} boxes)\n"
+                f"\U0001F4B0 **~{hourly['coins_boxes']:,.0f} coins/hr** from boxes \u00B7 "
+                f"\U0001F43E ~{hourly['pets']:.2f} pets \u00B7 \U0001F35B ~{hourly['food']:.1f} food\n\n"
+                f"**Pace:** maxing the pass takes **{max_hours:.0f}h** \u2014 about "
+                f"**{max_hours / 10:.1f}h/day** across the 10 days.\n"
+                f"**Full pass payout:** {totals['candy']:,} \U0001F36C \u00B7 {totals['coins']:,} \U0001F4B0 \u00B7 "
+                f"{box_totals} boxes \u00B7 {totals['items'].get('sugar_rush', 0)} \u26A1 \u00B7 "
+                f"\u201C{totals['titles'][0]}\u201D title"
+            ),
+            inline=False,
+        )
+        embed.add_field(
+            name="\U0001F6D2 Candy Shop",
+            value=(
+                f"\U0001F383 **Pumpkaboo** \u2014 {shop['pumpkaboo']['candy_price']:,} \U0001F36C "
+                f"(~{_hm(shop['pumpkaboo']['candy_price'] / per_hour)} of study) \u00B7 evolves into Gourgeist\n"
+                f"\U0001F9EA **Inorganic Nightmare** \u2014 {shop['title_inorganic']['candy_price']:,} \U0001F36C "
+                f"(~{_hm(shop['title_inorganic']['candy_price'] / per_hour)})\n"
+                f"\U0001F47B **The Shift 1 Phantom** \u2014 {shop['title_shift1']['candy_price']:,} \U0001F36C "
+                f"(~{_hm(shop['title_shift1']['candy_price'] / per_hour)})\n"
+                f"\u26A1 **Sugar Rush** (1h \u00D7 2 XP) \u2014 {shop['sugar_rush']['candy_price']:,} \U0001F36C "
+                f"(~{_hm(shop['sugar_rush']['candy_price'] / per_hour)})"
+            ),
+            inline=False,
+        )
+        embed.add_field(
+            name="\u2328\uFE0F Commands",
+            value=(
+                f"`{p}pumpkin` \u00B7 `{p}boxes` \u00B7 `{p}openbox <tier> [qty]`\n"
+                f"`{p}candyshop` \u00B7 `{p}buycandy <item>` \u00B7 `{p}balance`"
+            ),
+            inline=False,
+        )
+        embed.set_footer(text=f"{embeds.FOOTER_TEXT} \u2022 10 days only \u2022 rates live from the patch")
+
+        await ctx.send(embed=embed)
 
 
 async def setup(bot: commands.Bot) -> None:

@@ -93,6 +93,29 @@ HALLO_BOXES: dict[str, dict[str, Any]] = {
 
 HALLO_BOX_ORDER: list[str] = ["hbox_common", "hbox_uncommon", "hbox_rare", "hbox_epic", "hbox_legendary"]
 
+# --------------------------------------------------------------------- #
+# Drop-rate tuning (single source of truth for rolls AND .event maths)
+# --------------------------------------------------------------------- #
+STUDY_BOX_CHANCE_PER_MINUTE = 0.055
+STUDY_CANDY_MIN = 1
+STUDY_CANDY_MAX = 3
+# Weighted tier roll for study drops (must sum to 100).
+STUDY_BOX_ROLL_WEIGHTS: list[tuple[str, int]] = [
+    ("hbox_common", 60),
+    ("hbox_uncommon", 25),
+    ("hbox_rare", 10),
+    ("hbox_epic", 4),
+    ("hbox_legendary", 1),
+]
+# Chance a box of each tier also rolls a boost/mystery item.
+BOX_ITEM_CHANCE: dict[str, float] = {
+    "common": 0.0,
+    "uncommon": 0.12,
+    "rare": 0.25,
+    "epic": 0.50,
+    "legendary": 1.0,
+}
+
 
 def get_box(box_id: str) -> Optional[dict[str, Any]]:
     return HALLO_BOXES.get(box_id)
@@ -113,38 +136,102 @@ def resolve_box_id(query: str) -> Optional[str]:
 # --------------------------------------------------------------------- #
 # Study Drop Rolls
 # --------------------------------------------------------------------- #
+def roll_box_tier() -> str:
+    """Roll a Hallo-Box tier using STUDY_BOX_ROLL_WEIGHTS."""
+    roll = random.uniform(0, sum(w for _, w in STUDY_BOX_ROLL_WEIGHTS))
+    upto = 0
+    for box_id, weight in STUDY_BOX_ROLL_WEIGHTS:
+        upto += weight
+        if roll < upto:
+            return box_id
+    return STUDY_BOX_ROLL_WEIGHTS[-1][0]
+
+
 def roll_study_hallo_box(new_minutes: int) -> Optional[str]:
     """Roll for a Hallo-Box drop during active study sessions.
-    
-    Generous ~5% chance per minute, averaging ~1 box every 15-20 minutes of study.
+
+    ~5.5% chance per minute, averaging ~1 box every 18 minutes of study.
     """
     if new_minutes <= 0:
         return None
-    chance_per_minute = 0.055
-    drop_roll = random.random()
-    threshold = 1.0 - ((1.0 - chance_per_minute) ** new_minutes)
-    if drop_roll > threshold:
+    threshold = 1.0 - ((1.0 - STUDY_BOX_CHANCE_PER_MINUTE) ** new_minutes)
+    if random.random() > threshold:
         return None
-
-    roll = random.random()
-    if roll < 0.60:
-        return "hbox_common"
-    elif roll < 0.85:
-        return "hbox_uncommon"
-    elif roll < 0.95:
-        return "hbox_rare"
-    elif roll < 0.99:
-        return "hbox_epic"
-    else:
-        return "hbox_legendary"
+    return roll_box_tier()
 
 
 def roll_study_candy(new_minutes: int) -> int:
     """Roll for direct Candy drops earned from active studying."""
     if new_minutes <= 0:
         return 0
-    # Every minute gives between 1 and 3 Candy
-    return sum(random.randint(1, 3) for _ in range(new_minutes))
+    # Every minute gives between STUDY_CANDY_MIN and STUDY_CANDY_MAX Candy
+    return sum(random.randint(STUDY_CANDY_MIN, STUDY_CANDY_MAX) for _ in range(new_minutes))
+
+
+# --------------------------------------------------------------------- #
+# Drop-rate maths (powers .event; derived from the tables above)
+# --------------------------------------------------------------------- #
+def tier_chances() -> dict[str, float]:
+    total = float(sum(w for _, w in STUDY_BOX_ROLL_WEIGHTS))
+    return {bid: w / total for bid, w in STUDY_BOX_ROLL_WEIGHTS}
+
+
+def expected_box_candy(box_id: str) -> float:
+    box = HALLO_BOXES[box_id]
+    return (box["candy_min"] + box["candy_max"]) / 2.0
+
+
+def expected_box_coins(box_id: str) -> float:
+    box = HALLO_BOXES[box_id]
+    return (box["coin_min"] + box["coin_max"]) / 2.0
+
+
+def expected_box_rates() -> dict[str, float]:
+    """Average loot per single box, weighted across the study-drop table."""
+    chances = tier_chances()
+    return {
+        "candy": sum(p * expected_box_candy(bid) for bid, p in chances.items()),
+        "coins": sum(p * expected_box_coins(bid) for bid, p in chances.items()),
+        "pet": sum(p * HALLO_BOXES[bid]["pet_chance"] for bid, p in chances.items()),
+        "food": sum(p * HALLO_BOXES[bid]["food_chance"] for bid, p in chances.items()),
+        "item": sum(p * BOX_ITEM_CHANCE[HALLO_BOXES[bid]["tier"]] for bid, p in chances.items()),
+    }
+
+
+def study_hourly_estimate() -> dict[str, float]:
+    """Expected rewards per hour of actively-credited study."""
+    boxes = 60.0 * STUDY_BOX_CHANCE_PER_MINUTE
+    candy_direct = 60.0 * (STUDY_CANDY_MIN + STUDY_CANDY_MAX) / 2.0
+    rates = expected_box_rates()
+    return {
+        "boxes": boxes,
+        "candy_direct": candy_direct,
+        "candy_boxes": boxes * rates["candy"],
+        "candy_total": candy_direct + boxes * rates["candy"],
+        "coins_boxes": boxes * rates["coins"],
+        "pets": boxes * rates["pet"],
+        "food": boxes * rates["food"],
+        "items": boxes * rates["item"],
+    }
+
+
+def pass_reward_totals() -> dict[str, Any]:
+    """Sum every reward across all Jack-o'-Lantern levels."""
+    candy = coins = 0
+    boxes: dict[str, int] = {}
+    items: dict[str, int] = {}
+    titles: list[str] = []
+    for lvl in JACK_O_LANTERN_LEVELS:
+        candy += lvl.get("candy", 0)
+        coins += lvl.get("coins", 0)
+        for bid, qty in lvl.get("boxes", []):
+            boxes[bid] = boxes.get(bid, 0) + qty
+        for iid, qty in lvl.get("items", []):
+            items[iid] = items.get(iid, 0) + qty
+        if lvl.get("title"):
+            titles.append(lvl["title"])
+    return {"candy": candy, "coins": coins, "boxes": boxes, "items": items, "titles": titles}
+
 
 
 # --------------------------------------------------------------------- #
@@ -220,17 +307,13 @@ def generate_box_loot(box_id: str) -> dict[str, Any]:
 
     item_dropped: Optional[str] = None
     item_qty = 0
-    if tier == "uncommon" and random.random() < 0.12:
-        item_dropped = "mystery_box"
-        item_qty = 1
-    elif tier == "rare" and random.random() < 0.25:
-        item_dropped = "sugar_rush" if random.random() < 0.50 else "mystery_box"
-        item_qty = 1
-    elif tier == "epic" and random.random() < 0.50:
-        item_dropped = "sugar_rush"
-        item_qty = 1
-    elif tier == "legendary":
-        item_dropped = "sugar_rush"
+    if random.random() < BOX_ITEM_CHANCE[tier]:
+        if tier == "uncommon":
+            item_dropped = "mystery_box"
+        elif tier == "rare":
+            item_dropped = "sugar_rush" if random.random() < 0.50 else "mystery_box"
+        else:
+            item_dropped = "sugar_rush"
         item_qty = 1
 
     return {

@@ -65,7 +65,7 @@ PAGE_KEYWORDS: dict[str, int] = {
     "achievements": 2, "badges": 2, "ach": 2,
     "syllabus": 3, "progress": 3, "jee": 3, "chapter": 3,
     "economy": 4, "coins": 4, "shop": 4, "daily": 4, "work": 4, "buy": 4,
-    "pets": 5, "food": 5, "pet": 5, "feed": 5, "pumpkin": 5, "pass": 5, "halloween": 5, "candy": 5, "candyshop": 5, "boxes": 5, "openbox": 5, "open": 5,
+    "pets": 5, "food": 5, "pet": 5, "feed": 5, "pumpkin": 5, "pass": 5, "halloween": 5, "candy": 5, "candyshop": 5, "boxes": 5, "openbox": 5, "open": 5, "event": 5,
     "pomodoro": 6, "pomo": 6, "admin": 6, "config": 6, "tiers": 6, "tags": 6,
     "how": 7, "info": 7, "works": 7,
 }
@@ -178,7 +178,8 @@ def _build_pages(prefix: str) -> list[discord.Embed]:
         f"`{prefix}boxes` \u2014 view your drop-only Hallo-Boxes inventory\n"
         f"`{prefix}openbox <tier> [qty]` \u2014 instantly open Hallo-Boxes! (`{prefix}open`)\n"
         f"`{prefix}candyshop` \u2014 spend Candy on exclusive pet, titles & boosts (`{prefix}spookyshop`)\n"
-        f"`{prefix}buycandy <item>` \u2014 purchase from the seasonal Candy Shop\n\n"
+        f"`{prefix}buycandy <item>` \u2014 purchase from the seasonal Candy Shop\n"
+        f"`{prefix}event` \u2014 full event announcement, drop rates & reward maths\n\n"
         f"**Food**\n"
         f"`{prefix}foodshop [tier]` \u2014 browse pet food (`{prefix}fshop`)\n"
         f"`{prefix}buyfood <name> [qty]` \u2014 buy food\n"
