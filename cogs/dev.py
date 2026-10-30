@@ -253,6 +253,100 @@ class Dev(commands.Cog, name="Dev"):
             )
         )
 
+    @commands.command(name="checkdb")
+    @is_dev()
+    async def check_db_cmd(self, ctx: commands.Context) -> None:
+        """[Dev only] Inspect database row counts, active guild, and user balances."""
+        tables = [
+            "user_stats", "subject_stats", "sessions", "session_log",
+            "user_currency", "user_inventory", "achievements_unlocked", "user_pets"
+        ]
+        counts = {}
+        for t in tables:
+            try:
+                cur = await self.db.conn.execute(f"SELECT COUNT(*) as cnt FROM {t}")
+                row = await cur.fetchone()
+                counts[t] = row["cnt"] if row else 0
+            except Exception as e:
+                counts[t] = f"Err: {e}"
+
+        cur_curr = await self.db.get_or_create_currency(ctx.author.id, ctx.guild.id)
+        cur_stats = await self.db.get_or_create_user_stats(ctx.author.id, ctx.guild.id)
+        pets = await self.db.get_owned_pets(ctx.author.id, ctx.guild.id)
+
+        # Get all distinct guilds in database
+        cur_g = await self.db.conn.execute("SELECT DISTINCT guild_id FROM user_currency")
+        guild_ids = [str(r["guild_id"]) for r in await cur_g.fetchall()]
+        guilds_str = ", ".join(guild_ids) if guild_ids else "None"
+
+        embed = embeds.base_embed(
+            title="\U0001F50D Database Diagnostics",
+            description=f"**Current Server ID:** `{ctx.guild.id}`\n**Known Guild IDs in DB:** `{guilds_str}`",
+            color=embeds.COLOR_INFO,
+        )
+
+        pet_names = [p.get("nickname", p.get("species_id", "Pet")) for p in pets]
+        pets_str = ", ".join(pet_names) if pet_names else "None"
+
+        embed.add_field(
+            name="Your Profile in this Server",
+            value=(
+                f"\u25B8 **Level:** {cur_stats.get('level', 0)} ({cur_stats.get('xp', 0):,} XP)\n"
+                f"\u25B8 **Coins:** {cur_curr.get('coins', 0):,} (Lifetime: {cur_curr.get('lifetime_earned', 0):,})\n"
+                f"\u25B8 **Streak:** {cur_stats.get('current_streak', 0)} days\n"
+                f"\u25B8 **Pets:** {pets_str}"
+            ),
+            inline=False,
+        )
+
+        table_lines = [f"\u25B8 **{t}:** {counts[t]} rows" for t in tables]
+        embed.add_field(name="Table Row Counts", value="\n".join(table_lines), inline=False)
+        await ctx.send(embed=embed)
+
+    @commands.command(name="forceseed")
+    @is_dev()
+    async def force_seed_cmd(self, ctx: commands.Context) -> None:
+        """[Dev only] Force restore seed_data.sql and sync all data to the current server."""
+        await ctx.send("\u23F3 Importing `seed_data.sql` and restoring all user data...")
+        result = await self.db.force_seed(target_guild_id=ctx.guild.id)
+        if not result.get("success"):
+            await ctx.send(embed=embeds.error_embed(f"Force seed failed: {result.get('reason')}"))
+            return
+
+        cur_curr = await self.db.get_or_create_currency(ctx.author.id, ctx.guild.id)
+        cur_stats = await self.db.get_or_create_user_stats(ctx.author.id, ctx.guild.id)
+        pets = await self.db.get_owned_pets(ctx.author.id, ctx.guild.id)
+
+        embed = embeds.success_embed(
+            "\u2705 Database Seeded & Restored Successfully!",
+            (
+                f"**Target Server:** `{ctx.guild.id}`\n\n"
+                f"\u25B8 **Your Balance:** {cur_curr.get('coins', 0):,} coins\n"
+                f"\u25B8 **Your Level:** Level {cur_stats.get('level', 0)} ({cur_stats.get('xp', 0):,} XP)\n"
+                f"\u25B8 **Your Streak:** {cur_stats.get('current_streak', 0)} days\n"
+                f"\u25B8 **Your Pets:** {len(pets)} pet(s) active\n\n"
+                f"**Database Totals:**\n"
+                f"\u25B8 `user_stats`: {result['user_stats_count']} rows\n"
+                f"\u25B8 `user_currency`: {result['user_currency_count']} rows\n"
+                f"\u25B8 `sessions`: {result['sessions_count']} rows\n"
+                f"\u25B8 `user_pets`: {result['user_pets_count']} rows\n"
+                f"\u25B8 Rows synced to this server: {result.get('synced_rows_to_target', 0)}"
+            ),
+        )
+        await ctx.send(embed=embed)
+
+    @commands.command(name="syncguild")
+    @is_dev()
+    async def sync_guild_cmd(self, ctx: commands.Context, source_guild_id: Optional[int] = 1483039226693030083) -> None:
+        """[Dev only] Copy all stats, coins, pets, and inventory from source guild to current guild."""
+        total = await self.db.sync_guild_data(source_guild_id, ctx.guild.id)
+        cur_curr = await self.db.get_or_create_currency(ctx.author.id, ctx.guild.id)
+        await ctx.send(embed=embeds.success_embed(
+            "Guild Data Synced",
+            f"Synced **{total}** rows from `{source_guild_id}` to `{ctx.guild.id}`!\n"
+            f"Your balance in this server is now **{cur_curr.get('coins', 0):,}** coins.",
+        ))
+
     @commands.command(name="backupdb")
     @is_dev()
     async def backup_db_cmd(self, ctx: commands.Context) -> None:
@@ -292,6 +386,9 @@ class Dev(commands.Cog, name="Dev"):
     @remove_xp_cmd.error
     @remove_coins_cmd.error
     @add_egg_cmd.error
+    @check_db_cmd.error
+    @force_seed_cmd.error
+    @sync_guild_cmd.error
     @backup_db_cmd.error
     @restore_db_cmd.error
     async def dev_error(self, ctx: commands.Context, error: commands.CommandError) -> None:

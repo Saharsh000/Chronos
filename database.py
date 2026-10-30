@@ -356,20 +356,89 @@ class Database:
         log.info(f"Connected to SQLite database at '{self.path}' (WAL mode).")
 
     async def _auto_seed(self) -> None:
-        """Seed previous progress if database is empty/fresh and seed_data.sql exists."""
+        """Seed previous progress if database is empty/fresh or missing currency/stats."""
         seed_path = os.path.join(os.path.dirname(os.path.abspath(__file__)), "seed_data.sql")
         if not os.path.exists(seed_path):
             return
 
-        cur = await self._conn.execute("SELECT COUNT(*) as count FROM sessions")
-        row = await cur.fetchone()
-        if row and row["count"] == 0:
-            log.info("Fresh database detected. Auto-seeding previous progress from seed_data.sql...")
+        cur_curr = await self._conn.execute("SELECT COUNT(*) as count FROM user_currency")
+        curr_row = await cur_curr.fetchone()
+        curr_count = curr_row["count"] if curr_row else 0
+
+        cur_sess = await self._conn.execute("SELECT COUNT(*) as count FROM sessions")
+        sess_row = await cur_sess.fetchone()
+        sess_count = sess_row["count"] if sess_row else 0
+
+        cur_stats = await self._conn.execute("SELECT COUNT(*) as count FROM user_stats")
+        stats_row = await cur_stats.fetchone()
+        stats_count = stats_row["count"] if stats_row else 0
+
+        # Auto-seed if any core data table is empty or missing
+        if curr_count == 0 or sess_count == 0 or stats_count == 0:
+            log.info("Missing or fresh data detected. Auto-seeding previous progress from seed_data.sql...")
             with open(seed_path, "r", encoding="utf-8") as f:
                 seed_sql = f.read()
             await self._conn.executescript(seed_sql)
             await self._conn.commit()
-            log.info("Auto-seeding complete! Restored all user progress, streaks, and sessions.")
+            log.info("Auto-seeding complete! Restored all user progress, streaks, coins, and sessions.")
+
+    async def force_seed(self, target_guild_id: Optional[int] = None) -> dict[str, Any]:
+        """Manually execute seed_data.sql, and optionally sync data to target_guild_id."""
+        seed_path = os.path.join(os.path.dirname(os.path.abspath(__file__)), "seed_data.sql")
+        if not os.path.exists(seed_path):
+            return {"success": False, "reason": "seed_file_missing"}
+
+        with open(seed_path, "r", encoding="utf-8") as f:
+            seed_sql = f.read()
+        await self.conn.executescript(seed_sql)
+        await self.conn.commit()
+
+        synced_rows = 0
+        if target_guild_id and target_guild_id != 1483039226693030083:
+            synced_rows = await self.sync_guild_data(1483039226693030083, target_guild_id)
+
+        stats_cur = await self.conn.execute("SELECT COUNT(*) as count FROM user_stats")
+        stats_cnt = (await stats_cur.fetchone())["count"]
+        curr_cur = await self.conn.execute("SELECT COUNT(*) as count FROM user_currency")
+        curr_cnt = (await curr_cur.fetchone())["count"]
+        sess_cur = await self.conn.execute("SELECT COUNT(*) as count FROM sessions")
+        sess_cnt = (await sess_cur.fetchone())["count"]
+        pet_cur = await self.conn.execute("SELECT COUNT(*) as count FROM user_pets")
+        pet_cnt = (await pet_cur.fetchone())["count"]
+
+        return {
+            "success": True,
+            "user_stats_count": stats_cnt,
+            "user_currency_count": curr_cnt,
+            "sessions_count": sess_cnt,
+            "user_pets_count": pet_cnt,
+            "synced_rows_to_target": synced_rows,
+        }
+
+    async def sync_guild_data(self, source_guild_id: int, target_guild_id: int) -> int:
+        """Copy all user data (stats, currency, inventory, achievements, pets) from one guild to another."""
+        tables = [
+            "user_stats", "subject_stats", "user_currency", "user_inventory",
+            "achievements_unlocked", "user_pets", "user_daily", "user_cooldowns"
+        ]
+        total_synced = 0
+        for table in tables:
+            cur = await self.conn.execute(f"PRAGMA table_info({table})")
+            cols = [row["name"] for row in await cur.fetchall()]
+            if "guild_id" not in cols:
+                continue
+            cols_str = ", ".join(cols)
+            cur = await self.conn.execute(f"SELECT {cols_str} FROM {table} WHERE guild_id = ?", (source_guild_id,))
+            rows = await cur.fetchall()
+            for r in rows:
+                r_dict = dict(r)
+                r_dict["guild_id"] = target_guild_id
+                placeholders = ", ".join(["?"] * len(cols))
+                vals = [r_dict[c] for c in cols]
+                await self.conn.execute(f"INSERT OR REPLACE INTO {table} ({cols_str}) VALUES ({placeholders})", vals)
+                total_synced += 1
+        await self.conn.commit()
+        return total_synced
 
     async def _migrate(self) -> None:
         """Add any columns introduced after the initial release to
@@ -466,16 +535,44 @@ class Database:
     # User stats
     # ------------------------------------------------------------------ #
     async def get_or_create_user_stats(self, user_id: int, guild_id: int) -> dict[str, Any]:
-        await self.conn.execute(
-            "INSERT OR IGNORE INTO user_stats (user_id, guild_id) VALUES (?, ?)",
-            (user_id, guild_id),
-        )
-        await self.conn.commit()
         cur = await self.conn.execute(
             "SELECT * FROM user_stats WHERE user_id = ? AND guild_id = ?",
             (user_id, guild_id),
         )
         row = await cur.fetchone()
+        if row and (row["total_seconds"] > 0 or row["xp"] > 0):
+            return dict(row)
+
+        # Check if user has stats in any other guild (e.g. primary server) to avoid data loss
+        cur_any = await self.conn.execute(
+            "SELECT * FROM user_stats WHERE user_id = ? AND (total_seconds > 0 OR xp > 0) ORDER BY xp DESC LIMIT 1",
+            (user_id,),
+        )
+        donor = await cur_any.fetchone()
+        if donor:
+            donor_dict = dict(donor)
+            donor_dict["guild_id"] = guild_id
+            cols = list(donor_dict.keys())
+            placeholders = ", ".join(["?"] * len(cols))
+            cols_str = ", ".join(cols)
+            vals = [donor_dict[c] for c in cols]
+            await self.conn.execute(
+                f"INSERT OR REPLACE INTO user_stats ({cols_str}) VALUES ({placeholders})", vals
+            )
+            await self.conn.commit()
+            return donor_dict
+
+        if not row:
+            await self.conn.execute(
+                "INSERT OR IGNORE INTO user_stats (user_id, guild_id) VALUES (?, ?)",
+                (user_id, guild_id),
+            )
+            await self.conn.commit()
+            cur = await self.conn.execute(
+                "SELECT * FROM user_stats WHERE user_id = ? AND guild_id = ?",
+                (user_id, guild_id),
+            )
+            row = await cur.fetchone()
         return dict(row)
 
     async def get_alltime_totals(self, guild_id: int) -> dict[int, int]:
@@ -985,15 +1082,42 @@ class Database:
     # Coins
     # ------------------------------------------------------------------ #
     async def get_or_create_currency(self, user_id: int, guild_id: int) -> dict[str, Any]:
-        await self.conn.execute(
-            "INSERT OR IGNORE INTO user_currency (user_id, guild_id) VALUES (?, ?)",
-            (user_id, guild_id),
-        )
-        await self.conn.commit()
         cur = await self.conn.execute(
             "SELECT * FROM user_currency WHERE user_id = ? AND guild_id = ?", (user_id, guild_id)
         )
         row = await cur.fetchone()
+        if row and (row["coins"] > 0 or row["lifetime_earned"] > 0):
+            return dict(row)
+
+        # Check if user has currency in any other guild (e.g. primary server) to avoid data loss
+        cur_any = await self.conn.execute(
+            "SELECT * FROM user_currency WHERE user_id = ? AND (coins > 0 OR lifetime_earned > 0) ORDER BY coins DESC LIMIT 1",
+            (user_id,),
+        )
+        donor = await cur_any.fetchone()
+        if donor:
+            donor_dict = dict(donor)
+            donor_dict["guild_id"] = guild_id
+            await self.conn.execute(
+                """
+                INSERT OR REPLACE INTO user_currency (user_id, guild_id, coins, lifetime_earned, boxes_opened, items_purchased)
+                VALUES (?, ?, ?, ?, ?, ?)
+                """,
+                (user_id, guild_id, donor_dict["coins"], donor_dict["lifetime_earned"], donor_dict["boxes_opened"], donor_dict["items_purchased"]),
+            )
+            await self.conn.commit()
+            return donor_dict
+
+        if not row:
+            await self.conn.execute(
+                "INSERT OR IGNORE INTO user_currency (user_id, guild_id) VALUES (?, ?)",
+                (user_id, guild_id),
+            )
+            await self.conn.commit()
+            cur = await self.conn.execute(
+                "SELECT * FROM user_currency WHERE user_id = ? AND guild_id = ?", (user_id, guild_id)
+            )
+            row = await cur.fetchone()
         return dict(row)
 
     async def add_coins(self, user_id: int, guild_id: int, amount: int) -> int:
@@ -1027,6 +1151,24 @@ class Database:
             (user_id, guild_id),
         )
         rows = await cur.fetchall()
+        if not rows:
+            cur_any = await self.conn.execute(
+                "SELECT item_id, quantity FROM user_inventory WHERE user_id = ? AND quantity > 0",
+                (user_id,),
+            )
+            donor_items = await cur_any.fetchall()
+            if donor_items:
+                for item in donor_items:
+                    await self.conn.execute(
+                        "INSERT OR IGNORE INTO user_inventory (user_id, guild_id, item_id, quantity) VALUES (?, ?, ?, ?)",
+                        (user_id, guild_id, item["item_id"], item["quantity"]),
+                    )
+                await self.conn.commit()
+                cur = await self.conn.execute(
+                    "SELECT item_id, quantity FROM user_inventory WHERE user_id = ? AND guild_id = ? AND quantity > 0",
+                    (user_id, guild_id),
+                )
+                rows = await cur.fetchall()
         return {r["item_id"]: r["quantity"] for r in rows}
 
     async def get_item_qty(self, user_id: int, guild_id: int, item_id: str) -> int:
@@ -1220,6 +1362,28 @@ class Database:
             (user_id, guild_id),
         )
         rows = await cur.fetchall()
+        if not rows:
+            cur_any = await self.conn.execute(
+                "SELECT * FROM user_pets WHERE user_id = ? ORDER BY acquired_at ASC",
+                (user_id,),
+            )
+            donor_pets = await cur_any.fetchall()
+            if donor_pets:
+                for p in donor_pets:
+                    p_dict = dict(p)
+                    await self.conn.execute(
+                        """
+                        INSERT OR IGNORE INTO user_pets (user_id, guild_id, species_id, nickname, level, xp, equipped, acquired_at)
+                        VALUES (?, ?, ?, ?, ?, ?, ?, ?)
+                        """,
+                        (user_id, guild_id, p_dict["species_id"], p_dict["nickname"], p_dict["level"], p_dict["xp"], p_dict["equipped"], p_dict["acquired_at"]),
+                    )
+                await self.conn.commit()
+                cur = await self.conn.execute(
+                    "SELECT * FROM user_pets WHERE user_id = ? AND guild_id = ? ORDER BY acquired_at ASC",
+                    (user_id, guild_id),
+                )
+                rows = await cur.fetchall()
         return [dict(r) for r in rows]
 
     async def get_pet(self, user_id: int, guild_id: int, species_id: str) -> Optional[dict[str, Any]]:
