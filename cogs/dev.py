@@ -421,6 +421,89 @@ class Dev(commands.Cog, name="Dev"):
             f"Successfully restored `{config.DB_PATH}`! All progress, stats, and streaks are live.",
         ))
 
+    @commands.command(name="skibidi", aliases=["announce_update"])
+    @commands.guild_only()
+    async def skibidi_cmd(self, ctx: commands.Context) -> None:
+        """[Dev/Admin] Broadcast the major achievements expansion and UI overhaul update."""
+        if ctx.author.id != config.DEV_USER_ID and not ctx.author.guild_permissions.administrator:
+            await ctx.send(embed=embeds.error_embed("This announcement command is restricted to server administrators and the bot developer."))
+            return
+
+        try:
+            await ctx.message.delete()
+        except (discord.Forbidden, discord.HTTPException):
+            pass
+
+        p = ctx.prefix or "."
+
+        embed = embeds.base_embed(
+            title="⚡ CHRONOS MAJOR UPDATE · Overhaul & Achievements Expansion!",
+            description=(
+                "> **Welcome to the next evolution of Chronos.**\n"
+                "> We've pushed several massive updates across recent builds: a complete **UI overhaul**, "
+                "a colossal **Achievements Expansion (69 → 161 Badges)**, and seasonal event features.\n"
+                "> Here is everything that just landed! 🚀\n"
+            ),
+            color=embeds.COLOR_LEVELUP,
+        )
+
+        embed.add_field(
+            name="🏆 Huge Achievements Expansion (69 → 161 Badges!)",
+            value=(
+                "The badge system has received a massive expansion across **17 categories**!\n"
+                "• **⏱️ Marathon Badges:** Single-session endurance feats from 1h up to 6h+ (`Focus Fortress`, `Absolute Unit`)\n"
+                "• **🐾 Pet Companion Badges:** Adopt and level up your pets from `First Companion` to `Professor Oak` (15 pets)\n"
+                "• **📚 Subject Mastery Badges:** Deep grinds up to 100 hours each in Physics, Chem, and Maths (`Einstein Mode`, `Periodic Legend`, `Euler's Heir`)\n"
+                "• **🎃 Halloween Badges:** Candy milestones (`Candy Overlord`) and Jack-o'-Lantern pass progression (`The Great Pumpkin`)\n"
+                "• **🔥 High-Tier Grind Badges:** Badges for 1-year study streaks, `Weekend Warrior`, `Triple Threat` (all 3 subjects in 1 day), and `JEE Sigma Mode` (12h daily grind!)\n"
+                "• **💰 Scaled Coin Payouts:** Every single newly-unlocked achievement immediately rewards a generous coin bonus!\n"
+                f"*Check your badge book with `{p}achievements` or inspect specific categories with `{p}achievements <category>`.*"
+            ),
+            inline=False,
+        )
+
+        embed.add_field(
+            name="✨ Complete Visual & UI Overhaul",
+            value=(
+                "Every single screen, card, and interaction in the bot has been redesigned from the ground up:\n"
+                "• **🎨 Unified Embed System:** Clean typography, consistent brand color palettes, and crisp progress bars.\n"
+                "• **📊 Refined Study & Stats Views:** Revamped `.stats`, `.profile`, `.session`, and `.balance` displaying both Coins and Candy seamlessly.\n"
+                "• **🛍️ Polished Collection & Shop Screens:** Modernized `.pets`, `.inventory`, and interactive `.candyshop` views.\n"
+                "• **📑 Crystal-Clear Menus:** Streamlined `.help` keyword navigation and responsive buttons."
+            ),
+            inline=False,
+        )
+
+        embed.add_field(
+            name="🎃 Halloween Seasonal Event Active",
+            value=(
+                "Don't forget the limited 10-day event currently running:\n"
+                f"• `{p}pumpkin` — Level up your 1-per-account Jack-o'-Lantern season pass via study hours\n"
+                f"• `{p}openbox <tier>` — Instantly open 100% drop-only Hallo-Boxes (no incubation!)\n"
+                f"• `{p}candyshop` — Spend 🍬 Candy on the exclusive Pumpkaboo pet, limited titles, and Sugar Rush boosts!"
+            ),
+            inline=False,
+        )
+
+        embed.add_field(
+            name="🚀 Commands to Try Right Now",
+            value=(
+                f"`{p}achievements` \u2014 View your unlocked & locked badges\n"
+                f"`{p}balance` \u2014 Check your Coins & Candy balances\n"
+                f"`{p}pumpkin` \u2014 Check your Halloween Pass progress\n"
+                f"`{p}help` \u2014 Browse the revamped command directory"
+            ),
+            inline=False,
+        )
+
+        avatar_url = ctx.bot.user.display_avatar.url if ctx.bot.user else None
+        thumb_url = ctx.guild.icon.url if ctx.guild.icon else avatar_url
+        if thumb_url:
+            embed.set_thumbnail(url=thumb_url)
+        embeds.set_footer(embed, "Chronos Study Bot · Keep grinding!")
+
+        await ctx.send(content="@everyone", embed=embed)
+
     @add_time_cmd.error
     @add_xp_cmd.error
     @add_coins_cmd.error

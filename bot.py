@@ -41,8 +41,13 @@ class ChronosBot(commands.Bot):
         intents.voice_states = True     # required for Pomodoro + detecting subject rooms
         intents.members = True          # required to resolve members for leaderboards/mentions
 
+        prefixes = [config.PREFIX]
+        for p in (",", "."):
+            if p not in prefixes:
+                prefixes.append(p)
+
         super().__init__(
-            command_prefix=config.PREFIX,
+            command_prefix=commands.when_mentioned_or(*prefixes),
             intents=intents,
             help_command=None,
             case_insensitive=True,
