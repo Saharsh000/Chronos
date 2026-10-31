@@ -30,27 +30,27 @@ class HelpPaginator(ChronosView):
     def _sync_buttons(self) -> None:
         self.prev_btn.disabled = self.current_page <= 0
         self.next_btn.disabled = self.current_page >= len(self.pages) - 1
-        self.page_label.label = f"{self.current_page + 1} / {len(self.pages)}"
+        self.page_label.label = f"Page {self.current_page + 1} of {len(self.pages)}"
 
     async def _refresh_page(self, interaction: discord.Interaction) -> None:
         self._sync_buttons()
         await interaction.response.edit_message(embed=self.pages[self.current_page], view=self)
 
-    @discord.ui.button(label="\u25c0\ufe0f Prev", style=discord.ButtonStyle.primary, row=0)
+    @discord.ui.button(label="\u25c0\ufe0f Back", style=discord.ButtonStyle.secondary, row=0)
     async def prev_btn(self, interaction: discord.Interaction, button: discord.ui.Button) -> None:
         self.current_page = max(0, self.current_page - 1)
         await self._refresh_page(interaction)
 
-    @discord.ui.button(label="1 / 8", style=discord.ButtonStyle.secondary, disabled=True, row=0)
+    @discord.ui.button(label="Page 1 of 8", style=discord.ButtonStyle.secondary, disabled=True, row=0)
     async def page_label(self, interaction: discord.Interaction, button: discord.ui.Button) -> None:
         pass  # display-only counter
 
-    @discord.ui.button(label="\u25b6\ufe0f Next", style=discord.ButtonStyle.primary, row=0)
+    @discord.ui.button(label="Next \u25b6\ufe0f", style=discord.ButtonStyle.primary, row=0)
     async def next_btn(self, interaction: discord.Interaction, button: discord.ui.Button) -> None:
         self.current_page = min(len(self.pages) - 1, self.current_page + 1)
         await self._refresh_page(interaction)
 
-    @discord.ui.button(label="\U0001F3E0 Home", style=discord.ButtonStyle.success, row=0)
+    @discord.ui.button(label="\U0001F3E0 Overview", style=discord.ButtonStyle.secondary, row=0)
     async def home_btn(self, interaction: discord.Interaction, button: discord.ui.Button) -> None:
         self.current_page = 0
         await self._refresh_page(interaction)
@@ -78,8 +78,14 @@ def _build_pages(prefix: str) -> list[discord.Embed]:
     """Build all 8 help pages, using the bot's current prefix."""
 
     def _page(title: str, body: str, page_num: int) -> discord.Embed:
-        e = embeds.base_embed(title=title, description=body, color=embeds.COLOR_PRIMARY)
-        e.set_footer(text=f"Page {page_num}/8 \u2022 {prefix}help \u2022 {embeds.FOOTER_TEXT}")
+        # Older pages included literal separator rows in every description.
+        # Strip that chrome here so every category has the same airy rhythm.
+        e = embeds.base_embed(
+            title=title,
+            description=body.replace(embeds.DIVIDER_THIN, "").strip(),
+            color=embeds.COLOR_PRIMARY,
+        )
+        embeds.set_footer(e, f"Help {page_num}/8", f"{prefix}help <topic>")
         return e
 
     pages: list[discord.Embed] = []

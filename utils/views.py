@@ -17,6 +17,8 @@ from typing import Awaitable, Callable, Optional, Sequence
 
 import discord
 
+from utils.embeds import error_embed
+
 # How long a menu stays clickable before its buttons grey out.
 DEFAULT_TIMEOUT = 180.0
 
@@ -32,7 +34,9 @@ class ChronosView(discord.ui.View):
     async def interaction_check(self, interaction: discord.Interaction) -> bool:
         if interaction.user.id != self.author_id:
             await interaction.response.send_message(
-                "That menu belongs to someone else - run the command yourself to get your own.",
+                embed=error_embed(
+                    "That menu belongs to someone else. Run the command to open your own view."
+                ),
                 ephemeral=True,
             )
             return False

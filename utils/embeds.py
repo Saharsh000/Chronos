@@ -12,7 +12,7 @@ embed always means "that worked" rather than "this is the shop".
 """
 from __future__ import annotations
 
-from typing import TYPE_CHECKING, Optional
+from typing import TYPE_CHECKING, Iterable, Optional
 
 import discord
 
@@ -38,7 +38,8 @@ COLOR_SOCIAL = 0xA78BFA    # violet - profiles, social
 COLOR_POMODORO_FOCUS = 0xF97316  # orange
 COLOR_POMODORO_BREAK = 0x14B8A6  # teal
 
-FOOTER_TEXT = "Chronos \u00B7 Study & Activity Tracker"
+FOOTER_TEXT = "Chronos \u00B7 Study smarter, one session at a time"
+FOOTER_SEPARATOR = " \u2022 "
 
 # Shared progress-bar glyphs, so every bar in the bot looks the same.
 BAR_FULL = "\u2588"
@@ -57,8 +58,30 @@ ARROW_RIGHT = "\u25B9"
 def stat_line(label: str, value: str, width: int = 28) -> str:
     """Format a label-value pair with dot-fill for aligned stat displays."""
     dots_needed = max(2, width - len(label) - len(value))
-    dots = '`\u00B7`' * dots_needed
+    dots = "\u00B7" * dots_needed
     return f"**{label}** {dots} {value}"
+
+
+def command_line(command: str, description: str) -> str:
+    """Format a command and its purpose without an unreadable wall of text."""
+    return f"`{command}`\n{ARROW_RIGHT} {description}"
+
+
+def bullet_list(items: Iterable[str]) -> str:
+    """Render a compact list that works in both descriptions and fields."""
+    return "\n".join(f"{BULLET} {item}" for item in items)
+
+
+def footer_text(*context: str) -> str:
+    """Build a branded footer, optionally followed by concise screen context."""
+    return FOOTER_SEPARATOR.join(part for part in (FOOTER_TEXT, *context) if part)
+
+
+def set_footer(embed: discord.Embed, *context: str) -> discord.Embed:
+    """Apply the shared footer while preserving a consistent footer hierarchy."""
+    embed.set_footer(text=footer_text(*context))
+    return embed
+
 
 def section_header(emoji: str, title: str) -> str:
     """Return a visually distinct section header for embed descriptions."""
@@ -80,8 +103,9 @@ def base_embed(
     description: str | None = None,
     color: int = COLOR_PRIMARY,
 ) -> discord.Embed:
+    """Create the standard Chronos message surface."""
     embed = discord.Embed(title=title, description=description, color=color)
-    embed.set_footer(text=FOOTER_TEXT)
+    set_footer(embed)
     embed.timestamp = discord.utils.utcnow()
     return embed
 
