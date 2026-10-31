@@ -109,7 +109,7 @@ class Stats(commands.Cog, name="Stats"):
         elapsed = now - session["start_time"]
         channel = ctx.guild.get_channel(session["channel_id"]) if session["channel_id"] else None
 
-        embed = embeds.base_embed(title="\U0001F4D6 Active Study Session", color=embeds.COLOR_PRIMARY)
+        embed = embeds.base_embed(title="\U0001F4D6 Active Study Session", color=embeds.COLOR_STUDY)
         embed.set_author(name=str(target), icon_url=target.display_avatar.url)
         embed.add_field(name="Channel", value=channel.mention if channel else "Not in voice", inline=True)
         embed.add_field(name="Elapsed", value=format_duration(elapsed), inline=True)
@@ -126,7 +126,11 @@ class Stats(commands.Cog, name="Stats"):
         sessions = await self.db.get_active_sessions_for_guild(ctx.guild.id)
         now = int(time.time())
 
-        embed = embeds.base_embed(title=f"\U0001F7E2 Active Right Now \u2014 {ctx.guild.name}", color=embeds.COLOR_SUCCESS)
+        embed = embeds.base_embed(
+            title="\U0001F7E2 Studying Now",
+            description=f"Live sessions in **{ctx.guild.name}**",
+            color=embeds.COLOR_STUDY,
+        )
 
         if not sessions:
             embed.description = f"Nobody's currently studying. Use `{ctx.prefix}start` to be the first!"
@@ -191,10 +195,11 @@ class Stats(commands.Cog, name="Stats"):
         ranking = sorted(alltime_totals.items(), key=lambda kv: kv[1], reverse=True)
         rank_position = next((i + 1 for i, (uid, _) in enumerate(ranking) if uid == target.id), None)
 
-        # --- Build description-based layout for cleaner look --- #
-        header = f"\u23F3 **{target.display_name}**"
+        # Keep the profile identity in the author line and reserve the
+        # description for progress, rather than repeating decorative rules.
+        header = ""
         if stats.get("equipped_title"):
-            header += f"  \u00B7  \u201C{stats['equipped_title']}\u201D"
+            header = f"\u201C{stats['equipped_title']}\u201D"
 
         # Active session indicator
         active_line = ""
@@ -214,7 +219,12 @@ class Stats(commands.Cog, name="Stats"):
             f"\u25B8 **Achievements** \u2014 {len(unlocked_ids)}/{len(ACHIEVEMENTS)} \U0001F3C5",
         ]
 
-        embed = embeds.base_embed(description="\n".join(desc_lines), color=embeds.COLOR_PRIMARY)
+        embed = embeds.base_embed(
+            title="\U0001F4CA Study Profile",
+            description="\n".join(desc_lines).replace(embeds.DIVIDER_THIN, "").strip(),
+            color=embeds.COLOR_SOCIAL,
+        )
+        embed.set_author(name=target.display_name, icon_url=target.display_avatar.url)
         embed.set_thumbnail(url=target.display_avatar.url)
 
         # --- Time breakdown --- #
@@ -264,7 +274,12 @@ class Stats(commands.Cog, name="Stats"):
             )
             embed.add_field(name="\U0001F4DA Subjects", value=subj_text, inline=False)
 
-        embed.set_footer(text=f"{embeds.FOOTER_TEXT} \u2022 {ctx.prefix}achievements \u00B7 {ctx.prefix}compare \u00B7 {ctx.prefix}halloffame")
+        embeds.set_footer(
+            embed,
+            f"{ctx.prefix}achievements",
+            f"{ctx.prefix}compare",
+            f"{ctx.prefix}halloffame",
+        )
         await ctx.send(embed=embed)
 
     @commands.command(name="subjects", aliases=["subjectstats"])
@@ -280,7 +295,7 @@ class Stats(commands.Cog, name="Stats"):
             totals[active_session["subject"]] = totals.get(active_session["subject"], 0) + live_uncredited
 
         embed = embeds.base_embed(
-            title=f"\U0001F4DA Subject Breakdown \u2014 {target.display_name}", color=embeds.COLOR_PRIMARY
+            title=f"\U0001F4DA Subject Breakdown \u2014 {target.display_name}", color=embeds.COLOR_SOCIAL
         )
         embed.set_thumbnail(url=target.display_avatar.url)
         for key in SUBJECTS:
@@ -302,7 +317,7 @@ class Stats(commands.Cog, name="Stats"):
         ranking = sorted(alltime_totals.items(), key=lambda kv: kv[1], reverse=True)
         rank_position = next((i + 1 for i, (uid, _) in enumerate(ranking) if uid == target.id), None)
 
-        embed = embeds.base_embed(title=f"\U0001F3C5 {target.display_name}'s Rank", color=embeds.COLOR_PRIMARY)
+        embed = embeds.base_embed(title=f"\U0001F3C5 Rank Card \u2014 {target.display_name}", color=embeds.COLOR_SOCIAL)
         embed.set_thumbnail(url=target.display_avatar.url)
         embed.add_field(name="Tier", value=tier, inline=True)
         embed.add_field(name="Level", value=str(level), inline=True)
@@ -347,9 +362,13 @@ class Stats(commands.Cog, name="Stats"):
 
         author_position = next((i + 1 for i, (uid, _) in enumerate(ranking) if uid == ctx.author.id), None)
         if author_position and author_position > 10:
-            embed.set_footer(
-                text=f"You're ranked #{author_position} with {format_duration(totals[ctx.author.id])}"
+            embeds.set_footer(
+                embed,
+                f"Your rank: #{author_position}",
+                format_duration(totals[ctx.author.id]),
             )
+        else:
+            embeds.set_footer(embed, "Live rankings \u00B7 Choose another period below")
         return embed
 
     @commands.command(name="leaderboard", aliases=["lb", "top"])

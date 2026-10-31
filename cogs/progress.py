@@ -89,7 +89,7 @@ class Progress(commands.Cog, name="Progress"):
                     f"Shorthands work too \u2014 `{ctx.prefix}syllabus phy`, `{ctx.prefix}syllabus chem`, "
                     f"`{ctx.prefix}syllabus math` (or just `p` / `c` / `m`)."
                 ),
-                color=embeds.COLOR_PRIMARY,
+                color=embeds.COLOR_PROGRESS,
             )
             for key in SUBJECTS_WITH_SYLLABUS:
                 info = SUBJECT_INFO.get(key, {"emoji": "\U0001F4D6", "label": key.title()})
@@ -116,9 +116,9 @@ class Progress(commands.Cog, name="Progress"):
             embed = embeds.base_embed(
                 title=f"{info['emoji']} {info['label']} \u2014 Syllabus ({len(chapters)} chapters)",
                 description="\n".join(lines),
-                color=embeds.COLOR_PRIMARY,
+                color=embeds.COLOR_PROGRESS,
             )
-            embed.set_footer(text=f"{embeds.FOOTER_TEXT} \u2022 {ctx.prefix}syllabus {subject_key} <number> for subtopics")
+            embeds.set_footer(embed, f"{ctx.prefix}syllabus {subject_key} <number> for subtopics")
             await ctx.send(embed=embed)
             return
 
@@ -133,11 +133,12 @@ class Progress(commands.Cog, name="Progress"):
         embed = embeds.base_embed(
             title=f"{info['emoji']} {subject_key.title()} Ch. {match['number']} \u2014 {match['name']}",
             description="\n".join(topic_lines) if topic_lines else "No subtopics listed.",
-            color=embeds.COLOR_PRIMARY,
+            color=embeds.COLOR_PROGRESS,
         )
-        embed.set_footer(
-            text=f"{ctx.prefix}chapterdone {subject_key} {match['number']}  \u2022  "
-                 f"{ctx.prefix}subtopicdone {subject_key} {match['number']} <subtopic>"
+        embeds.set_footer(
+            embed,
+            f"{ctx.prefix}chapterdone {subject_key} {match['number']}",
+            f"{ctx.prefix}subtopicdone {subject_key} {match['number']} <subtopic>",
         )
         await ctx.send(embed=embed)
 
@@ -273,7 +274,10 @@ class Progress(commands.Cog, name="Progress"):
         target = member or ctx.author
         counts = await self.db.get_milestone_counts(target.id, ctx.guild.id)
 
-        embed = embeds.base_embed(title=f"\U0001F4C8 Study Progress \u2014 {target.display_name}", color=embeds.COLOR_PRIMARY)
+        embed = embeds.base_embed(
+            title=f"\U0001F4C8 Study Progress \u2014 {target.display_name}",
+            color=embeds.COLOR_PROGRESS,
+        )
         embed.set_thumbnail(url=target.display_avatar.url)
         embed.add_field(
             name="\U0001F4D1 Chapters Completed",
@@ -301,7 +305,15 @@ class Progress(commands.Cog, name="Progress"):
                 lines.append(f"{emoji} {m['label']}{chap}{subj}")
             embed.add_field(name="Recently Logged", value="\n".join(lines), inline=False)
 
-        embed.set_footer(text=f"{embeds.FOOTER_TEXT} \u2022 {ctx.prefix}syllabus \u2022 .chapterdone / .subtopicdone / .bookdone / .pyq / .revision")
+        embeds.set_footer(
+            embed,
+            f"{ctx.prefix}syllabus",
+            f"{ctx.prefix}chapterdone",
+            f"{ctx.prefix}subtopicdone",
+            f"{ctx.prefix}bookdone",
+            f"{ctx.prefix}pyq",
+            f"{ctx.prefix}revision",
+        )
         await ctx.send(embed=embed)
 
     @chapter_done_cmd.error

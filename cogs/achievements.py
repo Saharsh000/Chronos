@@ -92,8 +92,9 @@ class Achievements(commands.Cog, name="Achievements"):
                 if a:
                     lines.append(f"{a.emoji} **{a.name}** \u2014 {discord_timestamp(ts, 'R')}")
             if lines:
-                embed.add_field(name="Most Recent", value="\n".join(lines), inline=False)
+                embed.add_field(name="\U0001F550 Recently unlocked", value="\n".join(lines), inline=False)
 
+        embeds.set_footer(embed, f"{ctx.prefix}achievements <category> for the full list")
         await ctx.send(embed=embed)
 
     async def _send_category(
@@ -120,15 +121,20 @@ class Achievements(commands.Cog, name="Achievements"):
         # Embed field values cap at 1024 chars - chunk if a category gets long.
         chunk: list[str] = []
         length = 0
+        chunk_number = 1
         for line in lines:
             if length + len(line) + 1 > 1000:
-                embed.add_field(name="\u200b", value="\n".join(chunk), inline=False)
+                heading = "Achievements" if chunk_number == 1 else "More achievements"
+                embed.add_field(name=heading, value="\n".join(chunk), inline=False)
                 chunk, length = [], 0
+                chunk_number += 1
             chunk.append(line)
             length += len(line) + 1
         if chunk:
-            embed.add_field(name="\u200b", value="\n".join(chunk), inline=False)
+            heading = "Achievements" if chunk_number == 1 else "More achievements"
+            embed.add_field(name=heading, value="\n".join(chunk), inline=False)
 
+        embeds.set_footer(embed, f"{ctx.prefix}achievements to return to the overview")
         await ctx.send(embed=embed)
 
     @staticmethod

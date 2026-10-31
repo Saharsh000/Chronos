@@ -121,10 +121,12 @@ class Sessions(commands.Cog, name="Sessions"):
             + (f" [subject={resolved_subject}]" if resolved_subject else "")
         )
 
-        embed = embeds.success_embed(
-            "Session started",
-            f"Your study session began {discord_timestamp(now, 'R')}. Good luck!{subject_note}",
+        embed = embeds.base_embed(
+            title="\U0001F4D6 Study session started",
+            description=f"Started {discord_timestamp(now, 'R')}. Lock in and make it count.{subject_note}",
+            color=embeds.COLOR_STUDY,
         )
+        embeds.set_footer(embed, f"{ctx.prefix}session for a live check-in")
         await ctx.send(embed=embed)
 
     @commands.command(name="stop", aliases=["end"])
@@ -151,10 +153,14 @@ class Sessions(commands.Cog, name="Sessions"):
         if result["leveled_up"]:
             log.info(f"LEVEL UP      | user={result['user_id']} -> level {result['new_level']}")
 
-        embed = embeds.base_embed(title="\u23F9\uFE0F Session ended", color=embeds.COLOR_SUCCESS)
-        embed.add_field(name="Duration", value=format_duration(result["duration"]), inline=True)
-        embed.add_field(name="XP earned", value=f"+{result['xp_earned']} XP", inline=True)
-        embed.add_field(name="Coins earned", value=f"+{result['coins_earned']} \U0001FA99", inline=True)
+        embed = embeds.base_embed(
+            title="\u2705 Session complete",
+            description=f"You focused for **{format_duration(result['duration'])}**. Nice work.",
+            color=embeds.COLOR_SUCCESS,
+        )
+        embed.add_field(name="\u23F1\uFE0F Focus time", value=format_duration(result["duration"]), inline=True)
+        embed.add_field(name="\U0001F4C8 XP gained", value=f"+{result['xp_earned']} XP", inline=True)
+        embed.add_field(name="\U0001FA99 Coins earned", value=f"+{result['coins_earned']}", inline=True)
         if result.get("subject"):
             info = SUBJECT_INFO[result["subject"]]
             embed.add_field(name="Subject", value=f"{info['emoji']} {info['label']}", inline=True)
@@ -166,6 +172,7 @@ class Sessions(commands.Cog, name="Sessions"):
                 value=f"Level {result['old_level']} \u2192 **Level {result['new_level']}** \u2014 {tier}",
                 inline=False,
             )
+        embeds.set_footer(embed, f"{ctx.prefix}stats to see your updated profile")
         await ctx.send(embed=embed)
 
         if result.get("streak_broken_from", 0) > 0:

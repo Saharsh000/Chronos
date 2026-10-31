@@ -47,10 +47,9 @@ class Economy(commands.Cog, name="Economy"):
         embed = embeds.base_embed(
             title=f"\U0001FA99 {target.display_name}'s Wallet",
             description=(
-                "\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\n"
-                f"\U0001F4B0 Balance \u00B7\u00B7\u00B7 **{currency['coins']:,}** coins\n"
-                f"\U0001F36C Candy \u00B7\u00B7\u00B7\u00B7\u00B7 **{candy:,}** candy\n"
-                f"\U0001F4C8 Lifetime \u00B7\u00B7\u00B7 **{currency['lifetime_earned']:,}** coins earned"
+                f"\U0001F4B0 **Balance**\n{currency['coins']:,} coins\n\n"
+                f"\U0001F36C **Candy**\n{candy:,} candy\n\n"
+                f"\U0001F4C8 **Lifetime earned**\n{currency['lifetime_earned']:,} coins"
             ),
             color=embeds.COLOR_ECONOMY,
         )
@@ -68,8 +67,8 @@ class Economy(commands.Cog, name="Economy"):
         embed = embeds.base_embed(
             title="\U0001F6D2 Chronos Shop",
             description=(
-                f"\U0001FA99 You have **{currency['coins']:,}** coins\n"
-                "\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501"
+                f"\U0001FA99 **{currency['coins']:,} coins available**\n"
+                "Pick an item by its number or name."
             ),
             color=embeds.COLOR_ECONOMY,
         )
@@ -87,7 +86,7 @@ class Economy(commands.Cog, name="Economy"):
                 value=f"\u25B9 {item['description']}",
                 inline=False,
             )
-        embed.set_footer(text=f"{embeds.FOOTER_TEXT} \u2022 {ctx.prefix}buy <item> [qty]")
+        embeds.set_footer(embed, f"{ctx.prefix}buy <item> [quantity]")
         await ctx.send(embed=embed)
 
     @commands.command(name="buy")
@@ -153,7 +152,7 @@ class Economy(commands.Cog, name="Economy"):
         inventory = await self.db.get_inventory(target.id, ctx.guild.id)
         stats = await self.db.get_or_create_user_stats(target.id, ctx.guild.id)
 
-        embed = embeds.base_embed(title=f"\U0001F392 {target.display_name}'s Inventory", color=embeds.COLOR_PRIMARY)
+        embed = embeds.base_embed(title=f"\U0001F392 {target.display_name}'s Inventory", color=embeds.COLOR_ECONOMY)
         embed.set_thumbnail(url=target.display_avatar.url)
 
         if not inventory:
@@ -281,13 +280,17 @@ class Economy(commands.Cog, name="Economy"):
             ))
             return
 
-        embed = embeds.base_embed(title="\U0001F4C5 Daily Reward", color=embeds.COLOR_SUCCESS)
-        embed.add_field(name="Base Coins", value=f"+{result['base_coins']:,}", inline=True)
-        embed.add_field(name="Streak Bonus", value=f"+{result['streak_bonus']:,}", inline=True)
-        embed.add_field(name="XP Earned", value=f"+{result['xp']} XP", inline=True)
-        embed.add_field(name="Total Coins", value=f"**+{result['coins']:,}**", inline=True)
-        embed.add_field(name="Daily Streak", value=f"\U0001F525 {result['daily_streak']} days", inline=True)
-        embed.add_field(name="New Balance", value=f"{result['new_balance']:,} coins", inline=True)
+        embed = embeds.base_embed(
+            title="\u2705 Daily reward claimed",
+            description="Your daily haul is in. Keep the streak alive tomorrow.",
+            color=embeds.COLOR_SUCCESS,
+        )
+        embed.add_field(name="\U0001FA99 Base coins", value=f"+{result['base_coins']:,}", inline=True)
+        embed.add_field(name="\U0001F525 Streak bonus", value=f"+{result['streak_bonus']:,}", inline=True)
+        embed.add_field(name="\U0001F4C8 XP earned", value=f"+{result['xp']} XP", inline=True)
+        embed.add_field(name="\U0001FA99 Total coins", value=f"**+{result['coins']:,}**", inline=True)
+        embed.add_field(name="\U0001F525 Daily streak", value=f"{result['daily_streak']} days", inline=True)
+        embed.add_field(name="\U0001F4B0 New balance", value=f"{result['new_balance']:,} coins", inline=True)
 
         if result["milestone"]:
             milestone_lines = [f"+{result['milestone']['coins']:,} bonus coins"]
@@ -354,10 +357,14 @@ class Economy(commands.Cog, name="Economy"):
             ))
             return
 
-        embed = embeds.base_embed(title="\U0001F4DD Quick Task Complete", color=embeds.COLOR_SUCCESS)
-        embed.add_field(name="Coins Earned", value=f"+{result['coins']:,}", inline=True)
-        embed.add_field(name="XP Earned", value=f"+{result['xp']} XP", inline=True)
-        embed.add_field(name="New Balance", value=f"{result['new_balance']:,} coins", inline=True)
+        embed = embeds.base_embed(
+            title="\u2705 Quick task complete",
+            description="A little extra progress for the grind.",
+            color=embeds.COLOR_SUCCESS,
+        )
+        embed.add_field(name="\U0001FA99 Coins earned", value=f"+{result['coins']:,}", inline=True)
+        embed.add_field(name="\U0001F4C8 XP earned", value=f"+{result['xp']} XP", inline=True)
+        embed.add_field(name="\U0001F4B0 New balance", value=f"{result['new_balance']:,} coins", inline=True)
 
         # HALLOWEEN EVENT: Chance to find a Hallo-Box + Candy while working
         if random.random() < 0.35:
@@ -435,10 +442,14 @@ class Economy(commands.Cog, name="Economy"):
             ))
             return
 
-        embed = embeds.base_embed(title="\U0001F4C6 Weekly Reward", color=embeds.COLOR_SUCCESS)
-        embed.add_field(name="Coins Earned", value=f"+{result['coins']:,}", inline=True)
-        embed.add_field(name="New Balance", value=f"{result['new_balance']:,} coins", inline=True)
-        embed.add_field(name="Bonus", value="\U0001F381 Free Mystery Box", inline=True)
+        embed = embeds.base_embed(
+            title="\U0001F4C6 Weekly reward claimed",
+            description="The big weekly haul has landed.",
+            color=embeds.COLOR_SUCCESS,
+        )
+        embed.add_field(name="\U0001FA99 Coins earned", value=f"+{result['coins']:,}", inline=True)
+        embed.add_field(name="\U0001F4B0 New balance", value=f"{result['new_balance']:,} coins", inline=True)
+        embed.add_field(name="\U0001F381 Bonus", value="Free Mystery Box", inline=True)
 
         # HALLOWEEN EVENT: Guaranteed High-Tier Hallo-Box & Big Candy Stash
         weekly_box = "hbox_legendary" if random.random() < 0.20 else "hbox_epic"

@@ -65,7 +65,7 @@ def build_pet_shop_page(
         ),
         color=info["color"],
     )
-    header.set_footer(text=f"{embeds.FOOTER_TEXT} \u2022 Page {page + 1}/{total_pages}")
+    embeds.set_footer(header, f"Page {page + 1}/{total_pages}", f"{prefix}buypet <name>")
 
     cards = [header]
     for species_id in window:
@@ -102,7 +102,7 @@ def build_food_shop_page(
         ),
         color=info["color"],
     )
-    header.set_footer(text=f"{embeds.FOOTER_TEXT} \u2022 Page {page + 1}/{total_pages}")
+    embeds.set_footer(header, f"Page {page + 1}/{total_pages}", f"{prefix}buyfood <name> [quantity]")
 
     cards = [header]
     for food_id in window:
@@ -275,12 +275,12 @@ class Pets(commands.Cog, name="Pets"):
             tier = pet_catalog.TIER_INFO[species["tier"]]
             stage = pet_catalog.stage_for_level(row["species_id"], row["level"])
             star = " \u2B50" if row["equipped"] else ""
-            card = discord.Embed(
+            card = embeds.card_embed(
                 title=f"{tier['emoji']} {row['nickname']} \u2014 Lv. {row['level']}{star}",
                 description=f"{stage['name']} ({pet_catalog.BADGE_LABELS[stage['badge']]})",
                 color=tier["color"],
+                thumbnail=stage["sprite"],
             )
-            card.set_thumbnail(url=stage["sprite"])
             cards.append(card)
         await _send_embed_grid(ctx, cards)
 
@@ -329,9 +329,9 @@ class Pets(commands.Cog, name="Pets"):
             embed.add_field(name="Next Evolution", value="Fully evolved!", inline=False)
 
         if row["equipped"]:
-            embed.set_footer(text=f"{embeds.FOOTER_TEXT} \u2022 \u2B50 Equipped")
+            embeds.set_footer(embed, "\u2B50 Equipped")
         else:
-            embed.set_footer(text=f"{embeds.FOOTER_TEXT} \u2022 {ctx.prefix}equip {row['nickname']} to switch to this pet")
+            embeds.set_footer(embed, f"{ctx.prefix}equip {row['nickname']} to switch")
 
         await ctx.send(embed=embed)
 
