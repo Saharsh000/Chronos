@@ -1902,6 +1902,7 @@ class Database:
             "subtopics_completed": rows["subtopic"]["n"] if "subtopic" in rows else 0,
             "books_completed": rows["book"]["n"] if "book" in rows else 0,
             "pyq_years_completed": rows["pyq"]["distinct_n"] if "pyq" in rows else 0,
+            "pyqs_completed": rows["pyq"]["distinct_n"] if "pyq" in rows else 0,
             "max_revision": max_revision,
         }
 
@@ -1959,16 +1960,55 @@ class Database:
                 SUM(CASE WHEN CAST(strftime('%H', start_time, 'unixepoch', ?) AS INTEGER) >= 23
                           OR CAST(strftime('%H', start_time, 'unixepoch', ?) AS INTEGER) <= 2
                          THEN 1 ELSE 0 END) AS night_owl,
-                COUNT(DISTINCT CASE WHEN start_time >= ? THEN date(start_time, 'unixepoch', ?) END) AS active_days
+                COUNT(DISTINCT CASE WHEN start_time >= ? THEN date(start_time, 'unixepoch', ?) END) AS active_days,
+                MAX(duration_seconds) AS max_s,
+                COUNT(CASE WHEN date(start_time, 'unixepoch', ?) = date(?, 'unixepoch', ?) THEN 1 END) AS sessions_today,
+                COALESCE(SUM(CASE WHEN date(start_time, 'unixepoch', ?) = date(?, 'unixepoch', ?) THEN duration_seconds END), 0) AS today_seconds,
+                COUNT(DISTINCT CASE WHEN date(start_time, 'unixepoch', ?) = date(?, 'unixepoch', ?) AND subject IN ('physics', 'chemistry', 'maths') THEN subject END) AS subjects_today,
+                COUNT(DISTINCT CASE WHEN start_time >= ? AND strftime('%w', start_time, 'unixepoch', ?) IN ('0', '6') THEN strftime('%w', start_time, 'unixepoch', ?) END) AS weekend_days
             FROM session_log
             WHERE user_id = ? AND guild_id = ?
             """,
             (
                 config.IST_SQL_MODIFIER, config.IST_SQL_MODIFIER, config.IST_SQL_MODIFIER,
-                week_ago, config.IST_SQL_MODIFIER, user_id, guild_id,
+                week_ago, config.IST_SQL_MODIFIER,
+                config.IST_SQL_MODIFIER, now, config.IST_SQL_MODIFIER,
+                config.IST_SQL_MODIFIER, now, config.IST_SQL_MODIFIER,
+                config.IST_SQL_MODIFIER, now, config.IST_SQL_MODIFIER,
+                week_ago, config.IST_SQL_MODIFIER, config.IST_SQL_MODIFIER,
+                user_id, guild_id,
             ),
         )
         row = await cur.fetchone()
+
+        cur_pw = await self.conn.execute(
+            """
+            SELECT COUNT(*) AS pw_count FROM (
+                SELECT strftime('%Y-%W', start_time, 'unixepoch', ?) AS wk
+                FROM session_log
+                WHERE user_id = ? AND guild_id = ?
+                GROUP BY wk
+                HAVING COUNT(DISTINCT date(start_time, 'unixepoch', ?)) >= 7
+            )
+            """,
+            (config.IST_SQL_MODIFIER, user_id, guild_id, config.IST_SQL_MODIFIER),
+        )
+        pw_row = await cur_pw.fetchone()
+        perfect_week_count = pw_row["pw_count"] if pw_row else 0
+
+        cur_pets = await self.conn.execute(
+            "SELECT COUNT(*) AS count FROM user_pets WHERE user_id = ? AND guild_id = ?",
+            (user_id, guild_id),
+        )
+        pet_row = await cur_pets.fetchone()
+        pets_owned = pet_row["count"] if pet_row else 0
+
+        cur_pass = await self.conn.execute(
+            "SELECT study_seconds FROM halloween_pass WHERE user_id = ? AND guild_id = ?",
+            (user_id, guild_id),
+        )
+        pass_row = await cur_pass.fetchone()
+        pass_level = halloween_catalog.get_current_pass_level(pass_row["study_seconds"])["level"] if pass_row else 0
 
         return {
             "total_seconds": stats["total_seconds"],
@@ -1981,10 +2021,19 @@ class Database:
             "coins_lifetime": currency["lifetime_earned"],
             "boxes_opened": currency["boxes_opened"],
             "items_purchased": currency["items_purchased"],
+            "candy_earned": currency.get("candy", 0),
             "subject_seconds": subject_seconds,
-            "early_bird_count": row["early_bird"] or 0,
-            "night_owl_count": row["night_owl"] or 0,
-            "perfect_week": (row["active_days"] or 0) >= 7,
+            "early_bird_count": row["early_bird"] or 0 if row else 0,
+            "night_owl_count": row["night_owl"] or 0 if row else 0,
+            "perfect_week": (row["active_days"] or 0) >= 7 if row else False,
+            "perfect_week_count": perfect_week_count,
+            "weekend_warrior": (row["weekend_days"] or 0) >= 2 if row else False,
+            "all_subjects_today": (row["subjects_today"] or 0) >= 3 if row else False,
+            "sessions_today": row["sessions_today"] or 0 if row else 0,
+            "today_seconds": row["today_seconds"] or 0 if row else 0,
+            "longest_session_seconds": row["max_s"] or 0 if row else 0,
+            "pets_owned": pets_owned,
+            "halloween_pass_level": pass_level,
             "achievements_count": len(unlocked),
             **milestone_counts,
         }
