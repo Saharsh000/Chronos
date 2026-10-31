@@ -41,7 +41,7 @@ class Customization(commands.Cog, name="Customization"):
             else:
                 lines.append(f"**Lv. {level}+** \u2014 {default_name}")
         embed = embeds.base_embed(
-            title=f"\U0001F3C5 Tiers \u2014 {ctx.guild.name}", description="\n".join(lines), color=embeds.COLOR_PRIMARY
+            title=f"\U0001F3C5 Tiers \u2014 {ctx.guild.name}", description="\n".join(lines), color=embeds.COLOR_SOCIAL
         )
         await ctx.send(embed=embed)
 
@@ -95,7 +95,10 @@ class Customization(commands.Cog, name="Customization"):
     async def tags_cmd(self, ctx: commands.Context) -> None:
         """List all purchasable profile titles/tags available in this server."""
         custom = await self.db.get_custom_tags(ctx.guild.id)
-        embed = embeds.base_embed(title=f"\U0001F3F7\uFE0F Tags/Titles \u2014 {ctx.guild.name}", color=embeds.COLOR_PRIMARY)
+        embed = embeds.base_embed(
+            title=f"\U0001F3F7\uFE0F Tags & Titles \u2014 {ctx.guild.name}",
+            color=embeds.COLOR_SOCIAL,
+        )
 
         builtin_lines = [
             f"{item['emoji']} **{item['title_text']}** \u2014 {item['price']:,} coins"
@@ -110,7 +113,7 @@ class Customization(commands.Cog, name="Customization"):
             ]
             embed.add_field(name="Custom (added by this server)", value="\n".join(custom_lines), inline=False)
 
-        embed.set_footer(text=f"Buy any of these with {ctx.prefix}buy <title>")
+        embeds.set_footer(embed, f"{ctx.prefix}buy <title>")
         await ctx.send(embed=embed)
 
     @commands.command(name="addtag")

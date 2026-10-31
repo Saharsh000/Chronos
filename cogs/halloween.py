@@ -316,11 +316,9 @@ class Halloween(commands.Cog, name="Halloween"):
             description=(
                 f"**Stage {stage_num}: {stage_name}** — *{level_name}*\n"
                 f"*{current_lvl['desc']}*\n\n"
-                f"━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━\n"
                 f"**Halloween Study Progress:**\n"
                 f"{progress_line}\n\n"
                 f"{next_text}\n\n"
-                f"━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━\n"
                 f"**Milestone Level:** Level **{level_num}** / {halloween_catalog.MAX_PASS_LEVEL}\n"
                 f"**Claimed Level:** Level **{claimed_level}**\n"
                 f"{claim_status}"
@@ -328,7 +326,7 @@ class Halloween(commands.Cog, name="Halloween"):
             color=0xFF7518,
         )
         embed.set_thumbnail(url=ctx.author.display_avatar.url)
-        embed.set_footer(text=f"{embeds.FOOTER_TEXT} • Event active for 10 days • Study in any VC to progress!")
+        embeds.set_footer(embed, "Event active for 10 days", "Study in any VC to progress")
 
         view = PumpkinPassView(ctx.author.id, self.db, pass_data)
         await ctx.send(embed=embed, view=view)
@@ -363,9 +361,7 @@ class Halloween(commands.Cog, name="Halloween"):
             description=(
                 f"🍬 **Current Candy:** **{candy:,} Candy**\n"
                 f"📦 **Total Hallo-Boxes:** **{total_boxes}**\n\n"
-                f"━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━\n"
                 f"{boxes_text}\n\n"
-                f"━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━\n"
                 f"💡 **NO INCUBATION NEEDED!** Open boxes instantly:\n"
                 f"`{ctx.prefix}openbox <tier> [qty]` (e.g. `{ctx.prefix}openbox common 3`)\n"
                 f"`{ctx.prefix}openbox all` to open all boxes at once!"
@@ -580,15 +576,13 @@ class Halloween(commands.Cog, name="Halloween"):
             title="🎃 The Halloween Candy Shop",
             description=(
                 f"🍬 **Your Candy:** **{candy:,} Candy**\n\n"
-                f"━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━\n"
                 f"{items_text}\n\n"
-                f"━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━\n"
                 f"Earn Candy by studying (`{ctx.prefix}start`), opening Hallo-Boxes (`{ctx.prefix}openbox`), "
                 f"and progressing your personal Jack-o'-Lantern pass (`{ctx.prefix}pumpkin`)!"
             ),
             color=0xFF7518,
         )
-        embed.set_footer(text=f"{embeds.FOOTER_TEXT} • Limited Event Shop • Click buttons below or use {ctx.prefix}buycandy")
+        embeds.set_footer(embed, "Limited event shop", f"{ctx.prefix}buycandy <item>")
 
         view = CandyShopView(ctx.author.id, self, candy)
         await ctx.send(embed=embed, view=view)
@@ -782,7 +776,7 @@ class Halloween(commands.Cog, name="Halloween"):
             ),
             inline=False,
         )
-        embed.set_footer(text=f"{embeds.FOOTER_TEXT} \u2022 10 days only \u2022 rates live from the patch")
+        embeds.set_footer(embed, "10 days only", "Rates live from the patch")
 
         await ctx.send(embed=embed)
 

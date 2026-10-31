@@ -46,17 +46,21 @@ COMPARE_CATEGORIES: list[tuple[str, str, Callable[[int], str]]] = [
 
 def _chunk_into_fields(embed: discord.Embed, lines: list[str], limit: int = 1000) -> None:
     """Discord field values cap at 1024 chars - split a long list of
-    lines across multiple (unlabeled) fields."""
+    lines across clearly labeled fields."""
     chunk: list[str] = []
     length = 0
+    chunk_number = 1
     for line in lines:
         if length + len(line) + 1 > limit:
-            embed.add_field(name="\u200b", value="\n".join(chunk), inline=False)
+            heading = "Breakdown" if chunk_number == 1 else "More results"
+            embed.add_field(name=heading, value="\n".join(chunk), inline=False)
             chunk, length = [], 0
+            chunk_number += 1
         chunk.append(line)
         length += len(line) + 1
     if chunk:
-        embed.add_field(name="\u200b", value="\n".join(chunk), inline=False)
+        heading = "Breakdown" if chunk_number == 1 else "More results"
+        embed.add_field(name=heading, value="\n".join(chunk), inline=False)
 
 
 class Social(commands.Cog, name="Social"):
@@ -82,6 +86,7 @@ class Social(commands.Cog, name="Social"):
             member = ctx.guild.get_member(record["user_id"])
             name = member.display_name if member else f"Unknown User ({record['user_id']})"
             embed.add_field(name=label, value=f"**{name}** \u2014 {fmt(record['value'])}", inline=False)
+        embeds.set_footer(embed, f"{ctx.prefix}leaderboard for live rankings")
         await ctx.send(embed=embed)
 
     @commands.command(name="compare", aliases=["vs"])
@@ -128,6 +133,7 @@ class Social(commands.Cog, name="Social"):
             color=embeds.COLOR_LEVELUP,
         )
         _chunk_into_fields(embed, lines)
+        embeds.set_footer(embed, f"{ctx.prefix}stats to inspect a full profile")
         await ctx.send(embed=embed)
 
     @compare_cmd.error

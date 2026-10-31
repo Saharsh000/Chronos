@@ -215,13 +215,14 @@ class Pomodoro(commands.Cog, name="Pomodoro"):
             description=f"Channel: \U0001F50A **{channel.name}**",
             color=embeds.COLOR_POMODORO_FOCUS if pomo["phase"] == "focus" else embeds.COLOR_POMODORO_BREAK,
         )
-        embed.add_field(name="Time remaining", value=format_duration(remaining), inline=True)
-        embed.add_field(name="Completed cycles", value=str(pomo["cycle_count"]), inline=True)
+        embed.add_field(name="\u23F1\uFE0F Time remaining", value=format_duration(remaining), inline=True)
+        embed.add_field(name="\U0001F504 Completed cycles", value=str(pomo["cycle_count"]), inline=True)
         embed.add_field(
-            name=f"Participants ({len(participants)})",
+            name=f"\U0001F465 Participants ({len(participants)})",
             value=", ".join(m.mention for m in participants) or "\u2014",
             inline=False,
         )
+        embeds.set_footer(embed, f"{ctx.prefix}pomodoro refreshes this status")
         await ctx.send(embed=embed)
 
 

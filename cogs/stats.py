@@ -156,14 +156,18 @@ class Stats(commands.Cog, name="Stats"):
         embed.description = f"**{len(lines)}** studying right now, longest session first:"
         chunk: list[str] = []
         length = 0
+        chunk_number = 1
         for line in lines:
             if length + len(line) + 1 > 1000:
-                embed.add_field(name="\u200b", value="\n".join(chunk), inline=False)
+                heading = "Students" if chunk_number == 1 else "More students"
+                embed.add_field(name=heading, value="\n".join(chunk), inline=False)
                 chunk, length = [], 0
+                chunk_number += 1
             chunk.append(line)
             length += len(line) + 1
         if chunk:
-            embed.add_field(name="\u200b", value="\n".join(chunk), inline=False)
+            heading = "Students" if chunk_number == 1 else "More students"
+            embed.add_field(name=heading, value="\n".join(chunk), inline=False)
 
         await ctx.send(embed=embed)
 
