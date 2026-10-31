@@ -504,6 +504,82 @@ class Dev(commands.Cog, name="Dev"):
 
         await ctx.send(content="@everyone", embed=embed)
 
+    @commands.command(name="peg", aliases=["announce_beg", "begupdate"])
+    @commands.guild_only()
+    async def peg_cmd(self, ctx: commands.Context) -> None:
+        """[Dev/Admin] Broadcast the major .beg 2.0 overhaul and JEE lore engine update."""
+        if ctx.author.id != config.DEV_USER_ID and not ctx.author.guild_permissions.administrator:
+            await ctx.send(embed=embeds.error_embed("This announcement command is restricted to server administrators and the bot developer."))
+            return
+
+        try:
+            await ctx.message.delete()
+        except (discord.Forbidden, discord.HTTPException):
+            pass
+
+        p = ctx.prefix or "."
+
+        embed = embeds.base_embed(
+            title="\U0001FA99 CHRONOS UPDATE \u00B7 The .beg 2.0 Lore Engine is LIVE!",
+            description=(
+                "> **Begging has never been so intellectually devastating.**\n"
+                "> We've completely overhauled the `.beg` command from scratch! Gone are the generic 1-line messages. "
+                "Introducing **The JEE Lore Engine**: 55+ bespoke academic encounters featuring iconic authors, "
+                "feared professors, exam hall tragedies, and zero recycled lines.\n"
+            ),
+            color=0xF59E0B,
+        )
+
+        embed.add_field(
+            name="\U0001F4DA 55+ Bespoke JEE Legends & Encounters",
+            value=(
+                "Every `.beg` roll now pits you against true academic royalty:\n"
+                "\u2022 **Physics Pioneers:** Confront *Prof. H.C. Verma* (frictionless pulley monkeys), *I.E. Irodov* (Siberian differential equation frost), *D.C. Pandey*, *Halliday & Resnick*, and *David Morin*!\n"
+                "\u2022 **Chemistry Titans:** Answer *J.D. Lee* on inert pair exceptions, *M.S. Chouhan* on Grignard reagents, *Peter Sykes* on curly arrows, and *Peter Atkins* on thermodynamic equilibrium!\n"
+                "\u2022 **Mathematics Architects:** Classical geometry with *S.L. Loney (1893)*, improper integrals with *Vikas Gupta (The Black Book)*, and vectors with *G. Tewani*!\n"
+                "\u2022 **Campus & Exam Lore:** Encounters with the *27th Jan Shift 1 Survivor*, the *Chief Hostel Warden*, *The Dummy School Registrar*, and the *OMR Scanner with a fatal row offset*!"
+            ),
+            inline=False,
+        )
+
+        embed.add_field(
+            name="\U0001F9E0 Smart Anti-Repeat Sliding Window",
+            value=(
+                "\u2022 **Zero Repetition:** Chronos tracks an active **25-encounter memory window** per player. You'll cycle through diverse characters and dialogues without seeing repeats in a row!\n"
+                "\u2022 **100% Satirical English:** Razor-sharp academic wit tailored strictly to the real competitive exam experience."
+            ),
+            inline=False,
+        )
+
+        embed.add_field(
+            name="\u26A1 Jackpots & Seasonal Treat Drops",
+            value=(
+                "\u2022 **\U0001F3B0 Jackpot Rolls (8% Chance):** Impress legendary authors for an unexpected **up to 2.5x coin bounty**!\n"
+                f"\u2022 **\U0001F383 Halloween Event Bonus:** A 25% chance on every beg to find a **Hallo-Box + \U0001F36C Candy**!\n"
+                f"\u2022 **\u23F1\uFE0F Short Cooldown:** Quick to use between study pomodoro blocks."
+            ),
+            inline=False,
+        )
+
+        embed.add_field(
+            name="\U0001F680 Try It Out Right Now",
+            value=(
+                f"`{p}beg` \u2014 Go beg an author or professor for mercy and coins\n"
+                f"`{p}balance` \u2014 Check your updated Coin & Candy balance\n"
+                f"`{p}achievements` \u2014 Check your unlocked badges (161 badges live!)\n"
+                f"`{p}pumpkin` \u2014 Track your Halloween Pass progress"
+            ),
+            inline=False,
+        )
+
+        avatar_url = ctx.bot.user.display_avatar.url if ctx.bot.user else None
+        thumb_url = ctx.guild.icon.url if ctx.guild.icon else avatar_url
+        if thumb_url:
+            embed.set_thumbnail(url=thumb_url)
+        embeds.set_footer(embed, "Chronos Study Bot · Study hard, beg harder!")
+
+        await ctx.send(content="@everyone", embed=embed)
+
     @add_time_cmd.error
     @add_xp_cmd.error
     @add_coins_cmd.error
