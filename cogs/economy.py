@@ -19,6 +19,7 @@ from utils import economy
 from utils import embeds
 from utils import food as food_catalog
 from utils import halloween as halloween_catalog
+from utils.beg_scenarios import roll_beg_scenario
 from utils.time_format import format_duration
 
 log = logging.getLogger("economy")
@@ -401,17 +402,37 @@ class Economy(commands.Cog, name="Economy"):
             ))
             return
 
-        if result["coins"] == 0:
+        is_success = result["coins"] > 0
+        scenario, payout = roll_beg_scenario(ctx.author.id, is_success, result["coins"])
+
+        if payout > result["coins"]:
+            extra = payout - result["coins"]
+            await self.db._add_coins_raw(ctx.author.id, ctx.guild.id, extra)
+            await self.db.conn.commit()
+            new_balance = result["new_balance"] + extra
+        else:
+            new_balance = result["new_balance"]
+
+        quote_text = f"\n\n\U0001F4AC *\"{scenario.quote}\"*" if scenario.quote else ""
+
+        if is_success:
             embed = embeds.base_embed(
-                title="\U0001F937 Nothing",
-                description="Nobody had any spare coins for you this time. Try again soon.",
+                title=f"{scenario.emoji} {scenario.npc} \u00B7 {scenario.title}",
+                description=f"> {scenario.story}{quote_text}",
+                color=embeds.COLOR_SUCCESS,
+            )
+            embed.add_field(name="\U0001F4B0 Coins Received", value=f"+{payout:,} coins", inline=True)
+            embed.add_field(name="\U0001F3E6 New Balance", value=f"{new_balance:,} coins", inline=True)
+        else:
+            embed = embeds.base_embed(
+                title=f"{scenario.emoji} {scenario.npc} \u00B7 {scenario.title}",
+                description=f"> {scenario.story}{quote_text}",
                 color=embeds.COLOR_WARNING,
             )
-        else:
-            embed = embeds.success_embed(
-                "A kind soul dropped some coins",
-                f"+{result['coins']:,} coins. New balance: {result['new_balance']:,} coins.",
-            )
+            embed.add_field(name="\u274C Coins Received", value="0 coins", inline=True)
+            embed.add_field(name="\U0001F3E6 Current Balance", value=f"{new_balance:,} coins", inline=True)
+
+        embeds.set_footer(embed, f"Role: {scenario.role} \u00B7 {ctx.prefix}beg")
 
         # HALLOWEEN EVENT: Chance to receive a Hallo-Box + Candy while begging
         if random.random() < 0.25:
@@ -426,7 +447,7 @@ class Economy(commands.Cog, name="Economy"):
                 inline=False,
             )
 
-        log.info(f"BEG CLAIM     | {ctx.author} ({ctx.author.id}) claimed in guild {ctx.guild.id} (coins={result['coins']})")
+        log.info(f"BEG CLAIM     | {ctx.author} ({ctx.author.id}) claimed in guild {ctx.guild.id} (npc='{scenario.npc}', coins={payout})")
         await ctx.send(embed=embed)
         await self._announce_achievements(ctx)
 
