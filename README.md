@@ -1,788 +1,210 @@
-# Chronos
+<div align="center">
 
-> A production-ready Discord study bot built around focused sessions, progression, competition, and a full study-game economy.
+# ⏳ CHRONOS
 
-It combines **study-session tracking, XP, levels, subject rooms, streaks, leaderboards, achievements, a coin economy, collectible pets, and a shared Pomodoro system** into one bot.
+**A high-performance, gamified Discord study companion built for competitive students.**
 
-**Prefix commands only. No slash commands. Every bot response is an embed.**
+[![Python 3.11+](https://img.shields.io/badge/Python-3.11%2B-blue?logo=python&logoColor=white)](https://www.python.org/)
+[![discord.py 2.4+](https://img.shields.io/badge/discord.py-2.4%2B-5865F2?logo=discord&logoColor=white)](https://github.com/Rapptz/discord.py)
+[![Database SQLite3](https://img.shields.io/badge/Database-SQLite%20(aiosqlite)-003B57?logo=sqlite&logoColor=white)](https://sqlite.org/)
+[![License MIT](https://img.shields.io/badge/License-MIT-green.svg)](LICENSE)
+[![Status Production](https://img.shields.io/badge/Status-Production%20Ready-success)](#)
+
+*Restart-safe study tracking · Real-time analytics · Dynamic Pomodoro · JEE syllabus roadmaps · Collectible evolving pets · Drop-box economy · Seasonal events*
+
+[Quickstart](#-quickstart) • [Features](#-features) • [Command Reference](#-command-reference) • [Configuration](#-configuration) • [Architecture](#-architecture)
+
+---
+
+</div>
+
+## ⚡ Overview
+
+**Chronos** transforms study channels into a productive, gamified community. Unlike standard timer bots that rely on fragile in-memory clocks, Chronos uses an asynchronous, transaction-safe SQLite database with live per-minute XP/coin crediting, daily streak preservation, custom audio study-rooms, and rich interactive Discord embeds.
 
 ---
 
 ## ✨ Features
 
-### 📚 Study Tracking
-
-* **`.start [subject]` / `.stop`** — explicit session control.
-* Sessions never auto-start when joining a voice channel.
-* **Restart-safe timing** using timestamps stored in SQLite.
-* Live tracking of study time, XP, and coins.
-* `.session` shows the current active session.
-* `.active` shows everyone currently studying in the server.
-
-### 🧪 Subject Rooms
-
-Create dedicated Physics, Chemistry, and Maths voice rooms with:
-
-```text
-.make
-```
-
-Starting a session while connected to one of these rooms automatically tags the session with that subject.
-
-Subject data feeds directly into:
-
-* `.stats`
-* `.subjects`
-* `.leaderboard`
-
-### 📊 Stats & Competition
-
-`.stats` provides detailed personal analytics including:
-
-* Today / this week / all-time study time
-* Level and XP progress
-* Server rank
-* Study streak
-* Coin balance
-* Achievement progress
-* Average and longest session
-* Favourite subject
-* Most active weekday
-* Subject breakdown
-
-Leaderboards support:
-
-```text
-.leaderboard [period] [subject]
-```
-
-Periods:
-
-```text
-today
-week
-month
-alltime
-```
-
-Subjects:
-
-```text
-physics
-chemistry
-maths
-```
-
-Example:
-
-```text
-.leaderboard week physics
-```
-
-There is also a permanent:
-
-```text
-.halloffame
-```
-
-for server records across study time, levels, streaks, longest sessions, coins, achievements, and subjects.
-
-### ⚔️ Head-to-Head
-
-Compare two users with:
-
-```text
-.compare @user
-.compare @user1 @user2
-```
-
-Chronos compares roughly 13 categories including study time, levels, streaks, sessions, coins, achievements, and subjects — then declares who **mogs** who.
-
-### 🔥 Streaks
-
-Studying on consecutive calendar days builds a study streak.
-
-A **Streak Freeze** from the shop can automatically protect the streak when exactly one day is missed.
-
-Chronos' study-day calculations are designed around **IST (UTC+5:30)**.
-
-### 💰 Economy
-
-Study to earn coins and spend them through:
-
-```text
-.shop
-.buy
-.inventory
-.use
-.openbox
-.settitle
-```
-
-Available rewards include:
-
-* Mystery Boxes
-* Streak Freezes
-* XP Boosts
-* Coin Boosts
-* Cosmetic profile titles
-* Server-customized tags
-
-Additional earning commands:
-
-```text
-.daily
-.work
-.weekly
-```
-
-`.daily` has its own separate claim streak with escalating rewards and milestone bonuses.
-
-### 🐾 Pets
-
-Chronos includes **44 collectible pets across 5 tiers**, each with its own evolution line and animated sprite.
-
-Unlock pets from:
-
-```text
-.petshop
-.buypet
-```
-
-Then manage them with:
-
-```text
-.pets
-.pet
-.equip
-.nickname
-```
-
-Equipped pets gain XP passively while you study.
-
-### 🍖 Pet Food
-
-Pets can also be levelled through food.
-
-Commands:
-
-```text
-.foodshop
-.buyfood
-.feed
-.sellfood
-```
-
-There are **45 food items across 4 tiers**.
-
-### 🏆 Achievements
-
-Chronos includes **69 achievements** spanning:
-
-* Study time
-* Sessions
-* Streaks
-* Ranks / tiers
-* Subjects
-* Chapters
-* Subtopics
-* Books
-* PYQs
-* Revisions
-* Economy
-* Special milestones
-
-Achievements are unlocked live and announced immediately.
-
-### 📖 JEE Main Progress Tracking
-
-Chronos contains a built-in condensed **JEE Main syllabus reference** covering:
-
-* 20 Physics chapters
-* 20 Chemistry chapters
-* 14 Maths chapters
-
-Browse it with:
-
-```text
-.syllabus
-```
-
-Progress can be logged with validated commands:
-
-```text
-.chapterdone
-.subtopicdone
-```
-
-Book, PYQ, and revision progress can also be tracked:
-
-```text
-.bookdone
-.pyq
-.revision
-.progress
-```
-
-Syllabus-backed commands validate chapters and subtopics against Chronos' built-in syllabus data.
-
-### 💤 AFK Protection
-
-Long study sessions can trigger an AFK check-in.
-
-By default:
-
-* Check-in every **25 minutes**
-* User gets another **25 minutes** to respond
-* No response ends the session automatically
-
-Configure this with:
-
-```text
-.setcheckin #channel
-```
-
-### 🍅 Shared Pomodoro
-
-Chronos includes a shared voice-channel Pomodoro system.
-
-The default cycle is:
-
-```text
-25 min focus
-5 min break
-25 min focus
-5 min break
-25 min focus
-5 min break
-25 min focus
-15 min long break
-```
-
-The first person joining a voice channel starts the cycle. Everyone joining afterward follows the same timer.
-
-The Pomodoro system is independent from `.start` / `.stop` study sessions.
-
-### 🎨 Runtime Customization
-
-Server branding can be changed without redeploying the bot.
-
-Developer commands include:
-
-```text
-.settier
-.resettier
-.addtag
-.removetag
-```
-
-Users can view the current configuration with:
-
-```text
-.tiers
-.tags
-```
-
-Global defaults remain available in:
-
-```text
-utils/xp.py
-utils/economy.py
-```
-
-### 🛠️ Developer Overrides
-
-The configured developer account can directly correct or modify:
-
-```text
-.addtime
-.removetime
-.addxp
-.removexp
-.addcoins
-.removecoins
-```
-
-These commands are intended for administration and data correction rather than normal gameplay.
-
-### 📝 Console Logging
-
-Chronos logs important runtime events including:
-
-* Session starts / ends
-* XP and coin credits
-* Level-ups
-* Achievement unlocks
-* Shop purchases
-* Daily claims
-* Progress milestones
-* Tier and tag changes
-* AFK prompts and timeouts
-* Subject-room creation
-* Developer adjustments
-* Pomodoro phase changes
+### ⏱️ Rock-Solid Study Tracking
+* **Explicit Control**: Start and stop sessions on your terms (`.start [subject]` / `.stop`) with zero phantom sessions.
+* **Crash-Resilient**: Tracks start timestamps directly in SQLite — bot reboots or disconnects never wipe active study time.
+* **Auto Subject Detection**: Join a dedicated Physics, Chemistry, or Maths VC created via `.make`, and Chronos automatically tags your session.
+* **Shared VC Pomodoro**: Run synchronized work/break intervals directly in your voice channel (`.pomodoro`).
+
+### 📊 Deep Analytics & Social Competition
+* **Rich Profiles**: Comprehensive `.stats` cards with time breakdowns, streak shields, and equipped titles.
+* **Multi-Period Leaderboards**: Daily, weekly, monthly, and all-time leaderboards (`.lb`) with sub-tier rankings.
+* **Head-to-Head**: Compare historical study output with server peers via `.compare @user`.
+* **Hall of Fame**: All-time record boards honoring server marathoners and top streaks (`.hof`).
+
+### 🎯 Syllabus & Roadmap Tracker
+* Built-in completion tracker tailored for competitive exam prep (JEE Main & Advanced).
+* Log theory completion, NCERT checklists, revision cycles, and PYQ milestones with `.syllabus` and `.progress`.
+
+### 🐾 Collectible Pets & Companions
+* Adopt Pokemon study companions (`.petshop`) that earn independent pet XP while you study.
+* Watch them evolve through base, mid, and final evolutionary stages as your hours accumulate.
+* Feed them treats (`.foodshop`, `.feed`) to boost growth and companionship.
+
+### 🪙 Economy, Loot & Seasonal Passes
+* **Coin Economy**: Earn currency per study minute, daily streaks (`.daily`), work tasks, and weekly bonuses.
+* **Interactive Shop**: Buy XP boosts, streak freezes, mystery boxes, and server-exclusive titles (`.shop`).
+* **Halloween Seasonal Event**:
+  * **Jack-o'-Lantern Pass** (`.pumpkin`): 1-per-account seasonal study pass with 5 carving stages and milestone loot.
+  * **Hallo-Boxes** (`.boxes` / `.openbox`): 100% drop-only loot boxes opened instantly without incubation.
+  * **Candy Currency & Shop** (`.candyshop`): Spend study-earned 🍬 Candy on exclusive pets (*Pumpkaboo*), JEE titles, and Sugar Rush boosts.
 
 ---
 
-# ⏱️ How Timing Works
+## 🕹️ Command Reference
 
-Timing is one of Chronos' core design constraints.
+> **Default Prefix:** `.` (Every response renders as a polished Discord embed)
 
-> **Chronos does not rely on an in-memory timer to keep study time accurate.**
+### ⏱️ Study Sessions & Pomodoro
+| Command | Aliases | Description |
+| :--- | :--- | :--- |
+| `.start [subject]` | — | Begin a tracked study session (e.g. `.start Physics`) |
+| `.stop` | `.end` | End session, log stats, and claim XP/coins earned |
+| `.session` | `.current` | View your active live study session timer |
+| `.active` | `.online` | List everyone currently studying in the server |
+| `.pomodoro` | `.pomo` | Check or join the synchronized VC Pomodoro cycle |
 
-Every active session stores its start timestamp in SQLite:
+### 📈 Stats & Leaderboards
+| Command | Aliases | Description |
+| :--- | :--- | :--- |
+| `.stats [@user]` | `.me`, `.profile` | Open your comprehensive study passport & analytics |
+| `.leaderboard` | `.lb`, `.top` | Display server leaderboards (day/week/month/all-time) |
+| `.rank` | `.lvl` | Check your tier rank, level, and next milestone |
+| `.subjects` | — | View total time distribution across subjects |
+| `.compare @user` | `.vs` | Side-by-side study comparison with a peer |
+| `.halloffame` | `.hof` | Server record holders (longest sessions, highest streaks) |
+| `.achievements` | `.badges` | Inspect unlocked and locked accomplishment badges |
 
-```python
-elapsed = current_time - start_time
-```
+### 📚 Syllabus & Exam Roadmaps
+| Command | Aliases | Description |
+| :--- | :--- | :--- |
+| `.syllabus [subject]`| `.syl` | Open interactive syllabus explorer & completion % |
+| `.progress` | — | Summary of completed chapters, revisions & backlogs |
+| `.chapterdone <name>`| `.chapter` | Mark an entire syllabus chapter completed |
+| `.subtopicdone <id>` | `.sub` | Check off an individual subtopic |
+| `.revision <chapter>`| `.rev` | Log a spaced-repetition revision session |
+| `.pyq <chapter>` | — | Record past-year question paper practice |
 
-Elapsed time is recalculated whenever it is needed rather than being continuously incremented in memory.
+### 🪙 Economy & Items
+| Command | Aliases | Description |
+| :--- | :--- | :--- |
+| `.balance` | `.bal`, `.coins` | Check your wallet (Coins & Seasonal Candy) |
+| `.daily` | — | Claim once-per-day streak rewards & bonus loot |
+| `.shop` | `.store` | Browse boosts, streak freezes, and profile titles |
+| `.buy <item> [qty]` | — | Purchase items using earned coins |
+| `.inventory` | `.inv` | View your owned consumables, boosts, and titles |
+| `.use <item>` | — | Activate consumable items (e.g. XP Boost, Sugar Rush) |
+| `.settitle <title>` | — | Equip an owned title to your profile card |
+| `.work` / `.beg` | `.grind` | Quick mini-tasks for extra coins and random drops |
+| `.weekly` | — | Weekly jackpot payout and rare box drops |
 
-### XP & Coin Credit
+### 🐾 Pets & Companions
+| Command | Aliases | Description |
+| :--- | :--- | :--- |
+| `.petshop [tier]` | `.pshop` | Browse buyable pets across 5 rarity tiers |
+| `.buypet <name>` | — | Adopt and unlock a permanent study companion |
+| `.pets` | — | View all companions in your personal menagerie |
+| `.pet [name]` | — | Inspect detailed stats, XP curve, and evolution progress |
+| `.equip <name>` | — | Select active pet to accompany your study sessions |
+| `.nickname <new>` | `.nick` | Rename your equipped pet |
+| `.foodshop` | `.fshop` | Browse nutritional pet treats & meals |
+| `.feed <food> [qty]`| — | Feed your equipped companion to award instant pet XP |
 
-For each session, Chronos tracks how much time has already been credited.
+### 🎃 Seasonal Event (Halloween)
+| Command | Aliases | Description |
+| :--- | :--- | :--- |
+| `.pumpkin` | `.pass` | Personal Jack-o'-Lantern pass & study carving progress |
+| `.pumpkin claim` | — | Claim unlocked stage milestone rewards |
+| `.boxes` | `.halloboxes`| Inspect your inventory of drop-only Hallo-Boxes |
+| `.openbox [tier] [n]`| `.open` | Instantly open Hallo-Boxes (Common → Legendary) |
+| `.candyshop` | `.spookyshop`| Limited seasonal shop: Pumpkaboo pet, titles & boosts |
+| `.buycandy <item>` | — | Spend 🍬 Candy on event-exclusive rewards |
 
-When another full minute has elapsed, it calculates the difference and awards a new randomized XP/coin roll.
-
-This means timing remains correct even when:
-
-* The bot restarts
-* The process crashes
-* Discord temporarily disconnects
-* The host machine sleeps
-* Monitoring is temporarily interrupted
-
-No drift. No double-counting. No lost minutes.
-
-### Startup Recovery
-
-When Chronos starts, active sessions are reconciled directly from the database.
-
-Sessions remain active until they are explicitly stopped or terminated by AFK handling.
-
----
-
-# 🏗️ Project Structure
-
-```text
-chronos/
-├── bot.py
-├── config.py
-├── database.py
-├── requirements.txt
-├── .env.example
-│
-├── cogs/
-│   ├── sessions.py
-│   ├── pomodoro.py
-│   ├── stats.py
-│   ├── economy.py
-│   ├── pets.py
-│   ├── achievements.py
-│   ├── social.py
-│   ├── progress.py
-│   ├── customization.py
-│   ├── admin.py
-│   ├── dev.py
-│   └── help.py
-│
-└── utils/
-    ├── embeds.py
-    ├── xp.py
-    ├── streaks.py
-    ├── economy.py
-    ├── pets.py
-    ├── food.py
-    ├── achievements.py
-    ├── syllabus.py
-    ├── subjects.py
-    ├── checks.py
-    ├── time_format.py
-    └── logger.py
-```
-
----
-
-# 🚀 Setup
-
-## 1. Create the Discord Application
-
-Open the [Discord Developer Portal](https://discord.com/developers/applications) and:
-
-1. Create a **New Application**
-2. Open the **Bot** tab
-3. Click **Add Bot**
-4. Enable:
-
-   * **Server Members Intent**
-   * **Message Content Intent**
-5. Copy the bot token
-
-> Never commit your bot token or `.env` file to Git.
+### ⚙️ Server Admin & Customization
+| Command | Description |
+| :--- | :--- |
+| `.make` | Automatically create Physics, Chemistry, and Maths study VCs |
+| `.setcheckin #channel` | Designate the server announcement and drop channel |
+| `.tiers` / `.settier` | View and customize server role and level tier names |
+| `.tags` / `.addtag` | Create and manage custom server shop titles |
+| `.config` | Display active server settings and channel bindings |
 
 ---
 
-## 2. Invite Chronos
+## 🚀 Quickstart
 
-In:
+### Prerequisites
+* **Python 3.11** or newer
+* Discord Bot Token ([Discord Developer Portal](https://discord.com/developers/applications))
+* Enable **Message Content Intent** and **Server Members Intent** under bot settings.
 
-**OAuth2 → URL Generator**
-
-Select the:
-
-```text
-bot
-```
-
-scope.
-
-Recommended permissions:
-
-* View Channels
-* Send Messages
-* Embed Links
-* Add Reactions
-* Read Message History
-* Manage Channels *(required for `.make`)*
-* Manage Messages *(optional)*
-
-Use the generated URL to invite Chronos to your server.
-
----
-
-## 3. Install Dependencies
-
-Create and activate a virtual environment:
-
+### 1. Clone & Install
 ```bash
-python -m venv venv
-```
-
-### macOS / Linux
-
-```bash
+git clone https://github.com/Saharsh000/Chronos.git
+cd Chronos
+python3 -m venv venv
 source venv/bin/activate
-```
-
-### Windows
-
-```powershell
-venv\Scripts\activate
-```
-
-Install dependencies:
-
-```bash
 pip install -r requirements.txt
 ```
 
----
-
-## 4. Configure Environment Variables
-
-Create your `.env`:
-
-```bash
-cp .env.example .env
-```
-
-Then add your Discord bot token:
-
+### 2. Configure Environment
+Create a `.env` file in the project root:
 ```env
-DISCORD_TOKEN=your_token_here
+DISCORD_TOKEN=your_bot_token_here
+PREFIX=.
+DEV_USER_ID=your_discord_id_here
 ```
 
-Other settings are optional and can use their defaults.
-
----
-
-## 5. Start Chronos
-
+### 3. Run Chronos
 ```bash
-python bot.py
+python3 main.py
 ```
 
-A successful startup should look similar to:
-
-```text
-2026-09-11 12:00:01 | INFO     | bot      | Loaded extension: cogs.sessions
-2026-09-11 12:00:02 | INFO     | bot      | Logged in as Chronos#1234 (ID: ...)
-2026-09-11 12:00:02 | INFO     | sessions | Reconciling 0 stored active session(s)...
-2026-09-11 12:00:02 | INFO     | sessions | Startup reconciliation complete - session commands are now active.
-```
+Chronos automatically initialises the SQLite database, verifies migrations, seeds default catalogs, and connects to Discord.
 
 ---
 
-# ⚙️ Server Configuration
+## 🏗️ Architecture
 
-## Check-in Channel
-
-Set the channel used for AFK prompts and certain announcements:
-
-```text
-.setcheckin #general
+```
+Chronos/
+├── bot.py             # Bot initialization & extension loader
+├── config.py          # Centralized configuration & environment loader
+├── database.py        # Async SQLite layer (aiosqlite) with WAL mode & auto-migrations
+├── main.py            # Entry point
+├── cogs/              # Modular feature extensions (discord.ext.commands.Cog)
+│   ├── sessions.py    # Live session monitor loop & VC checkins
+│   ├── stats.py       # User profile cards, leaderboards & metrics
+│   ├── economy.py     # Coin wallet, shop, inventory, daily/work/weekly
+│   ├── pets.py        # Companions, evolution engine & feeding
+│   ├── halloween.py   # Jack-o'-Lantern season pass & Hallo-Boxes
+│   ├── progress.py    # Syllabus tracker & chapter logs
+│   ├── pomodoro.py    # Synchronized voice-channel pomodoro state
+│   ├── achievements.py# Achievement evaluation & badge grants
+│   ├── customization.py# Guild-specific role tiers & custom title tags
+│   ├── admin.py       # VC study-room provisioning & guild config
+│   └── dev.py         # Diagnostic utilities & data backup commands
+└── utils/             # Pure catalogs & data models (Zero DB dependency)
+    ├── pets.py        # 40+ species definitions & evolution paths
+    ├── food.py        # Treat catalog & XP yield values
+    ├── halloween.py   # Hallo-Box loot tables & Season Pass curves
+    ├── economy.py     # Base shop inventory & mystery box probabilities
+    ├── embeds.py      # Standardized UI theme & embed builders
+    └── streaks.py     # Timezone-aware streak validation logic
 ```
 
-If no channel is configured, Chronos falls back to the user's voice channel or DM where applicable.
-
-## Study Rooms
-
-Administrators can create the three subject rooms with:
-
-```text
-.make
-```
-
-This creates:
-
-```text
-📚 Study Rooms
-├── Physics
-├── Chemistry
-└── Maths
-```
-
-Running `.make` again is safe and does not duplicate existing rooms.
+* **Zero-Lock Database**: Uses SQLite Write-Ahead Logging (`WAL`) with pooled async transactions.
+* **Separation of Concerns**: Catalogs and loot equations (`utils/`) are strictly isolated from database I/O (`database.py`) and presentation (`cogs/`).
+* **Python 3.11+ Optimized**: Strict type annotations, async-safe task scheduling, and defensive migration fallbacks.
 
 ---
 
-# 📋 Commands
+## 📄 License
 
-All commands use the configured prefix.
-
-Default:
-
-```text
-.
-```
-
-## Study
-
-| Command            | Description                   |
-| ------------------ | ----------------------------- |
-| `.start [subject]` | Start a study session         |
-| `.stop`            | End the current session       |
-| `.session`         | View the current session      |
-| `.active`          | See who is currently studying |
-
-## Stats
-
-| Command                           | Description              |
-| --------------------------------- | ------------------------ |
-| `.stats [@user]`                  | Detailed statistics      |
-| `.rank [@user]`                   | Level, tier, and XP      |
-| `.subjects [@user]`               | Subject breakdown        |
-| `.leaderboard [period] [subject]` | Leaderboard              |
-| `.halloffame`                     | Permanent server records |
-| `.compare @user [@user2]`         | Compare users            |
-
-## Progress
-
-| Command                                        | Description                  |
-| ---------------------------------------------- | ---------------------------- |
-| `.syllabus [subject] [chapter]`                | Browse the JEE Main syllabus |
-| `.chapterdone <subject> <chapter>`             | Mark a chapter complete      |
-| `.subtopicdone <subject> <chapter> <subtopic>` | Mark a subtopic complete     |
-| `.bookdone <subject> <book>`                   | Log a completed book         |
-| `.pyq <year> [subject]`                        | Log PYQ progress             |
-| `.revision <number> [subject]`                 | Log a revision pass          |
-| `.progress [@user]`                            | View logged progress         |
-
-## Economy
-
-| Command                   | Description                      |
-| ------------------------- | -------------------------------- |
-| `.daily`                  | Daily coin + XP reward           |
-| `.work`                   | Cooldown-based coin + XP reward  |
-| `.weekly`                 | Weekly coin reward + Mystery Box |
-| `.balance [@user]`        | View coins                       |
-| `.shop`                   | View the shop                    |
-| `.buy <item> [quantity]`  | Buy shop items                   |
-| `.inventory [@user]`      | View inventory                   |
-| `.use <item>`             | Activate a boost                 |
-| `.openbox`                | Open a Mystery Box               |
-| `.settitle <title\|none>` | Set a profile title              |
-
-## Pets
-
-| Command                       | Description             |
-| ----------------------------- | ----------------------- |
-| `.petshop [tier]`             | Browse pets             |
-| `.buypet <name>`              | Unlock a pet            |
-| `.pets [@user]`               | View owned pets         |
-| `.pet [name]`                 | View detailed pet stats |
-| `.equip <name>`               | Equip a pet             |
-| `.nickname <current> <new>`   | Rename a pet            |
-| `.foodshop [tier]`            | Browse pet food         |
-| `.buyfood <name> [quantity]`  | Buy food                |
-| `.feed <name> [quantity]`     | Feed your pet           |
-| `.sellfood <name> [quantity]` | Sell food               |
-
-## Customization
-
-| Command     | Description                     |
-| ----------- | ------------------------------- |
-| `.tiers`    | View active tier names          |
-| `.tags`     | View purchasable profile tags   |
-| `.pomodoro` | View the current Pomodoro cycle |
-| `.help`     | Display available commands      |
-
-## Administration
-
-| Command                | Description                    |
-| ---------------------- | ------------------------------ |
-| `.make`                | Create subject study rooms     |
-| `.setcheckin #channel` | Configure the check-in channel |
-| `.config`              | View server configuration      |
-
-## Developer
-
-| Command                                  | Description            |
-| ---------------------------------------- | ---------------------- |
-| `.addtime @user <duration> [subject]`    | Grant study time       |
-| `.removetime @user <duration> [subject]` | Remove study time      |
-| `.addxp @user <amount>`                  | Grant XP               |
-| `.removexp @user <amount>`               | Remove XP              |
-| `.addcoins @user <amount>`               | Grant coins            |
-| `.removecoins @user <amount>`            | Remove coins           |
-| `.settier <level> <name>`                | Rename a tier          |
-| `.resettier <level>`                     | Reset a tier           |
-| `.resettiers`                            | Reset all tier renames |
-| `.addtag <price> <name>`                 | Add a custom shop tag  |
-| `.removetag <name>`                      | Remove a custom tag    |
-
-Developer commands are restricted to the configured developer account.
-
----
-
-# 🔧 Configuration
-
-Chronos can be configured through `.env`.
-
-| Variable                            |           Default | Description               |
-| ----------------------------------- | ----------------: | ------------------------- |
-| `DISCORD_TOKEN`                     |                 — | Discord bot token         |
-| `COMMAND_PREFIX`                    |               `.` | Command prefix            |
-| `DB_PATH`                           | `chronos.sqlite3` | SQLite database path      |
-| `DEV_USER_ID`                       |  configured value | Developer account ID      |
-| `XP_MIN_PER_MINUTE`                 |               `6` | Minimum XP per minute     |
-| `XP_MAX_PER_MINUTE`                 |              `14` | Maximum XP per minute     |
-| `COINS_MIN_PER_MINUTE`              |               `1` | Minimum coins per minute  |
-| `COINS_MAX_PER_MINUTE`              |               `3` | Maximum coins per minute  |
-| `PET_UNLOCK_LEVEL`                  |              `10` | Required level for pets   |
-| `PET_XP_MIN_PER_MINUTE`             |               `1` | Minimum pet XP per minute |
-| `PET_XP_MAX_PER_MINUTE`             |               `3` | Maximum pet XP per minute |
-| `FOOD_SELL_RATE`                    |             `0.5` | Food resale multiplier    |
-| `WORK_COOLDOWN_SECONDS`             |            `3600` | `.work` cooldown          |
-| `WORK_COINS_MIN`                    |              `80` | Minimum `.work` coins     |
-| `WORK_COINS_MAX`                    |             `180` | Maximum `.work` coins     |
-| `WORK_XP_MIN`                       |              `10` | Minimum `.work` XP        |
-| `WORK_XP_MAX`                       |              `25` | Maximum `.work` XP        |
-| `WEEKLY_COOLDOWN_SECONDS`           |          `604800` | `.weekly` cooldown        |
-| `WEEKLY_COINS_MIN`                  |             `900` | Minimum `.weekly` coins   |
-| `WEEKLY_COINS_MAX`                  |            `1500` | Maximum `.weekly` coins   |
-| `CHECKIN_INTERVAL_MINUTES`          |              `25` | AFK check-in interval     |
-| `AFK_GRACE_MINUTES`                 |              `25` | AFK response window       |
-| `POMODORO_FOCUS_MINUTES`            |              `25` | Focus duration            |
-| `POMODORO_BREAK_MINUTES`            |               `5` | Short break               |
-| `POMODORO_LONG_BREAK_MINUTES`       |              `15` | Long break                |
-| `POMODORO_CYCLES_BEFORE_LONG_BREAK` |               `4` | Cycles before long break  |
-| `SESSION_MONITOR_INTERVAL_SECONDS`  |              `30` | Session monitor interval  |
-| `POMODORO_MONITOR_INTERVAL_SECONDS` |              `15` | Pomodoro monitor interval |
-
----
-
-# 🗃️ Database & Persistence
-
-Chronos uses **SQLite** with WAL mode for normal concurrent access.
-
-The database contains persistent data for:
-
-* Users
-* Sessions
-* XP / levels
-* Study streaks
-* Coins
-* Inventory
-* Boosts
-* Daily claims
-* Achievements
-* Progress milestones
-* Tier customizations
-* Custom shop tags
-* Pets
-* Pet progression
-* Pomodoro sessions
-
-Existing installations are migrated automatically.
-
-### Updating an Existing Installation
-
-New releases may introduce new tables or columns.
-
-Chronos runs an idempotent database migration on startup using:
-
-```python
-Database._migrate()
-```
-
-Existing data is preserved rather than rewritten.
-
----
-
-# 🧠 Design Principles
-
-Chronos is built around a few simple principles:
-
-**Explicit control**
-Users decide when their study session starts and ends.
-
-**Persistent state**
-Important state lives in SQLite rather than temporary memory.
-
-**Live progression**
-XP and coins are credited while studying instead of waiting until `.stop`.
-
-**Recoverability**
-Restarts and temporary outages should not destroy session timing.
-
-**Modularity**
-Features are separated into cogs and utility modules so the bot can grow without becoming one giant file.
-
-**Prefix-first UX**
-Chronos intentionally uses prefix commands and embeds rather than slash commands.
-
----
-
-# 📌 Notes
-
-* Study time is tracked exactly, including sub-minute time.
-* XP and related progression rewards are granted in whole-minute chunks.
-* A session lasting 8m33s records all 8m33s as study time, while XP crediting only uses completed minutes.
-* The Pomodoro system is independent from study-session tracking.
-* Pets are permanent species unlocks rather than stackable duplicates.
-* Only the equipped pet gains passive study XP.
-* Pet XP uses its own progression curve separate from user XP.
-* The bot never joins voice channels itself.
-* Voice state data is used for Pomodoro handling and subject-room detection.
-
----
-
-# 🔐 Security
-
-Never commit secrets such as:
-
-```text
-.env
-DISCORD_TOKEN
-```
-
-to the repository.
-
-Use `.env.example` as the template and keep real credentials outside version control.
-
----
-
-# 📄 License
-
-MIT — see [`LICENSE`](LICENSE).
+Distributed under the **MIT License**. See [`LICENSE`](LICENSE) for details.
