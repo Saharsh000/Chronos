@@ -11,7 +11,9 @@ Includes offline verified question fallbacks when CJA_URL is unconfigured.
 from __future__ import annotations
 
 import asyncio
+import json
 import logging
+from pathlib import Path
 from typing import Any, Optional
 
 import aiohttp
@@ -19,6 +21,99 @@ import aiohttp
 import config
 
 log = logging.getLogger("cja")
+
+# Path to cached full JEE syllabus
+SYLLABUS_FILE = Path(__file__).resolve().parent.parent / "data" / "syllabus.json"
+_SYLLABUS_CACHE: Optional[dict[str, Any]] = None
+
+
+def get_syllabus() -> dict[str, Any]:
+    """Load and cache the complete 89-chapter official JEE syllabus."""
+    global _SYLLABUS_CACHE
+    if _SYLLABUS_CACHE is not None:
+        return _SYLLABUS_CACHE
+
+    if SYLLABUS_FILE.exists():
+        try:
+            with open(SYLLABUS_FILE, "r", encoding="utf-8") as f:
+                _SYLLABUS_CACHE = json.load(f)
+                return _SYLLABUS_CACHE
+        except Exception as e:
+            log.warning(f"Could not load syllabus from {SYLLABUS_FILE}: {e}")
+
+    return {"subjects": []}
+
+
+def get_subjects() -> list[dict[str, Any]]:
+    """Return list of all 3 subjects (Physics, Chemistry, Mathematics)."""
+    return get_syllabus().get("subjects", [])
+
+
+def get_subject_data(subject_id: str) -> Optional[dict[str, Any]]:
+    """Get subject details by id or name."""
+    sub_clean = subject_id.lower().strip()
+    for s in get_subjects():
+        if s["id"].lower() == sub_clean or s["name"].lower() == sub_clean:
+            return s
+    return None
+
+
+def get_sections(subject_id: str) -> list[str]:
+    """Return all unique sections for a subject."""
+    sub = get_subject_data(subject_id)
+    if not sub:
+        return []
+    sections = []
+    seen = set()
+    for ch in sub.get("chapters", []):
+        sec = ch.get("section", "General")
+        if sec not in seen:
+            seen.add(sec)
+            sections.append(sec)
+    return sections
+
+
+def get_chapters_by_section(subject_id: str, section: Optional[str] = None) -> list[dict[str, Any]]:
+    """Return all chapters for a given subject and optional section."""
+    sub = get_subject_data(subject_id)
+    if not sub:
+        return []
+    chapters = sub.get("chapters", [])
+    if section:
+        return [c for c in chapters if c.get("section") == section]
+    return chapters
+
+
+def get_chapter_by_id(chapter_id: str) -> Optional[dict[str, Any]]:
+    """Find a chapter by its unique ID."""
+    ch_clean = chapter_id.lower().strip()
+    for s in get_subjects():
+        for ch in s.get("chapters", []):
+            if ch["id"].lower() == ch_clean:
+                return ch
+    return None
+
+
+def find_chapter(query: str) -> tuple[Optional[dict[str, Any]], Optional[dict[str, Any]]]:
+    """Fuzzy finds subject and chapter by id, name, alias, or substring match."""
+    q = query.lower().strip()
+    for s in get_subjects():
+        for ch in s.get("chapters", []):
+            if ch["id"].lower() == q or ch["name"].lower() == q:
+                return s, ch
+
+    for s in get_subjects():
+        for ch in s.get("chapters", []):
+            for al in ch.get("aliases", []):
+                if al.lower() == q:
+                    return s, ch
+
+    for s in get_subjects():
+        for ch in s.get("chapters", []):
+            if q in ch["id"].lower() or q in ch["name"].lower() or any(q in al.lower() for al in ch.get("aliases", [])):
+                return s, ch
+
+    return None, None
 
 # Fallback pool when CJA_URL / CJA_KEY is not configured or network unreachable
 OFFLINE_QUESTION_POOL: list[dict[str, Any]] = [
