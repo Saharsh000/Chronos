@@ -13,7 +13,10 @@ math against stored timestamps.
 """
 from __future__ import annotations
 
+import asyncio
 import datetime as dt
+import io
+import logging
 import time
 from typing import Optional
 
@@ -22,11 +25,14 @@ from discord.ext import commands
 
 import config
 from utils import embeds
+from utils.stats_card import render_stats_card_sync
 from utils.views import LeaderboardView
 from utils import xp as xp_utils
 from utils.achievements import ACHIEVEMENTS
 from utils.subjects import SUBJECT_ALIASES, SUBJECT_INFO, SUBJECTS
 from utils.time_format import discord_timestamp, format_duration
+
+log = logging.getLogger("stats")
 
 PERIOD_ALIASES = {
     "today": "today", "day": "today", "daily": "today",
@@ -284,7 +290,52 @@ class Stats(commands.Cog, name="Stats"):
             f"{ctx.prefix}compare",
             f"{ctx.prefix}halloffame",
         )
-        await ctx.send(embed=embed)
+
+        # Generate high-resolution visual stats image card
+        avatar_bytes: Optional[bytes] = None
+        try:
+            avatar_bytes = await target.display_avatar.with_format("png").with_size(128).read()
+        except Exception:
+            avatar_bytes = None
+
+        equipped_pet = await self.db.get_equipped_pet(target.id, ctx.guild.id)
+        subj_stats = await self.db.get_subject_stats(target.id, ctx.guild.id)
+
+        loop = asyncio.get_running_loop()
+        try:
+            card_bytes = await loop.run_in_executor(
+                None,
+                render_stats_card_sync,
+                target.display_name,
+                target.name,
+                tier,
+                level,
+                current_into,
+                needed_for_next,
+                stats["xp"],
+                currency["coins"],
+                currency.get("candy", 0),
+                stats["total_seconds"] + live_uncredited,
+                today_totals.get(target.id, 0),
+                week_totals.get(target.id, 0),
+                stats["current_streak"],
+                stats["longest_streak"],
+                stats["sessions_count"],
+                len(unlocked_ids),
+                len(ACHIEVEMENTS),
+                rank_position,
+                stats.get("equipped_title"),
+                equipped_pet,
+                subj_stats,
+                now - active_session["start_time"] if active_session else None,
+                avatar_bytes,
+            )
+            file = discord.File(io.BytesIO(card_bytes), filename="stats.png")
+            embed.set_image(url="attachment://stats.png")
+            await ctx.send(file=file, embed=embed)
+        except Exception as e:
+            log.error("Failed to render visual stats card", exc_info=e)
+            await ctx.send(embed=embed)
 
     @commands.command(name="subjects", aliases=["subjectstats"])
     async def subjects_cmd(self, ctx: commands.Context, member: Optional[discord.Member] = None) -> None:
