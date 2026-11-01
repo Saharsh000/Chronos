@@ -13,7 +13,7 @@ Supports:
 - `,trivia lb`: Server trivia leaderboard
 - `,trivia me`: Personal trivia performance stats
 - 10-second cooldown between trivia question starts
-- Official JEE Marking (+4 / -1) and dynamic coin & XP awards
+- Official JEE Marking (+4 / -1) and dynamic Chronocoin & XP awards
 """
 from __future__ import annotations
 
@@ -38,7 +38,6 @@ from services.cja import (
     get_subjects,
 )
 from utils import embeds
-from utils import halloween as halloween_catalog
 from utils.time_format import format_duration
 
 log = logging.getLogger("trivia")
@@ -250,12 +249,12 @@ class TriviaContinuousControlsView(discord.ui.View):
                 f"📝 **Questions Attempted:** `{att}`\n"
                 f"🎯 **Accuracy:** `{cor}/{att}` ({acc:.1f}%)\n"
                 f"📈 **Net Marks Earned:** `{mks:+} Marks`\n"
-                f"🪙 **Coins Won:** `+{cns:,}` 🪙\n\n"
+                f"🪙 **Chronocoins Won:** `+{cns:,}` 🪙\n\n"
                 f"Type `,trivia` anytime to explore the syllabus or start another practice session!"
             ),
             color=embeds.COLOR_INFO,
         )
-        embeds.set_footer(summary_embed, "Session ended. All marks & coins saved to your profile.")
+        embeds.set_footer(summary_embed, "Session ended. All marks & Chronocoins saved to your profile.")
         await interaction.response.edit_message(embed=summary_embed, view=self)
 
     async def on_timeout(self) -> None:
@@ -298,6 +297,10 @@ class TriviaQuestionView(discord.ui.View):
         self.session_stats = session_stats or {"attempted": 0, "correct": 0, "marks": 0, "coins": 0}
         self.answered_users: set[int] = set()
         self.results_summary: list[dict[str, Any]] = []
+        # First successful grading response from CJA. It carries the official
+        # answer / explanation / concept, so the round summary can reuse it
+        # instead of making a second (dummy) check call.
+        self.official_result: Optional[dict[str, Any]] = None
         self.message: Optional[discord.Message] = None
         self._build_components()
 
@@ -380,8 +383,13 @@ class TriviaQuestionView(discord.ui.View):
             check_res = await cja_client.check_answer(self.q_id, answer_val)
         except Exception as e:
             log.error(f"Error checking answer with CJA: {e}", exc_info=True)
-            await interaction.followup.send("⚠️ Error verifying your answer with CJA. Please try again later.", ephemeral=True)
+            # The answer was never graded, so let them try again.
+            self.answered_users.discard(user.id)
+            await interaction.followup.send("⚠️ Error verifying your answer with CJA. Please try again.", ephemeral=True)
             return
+
+        if self.official_result is None:
+            self.official_result = check_res
 
         is_correct = bool(check_res.get("correct", False))
         marks = int(check_res.get("marks", 4 if is_correct else -1))
@@ -401,7 +409,9 @@ class TriviaQuestionView(discord.ui.View):
             coins_won = 5
             xp_won = 5
 
-        # Update Database (fixed arguments: user.id, self.guild_id, amount)
+        # Update Database. record_trivia_attempt() already credits `coins_won`
+        # to the user's Chronocoin balance, so do NOT call add_coins() again
+        # (that used to pay every answer out twice).
         stats = await self.db.record_trivia_attempt(
             user_id=user.id,
             guild_id=self.guild_id,
@@ -410,8 +420,6 @@ class TriviaQuestionView(discord.ui.View):
             coins_won=coins_won,
         )
 
-        if coins_won > 0:
-            await self.db.add_coins(user.id, self.guild_id, coins_won)
         if xp_won > 0:
             await self.db.grant_xp(user.id, self.guild_id, xp_won)
 
@@ -423,12 +431,17 @@ class TriviaQuestionView(discord.ui.View):
             self.session_stats["marks"] += marks
             self.session_stats["coins"] += coins_won
 
-        # Halloween candy drop
+        # Halloween candy drop. Candy is a plain currency (user_currency.candy),
+        # so award a small random amount. This is a bonus only - it must never
+        # be able to break the answer flow, hence the try/except.
         candy_str = ""
         if is_correct and random.random() < 0.35:
-            dropped_candy = halloween_catalog.pick_random_candy()
-            await self.db.add_halloween_candy(user.id, dropped_candy["id"], 1)
-            candy_str = f"\n🎃 **Bonus Drop:** Found 1x {dropped_candy['emoji']} **{dropped_candy['name']}**!"
+            try:
+                candy_won = random.randint(3, 10)
+                await self.db.add_candy(user.id, self.guild_id, candy_won)
+                candy_str = f"\n🎃 **Bonus Drop:** Found **{candy_won} 🍬 Candy**!"
+            except Exception as e:
+                log.warning(f"Candy drop failed (ignored): {e}")
 
         self.results_summary.append({
             "user": user,
@@ -446,7 +459,7 @@ class TriviaQuestionView(discord.ui.View):
                 description=(
                     f"**Official Answer:** `{official_ans}`\n\n"
                     f"💡 **Explanation:** {explanation}\n\n"
-                    f"💰 **Rewards:** +{coins_won} Coins · +{xp_won} XP\n"
+                    f"💰 **Rewards:** +{coins_won} Chronocoins · +{xp_won} XP\n"
                     f"🔥 **Streak:** {stats['current_streak']} in a row (Best: {stats['best_streak']}){candy_str}"
                 ),
                 color=embeds.COLOR_SUCCESS,
@@ -457,7 +470,7 @@ class TriviaQuestionView(discord.ui.View):
                 description=(
                     f"**Official Answer:** `{official_ans}`\n\n"
                     f"💡 **Explanation:** {explanation}\n\n"
-                    f"Consolation: +{coins_won} Coins · +{xp_won} XP · Streak reset to 0."
+                    f"Consolation: +{coins_won} Chronocoins · +{xp_won} XP · Streak reset to 0."
                 ),
                 color=embeds.COLOR_ERROR,
             )
@@ -480,13 +493,17 @@ class TriviaQuestionView(discord.ui.View):
         if not self.message:
             return
 
-        # Fetch official answer from CJA
+        # Official answer: reuse what CJA already told us when someone answered.
+        # Only if nobody answered (timeout) do we have to ask CJA for it.
         try:
-            full_check = await cja_client.check_answer(self.q_id, "NONE")
+            full_check = self.official_result
+            if full_check is None:
+                full_check = await cja_client.check_answer(self.q_id, "NONE")
             official_ans = full_check.get("answer", {}).get("display", "N/A")
             explanation = full_check.get("explanation", "")
             concept = full_check.get("concept", "")
-        except Exception:
+        except Exception as e:
+            log.warning(f"Could not fetch official answer for round summary: {e}")
             official_ans = "Revealed"
             explanation = "Round ended."
             concept = ""
@@ -509,7 +526,7 @@ class TriviaQuestionView(discord.ui.View):
             summary_lines = []
             for r in self.results_summary:
                 status = "✅" if r["correct"] else "❌"
-                summary_lines.append(f"{status} **{r['user'].display_name}**: `{r['marks']:+} Marks` (+{r['coins']} coins)")
+                summary_lines.append(f"{status} **{r['user'].display_name}**: `{r['marks']:+} Marks` (+{r['coins']} Chronocoins)")
             embed.add_field(name="👥 Round Results", value="\n".join(summary_lines), inline=False)
         else:
             embed.add_field(name="⏰ Time Expired", value="Nobody submitted an answer before the timer ran out.", inline=False)
@@ -1057,7 +1074,7 @@ class Trivia(commands.Cog, name="Trivia"):
                 "🧪 **Chemistry** — `34 Chapters` · `311 Topics`\n"
                 "📐 **Mathematics** — `26 Chapters` · `166 Topics`\n\n"
                 "⚡ **89 Chapters** & **737 Topics** total · Official JEE Marking (`+4` / `-1`)\n"
-                "💰 Earn coins & XP · ⏱️ 10-second cooldown between rounds\n\n"
+                "💰 Earn Chronocoins & XP · ⏱️ 10-second cooldown between rounds\n\n"
                 "👇 *Click a subject below to enter continuous practice mode, or click Instant Random!*"
             ),
             color=0x38BDF8,
@@ -1321,7 +1338,7 @@ class Trivia(commands.Cog, name="Trivia"):
             acc = (row["questions_correct"] / row["questions_attempted"] * 100) if row["questions_attempted"] > 0 else 0
             lines.append(
                 f"{medal} **{name}** — **{row['total_marks']:,} Marks**\n"
-                f"   └ `{row['questions_correct']}/{row['questions_attempted']}` ({acc:.1f}%) · 🔥 Streak: `{row['current_streak']}` (Best: `{row['best_streak']}`) · 🪙 `{row['total_coins_won']:,}` won"
+                f"   └ `{row['questions_correct']}/{row['questions_attempted']}` ({acc:.1f}%) · 🔥 Streak: `{row['current_streak']}` (Best: `{row['best_streak']}`) · 🪙 `{row['total_coins_won']:,}` Chronocoins won"
             )
 
         embed.add_field(name="Rankings", value="\n".join(lines), inline=False)
@@ -1344,7 +1361,7 @@ class Trivia(commands.Cog, name="Trivia"):
 
         embed.add_field(name="🎯 Accuracy", value=f"**{acc:.1f}%** ({cor}/{att} correct)", inline=True)
         embed.add_field(name="📈 Total Marks", value=f"**{stats['total_marks']:,}** Marks", inline=True)
-        embed.add_field(name="💰 Coins Won", value=f"**+{stats['total_coins_won']:,}** 🪙", inline=True)
+        embed.add_field(name="💰 Chronocoins Won", value=f"**+{stats['total_coins_won']:,}** 🪙", inline=True)
         embed.add_field(name="🔥 Current Streak", value=f"**{stats['current_streak']}** in a row", inline=True)
         embed.add_field(name="⚡ Best Streak", value=f"**{stats['best_streak']}** all-time", inline=True)
         embed.add_field(

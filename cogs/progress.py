@@ -171,7 +171,7 @@ class Progress(commands.Cog, name="Progress"):
         await ctx.send(embed=embeds.success_embed(
             "\U0001F4D1 Chapter logged!",
             f"**{subject_key.title()} Ch. {match['number']} \u2014 {match['name']}** marked complete. "
-            f"+{coins} coins, +{xp} XP.",
+            f"+{coins} Chronocoins, +{xp} XP.",
         ))
         await self._announce_achievements(ctx)
 
@@ -211,7 +211,7 @@ class Progress(commands.Cog, name="Progress"):
         await ctx.send(embed=embeds.success_embed(
             "\U0001F9E9 Subtopic logged!",
             f"**{subtopic_match}** ({chapter_match['name']}, {subject_key.title()}) marked complete. "
-            f"+{coins} coins, +{xp} XP.",
+            f"+{coins} Chronocoins, +{xp} XP.",
         ))
         await self._announce_achievements(ctx)
 
@@ -226,7 +226,7 @@ class Progress(commands.Cog, name="Progress"):
         coins, xp = await self._log_and_reward(ctx, "book", book, norm_subject)
         await ctx.send(embed=embeds.success_embed(
             "\U0001F4D7 Book logged!",
-            f"**{book}** ({norm_subject}) marked complete. +{coins} coins, +{xp} XP.",
+            f"**{book}** ({norm_subject}) marked complete. +{coins} Chronocoins, +{xp} XP.",
         ))
         await self._announce_achievements(ctx)
 
@@ -243,7 +243,7 @@ class Progress(commands.Cog, name="Progress"):
         subj_text = f" ({norm_subject})" if norm_subject else ""
         await ctx.send(embed=embeds.success_embed(
             "\U0001F4DD PYQ logged!",
-            f"**{year}**{subj_text} marked complete. +{coins} coins, +{xp} XP.",
+            f"**{year}**{subj_text} marked complete. +{coins} Chronocoins, +{xp} XP.",
         ))
         await self._announce_achievements(ctx)
 
@@ -260,7 +260,7 @@ class Progress(commands.Cog, name="Progress"):
         subj_text = f" ({norm_subject})" if norm_subject else ""
         await ctx.send(embed=embeds.success_embed(
             "\U0001F501 Revision logged!",
-            f"{ordinal} revision{subj_text} marked complete. +{coins} coins, +{xp} XP.",
+            f"{ordinal} revision{subj_text} marked complete. +{coins} Chronocoins, +{xp} XP.",
         ))
         await self._announce_achievements(ctx)
 

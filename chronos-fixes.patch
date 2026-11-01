@@ -1,0 +1,624 @@
+diff -ruN -x __pycache__ -x .pytest_cache a/README.md b/README.md
+--- a/README.md	2026-10-31 19:32:47.000000000 +0000
++++ b/README.md	2026-11-01 19:16:07.000000000 +0000
+@@ -20,7 +20,7 @@
+ 
+ ## ⚡ Overview
+ 
+-**Chronos** transforms study channels into a productive, gamified community. Unlike standard timer bots that rely on fragile in-memory clocks, Chronos uses an asynchronous, transaction-safe SQLite database with live per-minute XP/coin crediting, daily streak preservation, custom audio study-rooms, and rich interactive Discord embeds.
++**Chronos** transforms study channels into a productive, gamified community. Unlike standard timer bots that rely on fragile in-memory clocks, Chronos uses an asynchronous, transaction-safe SQLite database with live per-minute XP/Chronocoin crediting, daily streak preservation, custom audio study-rooms, and rich interactive Discord embeds.
+ 
+ ---
+ 
+@@ -48,7 +48,7 @@
+ * Feed them treats (`.foodshop`, `.feed`) to boost growth and companionship.
+ 
+ ### 🪙 Economy, Loot & Seasonal Passes
+-* **Coin Economy**: Earn currency per study minute, daily streaks (`.daily`), work tasks, and weekly bonuses.
++* **Chronocoin Economy**: Earn currency per study minute, daily streaks (`.daily`), work tasks, and weekly bonuses.
+ * **Interactive Shop**: Buy XP boosts, streak freezes, mystery boxes, and server-exclusive titles (`.shop`).
+ * **Halloween Seasonal Event**:
+   * **Jack-o'-Lantern Pass** (`.pumpkin`): 1-per-account seasonal study pass with 5 carving stages and milestone loot.
+@@ -65,7 +65,7 @@
+ | Command | Aliases | Description |
+ | :--- | :--- | :--- |
+ | `.start [subject]` | — | Begin a tracked study session (e.g. `.start Physics`) |
+-| `.stop` | `.end` | End session, log stats, and claim XP/coins earned |
++| `.stop` | `.end` | End session, log stats, and claim XP/Chronocoins earned |
+ | `.session` | `.current` | View your active live study session timer |
+ | `.active` | `.online` | List everyone currently studying in the server |
+ | `.pomodoro` | `.pomo` | Check or join the synchronized VC Pomodoro cycle |
+@@ -94,14 +94,14 @@
+ ### 🪙 Economy & Items
+ | Command | Aliases | Description |
+ | :--- | :--- | :--- |
+-| `.balance` | `.bal`, `.coins` | Check your wallet (Coins & Seasonal Candy) |
++| `.balance` | `.bal`, `.coins` | Check your wallet (Chronocoins & Seasonal Candy) |
+ | `.daily` | — | Claim once-per-day streak rewards & bonus loot |
+ | `.shop` | `.store` | Browse boosts, streak freezes, and profile titles |
+-| `.buy <item> [qty]` | — | Purchase items using earned coins |
++| `.buy <item> [qty]` | — | Purchase items using earned Chronocoins |
+ | `.inventory` | `.inv` | View your owned consumables, boosts, and titles |
+ | `.use <item>` | — | Activate consumable items (e.g. XP Boost, Sugar Rush) |
+ | `.settitle <title>` | — | Equip an owned title to your profile card |
+-| `.work` / `.beg` | `.grind` | Quick mini-tasks for extra coins and random drops |
++| `.work` / `.beg` | `.grind` | Quick mini-tasks for extra Chronocoins and random drops |
+ | `.weekly` | — | Weekly jackpot payout and rare box drops |
+ 
+ ### 🐾 Pets & Companions
+@@ -181,7 +181,7 @@
+ ├── cogs/              # Modular feature extensions (discord.ext.commands.Cog)
+ │   ├── sessions.py    # Live session monitor loop & VC checkins
+ │   ├── stats.py       # User profile cards, leaderboards & metrics
+-│   ├── economy.py     # Coin wallet, shop, inventory, daily/work/weekly
++│   ├── economy.py     # Chronocoin wallet, shop, inventory, daily/work/weekly
+ │   ├── pets.py        # Companions, evolution engine & feeding
+ │   ├── halloween.py   # Jack-o'-Lantern season pass & Hallo-Boxes
+ │   ├── progress.py    # Syllabus tracker & chapter logs
+Binary files a/chronos.sqlite3-shm and b/chronos.sqlite3-shm differ
+diff -ruN -x __pycache__ -x .pytest_cache a/cogs/stats.py b/cogs/stats.py
+--- a/cogs/stats.py	2026-11-01 15:53:31.000000000 +0000
++++ b/cogs/stats.py	2026-11-01 19:16:07.000000000 +0000
+@@ -180,7 +180,7 @@
+     @commands.command(name="stats", aliases=["profile", "me"])
+     async def stats_cmd(self, ctx: commands.Context, member: Optional[discord.Member] = None) -> None:
+         """View in-depth personal study statistics: time, XP, level,
+-        streaks, coins, achievements, and behavioral analytics."""
++        streaks, Chronocoins, achievements, and behavioral analytics."""
+         target = member or ctx.author
+         stats = await self.db.get_or_create_user_stats(target.id, ctx.guild.id)
+         active_session = await self.db.get_active_session(target.id, ctx.guild.id)
+@@ -225,7 +225,7 @@
+             f"`{progress_bar}` {current_into:,}/{needed_for_next:,} XP",
+             f"",
+             f"\u25B8 **Total XP** \u2014 {stats['xp']:,}",
+-            f"\u25B8 **Coins** \u2014 {currency['coins']:,} \U0001FA99",
++            f"\u25B8 **Chronocoins** \u2014 {currency['coins']:,} \U0001FA99",
+             f"\u25B8 **Achievements** \u2014 {len(unlocked_ids)}/{len(ACHIEVEMENTS)} \U0001F3C5",
+         ]
+ 
+diff -ruN -x __pycache__ -x .pytest_cache a/cogs/trivia.py b/cogs/trivia.py
+--- a/cogs/trivia.py	2026-11-01 18:42:19.000000000 +0000
++++ b/cogs/trivia.py	2026-11-01 19:16:07.000000000 +0000
+@@ -13,7 +13,7 @@
+ - `,trivia lb`: Server trivia leaderboard
+ - `,trivia me`: Personal trivia performance stats
+ - 10-second cooldown between trivia question starts
+-- Official JEE Marking (+4 / -1) and dynamic coin & XP awards
++- Official JEE Marking (+4 / -1) and dynamic Chronocoin & XP awards
+ """
+ from __future__ import annotations
+ 
+@@ -38,7 +38,6 @@
+     get_subjects,
+ )
+ from utils import embeds
+-from utils import halloween as halloween_catalog
+ from utils.time_format import format_duration
+ 
+ log = logging.getLogger("trivia")
+@@ -250,12 +249,12 @@
+                 f"📝 **Questions Attempted:** `{att}`\n"
+                 f"🎯 **Accuracy:** `{cor}/{att}` ({acc:.1f}%)\n"
+                 f"📈 **Net Marks Earned:** `{mks:+} Marks`\n"
+-                f"🪙 **Coins Won:** `+{cns:,}` 🪙\n\n"
++                f"🪙 **Chronocoins Won:** `+{cns:,}` 🪙\n\n"
+                 f"Type `,trivia` anytime to explore the syllabus or start another practice session!"
+             ),
+             color=embeds.COLOR_INFO,
+         )
+-        embeds.set_footer(summary_embed, "Session ended. All marks & coins saved to your profile.")
++        embeds.set_footer(summary_embed, "Session ended. All marks & Chronocoins saved to your profile.")
+         await interaction.response.edit_message(embed=summary_embed, view=self)
+ 
+     async def on_timeout(self) -> None:
+@@ -298,6 +297,10 @@
+         self.session_stats = session_stats or {"attempted": 0, "correct": 0, "marks": 0, "coins": 0}
+         self.answered_users: set[int] = set()
+         self.results_summary: list[dict[str, Any]] = []
++        # First successful grading response from CJA. It carries the official
++        # answer / explanation / concept, so the round summary can reuse it
++        # instead of making a second (dummy) check call.
++        self.official_result: Optional[dict[str, Any]] = None
+         self.message: Optional[discord.Message] = None
+         self._build_components()
+ 
+@@ -380,9 +383,14 @@
+             check_res = await cja_client.check_answer(self.q_id, answer_val)
+         except Exception as e:
+             log.error(f"Error checking answer with CJA: {e}", exc_info=True)
+-            await interaction.followup.send("⚠️ Error verifying your answer with CJA. Please try again later.", ephemeral=True)
++            # The answer was never graded, so let them try again.
++            self.answered_users.discard(user.id)
++            await interaction.followup.send("⚠️ Error verifying your answer with CJA. Please try again.", ephemeral=True)
+             return
+ 
++        if self.official_result is None:
++            self.official_result = check_res
++
+         is_correct = bool(check_res.get("correct", False))
+         marks = int(check_res.get("marks", 4 if is_correct else -1))
+         official_ans = check_res.get("answer", {}).get("display", "N/A")
+@@ -401,7 +409,9 @@
+             coins_won = 5
+             xp_won = 5
+ 
+-        # Update Database (fixed arguments: user.id, self.guild_id, amount)
++        # Update Database. record_trivia_attempt() already credits `coins_won`
++        # to the user's Chronocoin balance, so do NOT call add_coins() again
++        # (that used to pay every answer out twice).
+         stats = await self.db.record_trivia_attempt(
+             user_id=user.id,
+             guild_id=self.guild_id,
+@@ -410,8 +420,6 @@
+             coins_won=coins_won,
+         )
+ 
+-        if coins_won > 0:
+-            await self.db.add_coins(user.id, self.guild_id, coins_won)
+         if xp_won > 0:
+             await self.db.grant_xp(user.id, self.guild_id, xp_won)
+ 
+@@ -423,12 +431,17 @@
+             self.session_stats["marks"] += marks
+             self.session_stats["coins"] += coins_won
+ 
+-        # Halloween candy drop
++        # Halloween candy drop. Candy is a plain currency (user_currency.candy),
++        # so award a small random amount. This is a bonus only - it must never
++        # be able to break the answer flow, hence the try/except.
+         candy_str = ""
+         if is_correct and random.random() < 0.35:
+-            dropped_candy = halloween_catalog.pick_random_candy()
+-            await self.db.add_halloween_candy(user.id, dropped_candy["id"], 1)
+-            candy_str = f"\n🎃 **Bonus Drop:** Found 1x {dropped_candy['emoji']} **{dropped_candy['name']}**!"
++            try:
++                candy_won = random.randint(3, 10)
++                await self.db.add_candy(user.id, self.guild_id, candy_won)
++                candy_str = f"\n🎃 **Bonus Drop:** Found **{candy_won} 🍬 Candy**!"
++            except Exception as e:
++                log.warning(f"Candy drop failed (ignored): {e}")
+ 
+         self.results_summary.append({
+             "user": user,
+@@ -446,7 +459,7 @@
+                 description=(
+                     f"**Official Answer:** `{official_ans}`\n\n"
+                     f"💡 **Explanation:** {explanation}\n\n"
+-                    f"💰 **Rewards:** +{coins_won} Coins · +{xp_won} XP\n"
++                    f"💰 **Rewards:** +{coins_won} Chronocoins · +{xp_won} XP\n"
+                     f"🔥 **Streak:** {stats['current_streak']} in a row (Best: {stats['best_streak']}){candy_str}"
+                 ),
+                 color=embeds.COLOR_SUCCESS,
+@@ -457,7 +470,7 @@
+                 description=(
+                     f"**Official Answer:** `{official_ans}`\n\n"
+                     f"💡 **Explanation:** {explanation}\n\n"
+-                    f"Consolation: +{coins_won} Coins · +{xp_won} XP · Streak reset to 0."
++                    f"Consolation: +{coins_won} Chronocoins · +{xp_won} XP · Streak reset to 0."
+                 ),
+                 color=embeds.COLOR_ERROR,
+             )
+@@ -480,13 +493,17 @@
+         if not self.message:
+             return
+ 
+-        # Fetch official answer from CJA
++        # Official answer: reuse what CJA already told us when someone answered.
++        # Only if nobody answered (timeout) do we have to ask CJA for it.
+         try:
+-            full_check = await cja_client.check_answer(self.q_id, "NONE")
++            full_check = self.official_result
++            if full_check is None:
++                full_check = await cja_client.check_answer(self.q_id, "NONE")
+             official_ans = full_check.get("answer", {}).get("display", "N/A")
+             explanation = full_check.get("explanation", "")
+             concept = full_check.get("concept", "")
+-        except Exception:
++        except Exception as e:
++            log.warning(f"Could not fetch official answer for round summary: {e}")
+             official_ans = "Revealed"
+             explanation = "Round ended."
+             concept = ""
+@@ -509,7 +526,7 @@
+             summary_lines = []
+             for r in self.results_summary:
+                 status = "✅" if r["correct"] else "❌"
+-                summary_lines.append(f"{status} **{r['user'].display_name}**: `{r['marks']:+} Marks` (+{r['coins']} coins)")
++                summary_lines.append(f"{status} **{r['user'].display_name}**: `{r['marks']:+} Marks` (+{r['coins']} Chronocoins)")
+             embed.add_field(name="👥 Round Results", value="\n".join(summary_lines), inline=False)
+         else:
+             embed.add_field(name="⏰ Time Expired", value="Nobody submitted an answer before the timer ran out.", inline=False)
+@@ -1057,7 +1074,7 @@
+                 "🧪 **Chemistry** — `34 Chapters` · `311 Topics`\n"
+                 "📐 **Mathematics** — `26 Chapters` · `166 Topics`\n\n"
+                 "⚡ **89 Chapters** & **737 Topics** total · Official JEE Marking (`+4` / `-1`)\n"
+-                "💰 Earn coins & XP · ⏱️ 10-second cooldown between rounds\n\n"
++                "💰 Earn Chronocoins & XP · ⏱️ 10-second cooldown between rounds\n\n"
+                 "👇 *Click a subject below to enter continuous practice mode, or click Instant Random!*"
+             ),
+             color=0x38BDF8,
+@@ -1321,7 +1338,7 @@
+             acc = (row["questions_correct"] / row["questions_attempted"] * 100) if row["questions_attempted"] > 0 else 0
+             lines.append(
+                 f"{medal} **{name}** — **{row['total_marks']:,} Marks**\n"
+-                f"   └ `{row['questions_correct']}/{row['questions_attempted']}` ({acc:.1f}%) · 🔥 Streak: `{row['current_streak']}` (Best: `{row['best_streak']}`) · 🪙 `{row['total_coins_won']:,}` won"
++                f"   └ `{row['questions_correct']}/{row['questions_attempted']}` ({acc:.1f}%) · 🔥 Streak: `{row['current_streak']}` (Best: `{row['best_streak']}`) · 🪙 `{row['total_coins_won']:,}` Chronocoins won"
+             )
+ 
+         embed.add_field(name="Rankings", value="\n".join(lines), inline=False)
+@@ -1344,7 +1361,7 @@
+ 
+         embed.add_field(name="🎯 Accuracy", value=f"**{acc:.1f}%** ({cor}/{att} correct)", inline=True)
+         embed.add_field(name="📈 Total Marks", value=f"**{stats['total_marks']:,}** Marks", inline=True)
+-        embed.add_field(name="💰 Coins Won", value=f"**+{stats['total_coins_won']:,}** 🪙", inline=True)
++        embed.add_field(name="💰 Chronocoins Won", value=f"**+{stats['total_coins_won']:,}** 🪙", inline=True)
+         embed.add_field(name="🔥 Current Streak", value=f"**{stats['current_streak']}** in a row", inline=True)
+         embed.add_field(name="⚡ Best Streak", value=f"**{stats['best_streak']}** all-time", inline=True)
+         embed.add_field(
+diff -ruN -x __pycache__ -x .pytest_cache a/services/cja.py b/services/cja.py
+--- a/services/cja.py	2026-11-01 18:40:54.000000000 +0000
++++ b/services/cja.py	2026-11-01 19:14:19.000000000 +0000
+@@ -413,11 +413,23 @@
+         return self._session
+ 
+     def _headers(self, require_auth: bool = True) -> dict[str, str]:
+-        headers = {"Content-Type": "application/json"}
++        # No Content-Type here: aiohttp adds it itself for POST bodies (json=...),
++        # and a GET has no body to describe.
++        headers = {"Accept": "application/json"}
+         if require_auth and self.api_key:
+             headers["Authorization"] = f"Bearer {self.api_key}"
+         return headers
+ 
++    @staticmethod
++    def _parse_json(raw: str) -> Optional[dict[str, Any]]:
++        """Parse a response body as a JSON object, or None if it isn't one
++        (e.g. a Vercel HTML timeout/error page)."""
++        try:
++            data = json.loads(raw)
++        except ValueError:
++            return None
++        return data if isinstance(data, dict) else None
++
+     async def close(self) -> None:
+         if self._session and not self._session.closed:
+             await self._session.close()
+@@ -464,48 +476,69 @@
+         headers = self._headers(require_auth=True)
+         timeout = aiohttp.ClientTimeout(total=30)
+ 
++        # `last_problem` is the real reason a fetch failed. It goes into the logs
++        # and (if we can't fall back to a local question) into the error shown to
++        # the user, so a broken CJA call is never silently disguised.
++        last_problem = "unknown error"
++
+         for attempt in range(2):
+             try:
+                 session = await self._get_session()
+                 async with session.get(url, params=params, headers=headers, timeout=timeout) as resp:
+-                    payload = await resp.json()
+-                    if payload.get("ok"):
+-                        return payload["data"]
+-
+-                    err = payload.get("error", {})
+-                    code = err.get("code", "UNKNOWN_ERROR")
+-                    msg = err.get("message", "An error occurred fetching the question.")
+-                    sugg = err.get("suggestions", [])
+-                    retry_after = err.get("retryAfterSeconds", 0)
+-
+-                    # Retry once automatically on GENERATION_FAILED, then fallback
+-                    if code == "GENERATION_FAILED":
+-                        if attempt == 0:
+-                            log.warning("CJA generation failed, retrying once...")
+-                            await asyncio.sleep(1)
+-                            continue
+-                        log.warning("CJA generation failed twice; using verified question fallback.")
+-                        return self._get_offline_question(subject, chapter)
++                    status = resp.status
++                    raw = await resp.text()
++
++                payload = self._parse_json(raw)
++                if payload is None:
++                    # Not JSON at all - typically a gateway/timeout HTML page.
++                    last_problem = f"HTTP {status} with a non-JSON body ({raw[:80].strip()!r})"
++                    log.warning("CJA get_question failed: %s | params=%s", last_problem, params)
++                    if attempt == 0:
++                        await asyncio.sleep(1)
++                        continue
++                    return self._get_offline_question(subject, chapter, reason=last_problem)
++
++                if payload.get("ok"):
++                    return payload["data"]
++
++                err = payload.get("error", {})
++                code = err.get("code", "UNKNOWN_ERROR")
++                msg = err.get("message", "An error occurred fetching the question.")
++                sugg = err.get("suggestions", [])
++                retry_after = err.get("retryAfterSeconds", 0)
++                log.warning("CJA get_question error %s (HTTP %s): %s | params=%s", code, status, msg, params)
++
++                # Retry once automatically on GENERATION_FAILED, then fallback
++                if code == "GENERATION_FAILED":
++                    last_problem = f"CJA could not generate a question ({msg})"
++                    if attempt == 0:
++                        await asyncio.sleep(1)
++                        continue
++                    log.warning("CJA generation failed twice; using verified question fallback.")
++                    return self._get_offline_question(subject, chapter, reason=last_problem)
+ 
+-                    raise CJAError(code=code, message=msg, suggestions=sugg, retry_after=retry_after)
++                raise CJAError(code=code, message=msg, suggestions=sugg, retry_after=retry_after)
+ 
+             except aiohttp.ClientConnectorError as e:
+-                log.warning(f"Could not connect to CJA ({e}); using offline question fallback.")
+-                return self._get_offline_question(subject, chapter)
++                last_problem = f"could not connect to CJA ({type(e).__name__}: {e})"
++                log.warning("%s; using offline question fallback.", last_problem)
++                return self._get_offline_question(subject, chapter, reason=last_problem)
+             except asyncio.TimeoutError:
++                last_problem = "CJA request timed out after 30s"
+                 if attempt == 0:
+-                    log.warning("CJA request timed out; retrying once...")
++                    log.warning("%s; retrying once...", last_problem)
+                     await asyncio.sleep(1)
+                     continue
+-                log.warning("CJA request timed out twice; falling back to offline question pool.")
+-                return self._get_offline_question(subject, chapter)
++                log.warning("%s twice; falling back to offline question pool.", last_problem)
++                return self._get_offline_question(subject, chapter, reason=last_problem)
+             except CJAError:
+                 raise
+             except Exception as e:
+-                log.error(f"Unexpected error in get_question: {e}", exc_info=True)
+-                return self._get_offline_question(subject, chapter)
++                last_problem = f"unexpected {type(e).__name__}: {e}"
++                log.error("Unexpected error in get_question: %s", last_problem, exc_info=True)
++                return self._get_offline_question(subject, chapter, reason=last_problem)
+ 
+-        return self._get_offline_question(subject, chapter)
++        return self._get_offline_question(subject, chapter, reason=last_problem)
+ 
+     # ------------------------------------------------------------------ #
+     # 2. POST /api/v1/question/:id/check
+@@ -537,14 +570,21 @@
+         try:
+             session = await self._get_session()
+             async with session.post(url, json=body, headers=headers, timeout=timeout) as resp:
+-                payload = await resp.json()
+-                if payload.get("ok"):
+-                    return payload["data"]
++                status = resp.status
++                raw = await resp.text()
+ 
+-                err = payload.get("error", {})
+-                code = err.get("code", "UNKNOWN_ERROR")
+-                msg = err.get("message", "Could not check answer.")
+-                raise CJAError(code=code, message=msg)
++            payload = self._parse_json(raw)
++            if payload is None:
++                log.warning("CJA check_answer: HTTP %s with non-JSON body (%r)", status, raw[:80].strip())
++                raise CJAError("BAD_RESPONSE", f"Grading server returned HTTP {status} (not JSON).")
++            if payload.get("ok"):
++                return payload["data"]
++
++            err = payload.get("error", {})
++            code = err.get("code", "UNKNOWN_ERROR")
++            msg = err.get("message", "Could not check answer.")
++            log.warning("CJA check_answer error %s (HTTP %s): %s | q=%s answer=%r", code, status, msg, question_id, answer)
++            raise CJAError(code=code, message=msg)
+         except asyncio.TimeoutError:
+             raise CJAError("TIMEOUT", "Verification timed out with the grading server.")
+         except CJAError:
+@@ -593,7 +633,12 @@
+     # ------------------------------------------------------------------ #
+     # Offline fallbacks & helpers
+     # ------------------------------------------------------------------ #
+-    def _get_offline_question(self, subject: Optional[str] = None, chapter: Optional[str] = None) -> dict[str, Any]:
++    def _get_offline_question(
++        self,
++        subject: Optional[str] = None,
++        chapter: Optional[str] = None,
++        reason: str = "",
++    ) -> dict[str, Any]:
+         """Return a verified question matching the subject/chapter filter."""
+         import random
+         pool = OFFLINE_QUESTION_POOL
+@@ -604,7 +649,11 @@
+                 q.pop("_answer", None)
+                 return q
+             # If chapter was explicitly requested but not in offline pool, don't pretend it's that chapter!
+-            raise CJAError("GENERATION_FAILED", f"Could not generate question for chapter '{chapter}'. Please retry in a few seconds!")
++            why = f" ({reason})" if reason else ""
++            raise CJAError(
++                "CJA_UNAVAILABLE",
++                f"Couldn't get a '{chapter}' question from CJA right now{why}. Please retry in a few seconds!",
++            )
+ 
+         if subject:
+             filtered = [q for q in pool if q["subject"]["id"].lower() == subject.lower() or subject.lower() in q["subject"]["id"].lower()]
+diff -ruN -x __pycache__ -x .pytest_cache a/utils/achievements.py b/utils/achievements.py
+--- a/utils/achievements.py	2026-11-01 14:58:56.000000000 +0000
++++ b/utils/achievements.py	2026-11-01 19:16:07.000000000 +0000
+@@ -136,7 +136,7 @@
+         id=f"coins_{amount}",
+         name=name,
+         emoji=emoji,
+-        description=f"Earn {amount:,} lifetime coins.",
++        description=f"Earn {amount:,} lifetime Chronocoins.",
+         category="Economy",
+         check=lambda c, _a=amount: c["coins_lifetime"] >= _a,
+         reward_coins=int(amount * 0.08),
+@@ -319,7 +319,7 @@
+     #  ECONOMY — Coins  (7)
+     # ============================================================== #
+     _coins(500,    "Pocket Change",          "\U0001FA99"),
+-    _coins(2500,   "Coin Hoarder",           "\U0001F4B0"),
++    _coins(2500,   "Chronocoin Hoarder",           "\U0001F4B0"),
+     _coins(5000,   "Nickel & Dimed",         "\U0001F4B5"),
+     _coins(10000,  "High Roller",            "\U0001F3B0"),
+     _coins(25000,  "Money Talks",            "\U0001F4B8"),
+diff -ruN -x __pycache__ -x .pytest_cache a/utils/beg_scenarios.py b/utils/beg_scenarios.py
+--- a/utils/beg_scenarios.py	2026-10-31 20:17:34.000000000 +0000
++++ b/utils/beg_scenarios.py	2026-11-01 19:16:07.000000000 +0000
+@@ -151,7 +151,7 @@
+         role="Problems in Physical Chemistry Author",
+         title="Reversible Work Done",
+         story="N. Awasthi watched you integrate -nRT ln(V2/V1) for an isothermal reversible expansion. 'Maximum work obtained!' he congratulated you, handing over the proceeds.",
+-        quote="Entropy of the universe increased, but your coins did too.",
++        quote="Entropy of the universe increased, but your Chronocoins did too.",
+         emoji="🔥",
+         is_success=True,
+     ),
+@@ -202,7 +202,7 @@
+         npc="I.A. Maron",
+         role="Author of Problems in Calculus",
+         title="L'Hôpital's Resolution",
+-        story="I.A. Maron watched your limit evaluation hit an indeterminate 0/0 form. You applied L'Hôpital's rule twice and determined the finite limit. He smiled warmly through his trench coat and dropped a pouch of coins.",
++        story="I.A. Maron watched your limit evaluation hit an indeterminate 0/0 form. You applied L'Hôpital's rule twice and determined the finite limit. He smiled warmly through his trench coat and dropped a pouch of Chronocoins.",
+         quote="Continuous and differentiable throughout its entire domain.",
+         emoji="📈",
+         is_success=True,
+@@ -244,7 +244,7 @@
+         npc="The Reading Hall Custodian",
+         role="Silent Watcher of the Stacks",
+         title="Midnight Cleaners' Pity",
+-        story="At 3:15 AM, the custodian vacuuming between the physics reference stacks found you asleep on a volume of Inorganic Chemistry. Instead of waking you, he tucked a small coin envelope under your keyboard.",
++        story="At 3:15 AM, the custodian vacuuming between the physics reference stacks found you asleep on a volume of Inorganic Chemistry. Instead of waking you, he tucked a small Chronocoin envelope under your keyboard.",
+         quote="I have seen five hundred toppers; they all slept like that.",
+         emoji="🧹",
+         is_success=True,
+@@ -275,8 +275,8 @@
+         id="mock_hall_topper",
+         npc="The All-India Mock Topper",
+         role="Completed the Exam in 40 Minutes",
+-        title="Coins from the Clouds",
+-        story="The genius who scored 295/300 in Sunday's national mock woke up from his scheduled desk nap. Seeing your eraser worn down to the nub, he flicked a coin pouch toward you like it was negligible loose change.",
++        title="Chronocoins from the Clouds",
++        story="The genius who scored 295/300 in Sunday's national mock woke up from his scheduled desk nap. Seeing your eraser worn down to the nub, he flicked a Chronocoin pouch toward you like it was negligible loose change.",
+         quote="I will not be needing these where I am going.",
+         emoji="👑",
+         is_success=True,
+@@ -287,7 +287,7 @@
+         role="Walking Archive of Every PYQ",
+         title="Archival Generosity",
+         story="A candidate who has attempted every single JEE paper from 1982 to 2024 took pity on you. He identified the year and question number of the problem on your desk from three meters away and rewarded your hustle.",
+-        quote="Question 14, 2016 Paper 1, Multiple Correct. Here is your coin.",
++        quote="Question 14, 2016 Paper 1, Multiple Correct. Here is your Chronocoin.",
+         emoji="⏳",
+         is_success=True,
+     ),
+@@ -356,8 +356,8 @@
+         npc="The Spiral Binding & Photostat Vendor",
+         role="Keeper of All Topper Handwritten Notes",
+         title="Photostat Loyalty Dividend",
+-        story="You spent your last ten coins printing 400 pages of inorganic summary notes. The shopkeeper, deeply moved by your dedication to color-coded reaction charts, waived the fee and tipped you extra.",
+-        quote="Take these coins; just make sure your photo ends up on my wall.",
++        story="You spent your last ten Chronocoins printing 400 pages of inorganic summary notes. The shopkeeper, deeply moved by your dedication to color-coded reaction charts, waived the fee and tipped you extra.",
++        quote="Take these Chronocoins; just make sure your photo ends up on my wall.",
+         emoji="🖨️",
+         is_success=True,
+     ),
+@@ -376,7 +376,7 @@
+         npc="The Multi-Colored Chalk Maestro",
+         role="Kota Organic Chemistry Legend",
+         title="Four-Chalk Mechanism Masterclass",
+-        story="The senior chemistry teacher completed an entire 15-step total synthesis using four different colors of imported chalk. He pointed his yellow chalk directly at you: 'You! Catch this coin and never forget the anti-Markovnikov rule!'",
++        story="The senior chemistry teacher completed an entire 15-step total synthesis using four different colors of imported chalk. He pointed his yellow chalk directly at you: 'You! Catch this Chronocoin and never forget the anti-Markovnikov rule!'",
+         quote="Peroxide effect acknowledged. Payout confirmed.",
+         emoji="🖍️",
+         is_success=True,
+@@ -463,7 +463,7 @@
+         npc="The Examination Terminal Mouse",
+         role="Hardware Veteran of 4,000 Candidates",
+         title="Hardware Malfunction",
+-        story="You attempted to click 'Claim Coins' on the testing terminal. The optical sensor skipped three inches across the screen, clicked 'Submit Entire Examination' with 42 questions unanswered, and locked the session.",
++        story="You attempted to click 'Claim Chronocoins' on the testing terminal. The optical sensor skipped three inches across the screen, clicked 'Submit Entire Examination' with 42 questions unanswered, and locked the session.",
+         quote="Candidate response successfully recorded. Score: 0.",
+         emoji="🖱️",
+         is_success=False,
+@@ -483,7 +483,7 @@
+         npc="The Advanced Calculus Author",
+         role="Author of the Black Book",
+         title="Discontinuous at All Points",
+-        story="The author glanced at your calculus rough work and pointed out that you applied Leibniz's rule without establishing uniform convergence on the open interval. He retracted his coin pouch with disgust.",
++        story="The author glanced at your calculus rough work and pointed out that you applied Leibniz's rule without establishing uniform convergence on the open interval. He retracted his Chronocoin pouch with disgust.",
+         quote="Rigor is non-negotiable. Return when your function is analytic.",
+         emoji="✒️",
+         is_success=False,
+@@ -494,7 +494,7 @@
+         role="Holder of All-India Rank 12",
+         title="The Intimidating Transcript",
+         story="You tried to ask your neighborhood peer for a loan. He pulled out his verified scorecard featuring 100 percentile in all three subjects, stared at you with serene pity, and recommended a six-month internet detox instead.",
+-        quote="Coins will not elevate your percentile, my friend.",
++        quote="Chronocoins will not elevate your percentile, my friend.",
+         emoji="🏆",
+         is_success=False,
+     ),
+@@ -513,8 +513,8 @@
+         npc="The Rigid Body Incline",
+         role="The Classic Frictionless Trap",
+         title="Angular Momentum Deficit",
+-        story="You reached for a coin resting atop a solid cylinder on an inclined plane. The cylinder began pure rolling without slipping, toppled past your fingers, and accelerated off the edge of the table.",
+-        quote="Torque about the center of mass was non-zero. The coin has vanished.",
++        story="You reached for a Chronocoin resting atop a solid cylinder on an inclined plane. The cylinder began pure rolling without slipping, toppled past your fingers, and accelerated off the edge of the table.",
++        quote="Torque about the center of mass was non-zero. The Chronocoin has vanished.",
+         emoji="🔄",
+         is_success=False,
+     ),
+@@ -543,7 +543,7 @@
+         npc="The National Biometric Console",
+         role="Gatekeeper of Gate 4",
+         title="Fingerprint Verification Refused",
+-        story="You pressed your thumb against the optical scanner to authenticate your coin withdrawal. Nervous sweat obscured your epidermal ridges. The device beeped angrily and flagged your application for manual review.",
++        story="You pressed your thumb against the optical scanner to authenticate your Chronocoin withdrawal. Nervous sweat obscured your epidermal ridges. The device beeped angrily and flagged your application for manual review.",
+         quote="Authentication status: Impostor suspected.",
+         emoji="🛑",
+         is_success=False,
+@@ -573,7 +573,7 @@
+         npc="The Security Screening Officer",
+         role="Operative of the Handheld Wand",
+         title="Metal Detector False Positive",
+-        story="The security wand shrieked as it passed your pocket rivet. You were escorted to an interrogation booth and forced to surrender all metallic possessions, including your loose pocket coins.",
++        story="The security wand shrieked as it passed your pocket rivet. You were escorted to an interrogation booth and forced to surrender all metallic possessions, including your loose pocket Chronocoins.",
+         quote="Metallic rivets prohibited inside the testing perimeter.",
+         emoji="🚨",
+         is_success=False,
+diff -ruN -x __pycache__ -x .pytest_cache a/utils/embeds.py b/utils/embeds.py
+--- a/utils/embeds.py	2026-11-01 15:53:31.000000000 +0000
++++ b/utils/embeds.py	2026-11-01 19:16:07.000000000 +0000
+@@ -149,7 +149,7 @@
+     also pays out coins (see utils/achievements.py `reward_coins`)."""
+     if len(achievements) == 1:
+         a = achievements[0]
+-        reward_line = f"\n\U0001FA99 +{a.reward_coins:,} coins" if a.reward_coins else ""
++        reward_line = f"\n\U0001FA99 +{a.reward_coins:,} Chronocoins" if a.reward_coins else ""
+         embed = base_embed(
+             title="\U0001F3C5 Achievement Unlocked!",
+             description=f"{a.emoji} **{a.name}**\n{a.description}{reward_line}",
+@@ -158,11 +158,11 @@
+     else:
+         lines = [
+             f"{a.emoji} **{a.name}** \u2014 {a.description}"
+-            + (f" (+{a.reward_coins:,} coins)" if a.reward_coins else "")
++            + (f" (+{a.reward_coins:,} Chronocoins)" if a.reward_coins else "")
+             for a in achievements
+         ]
+         total_coins = sum(a.reward_coins for a in achievements)
+-        footer_line = f"\n{DIVIDER}\n\U0001FA99 **+{total_coins:,} coins total**" if total_coins else ""
++        footer_line = f"\n{DIVIDER}\n\U0001FA99 **+{total_coins:,} Chronocoins total**" if total_coins else ""
+         embed = base_embed(
+             title=f"\U0001F3C5 {len(achievements)} Achievements Unlocked!",
+             description="\n".join(lines) + footer_line,
+diff -ruN -x __pycache__ -x .pytest_cache a/utils/stats_card.py b/utils/stats_card.py
+--- a/utils/stats_card.py	2026-11-01 15:53:31.000000000 +0000
++++ b/utils/stats_card.py	2026-11-01 19:16:07.000000000 +0000
+@@ -251,7 +251,7 @@
+ 
+     # Card 3: Wealth & Seasonal Candy
+     draw.rounded_rectangle([c3_x, c1_y, c3_x + card_w, c1_y + card_h], radius=16, fill=CARD_BG, outline=CARD_BORDER, width=1)
+-    draw.text((c3_x + 22, c1_y + 20), "💰 COINS & EVENT STASH", font=f_card_tag, fill=ACCENT_GOLD)
++    draw.text((c3_x + 22, c1_y + 20), "💰 CHRONOCOINS & EVENT STASH", font=f_card_tag, fill=ACCENT_GOLD)
+     coins_str = f"{coins:,}"
+     draw.text((c3_x + 22, c1_y + 48), f"{coins_str} 🪙", font=f_big_val, fill=ACCENT_GOLD)
+     draw.text((c3_x + 22, c1_y + 115), f"🍬 {candy:,} Candy in Inventory", font=f_card_sub, fill=TEXT_WHITE)

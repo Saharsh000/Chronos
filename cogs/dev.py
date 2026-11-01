@@ -61,7 +61,7 @@ class Dev(commands.Cog, name="Dev"):
         embed = embeds.success_embed(
             "Time granted",
             f"Added **{format_duration(seconds)}**, **{result['xp_earned']} XP**, and "
-            f"**{result['coins_earned']} coins** to {member.mention}'s stats.",
+            f"**{result['coins_earned']} Chronocoins** to {member.mention}'s stats.",
         )
         if subject_key:
             info = SUBJECT_INFO[subject_key]
@@ -105,26 +105,26 @@ class Dev(commands.Cog, name="Dev"):
             )
         await ctx.send(embed=embed)
 
-    @commands.command(name="addcoins", aliases=["addcoin"])
+    @commands.command(name="addcoins", aliases=["addcoin", "addchronocoins", "addchronocoin"])
     @is_dev()
     @commands.guild_only()
     async def add_coins_cmd(self, ctx: commands.Context, member: discord.Member, amount: int) -> None:
-        """[Dev only] Grant a user raw coins directly.
+        """[Dev only] Grant a user raw Chronocoins directly.
 
-        Usage: .addcoins @user 500  (use a negative number to remove coins)
+        Usage: .addcoins @user 500  (use a negative number to remove Chronocoins)
         """
         if amount == 0:
-            await ctx.send(embed=embeds.error_embed("Give a non-zero coin amount."))
+            await ctx.send(embed=embeds.error_embed("Give a non-zero Chronocoin amount."))
             return
 
         new_balance = await self.db.grant_coins(member.id, ctx.guild.id, amount)
         log.info(
-            f"DEV COIN GRANT| {ctx.author} ({ctx.author.id}) gave {amount:+d} coins to "
+            f"DEV COIN GRANT| {ctx.author} ({ctx.author.id}) gave {amount:+d} Chronocoins to "
             f"{member} ({member.id}) in guild {ctx.guild.id}"
         )
         await ctx.send(embed=embeds.success_embed(
-            "Coins granted",
-            f"Added **{amount:+d}** coins to {member.mention}. New balance: **{new_balance:,}**.",
+            "Chronocoins granted",
+            f"Added **{amount:+d} Chronocoins** to {member.mention}. New balance: **{new_balance:,} Chronocoins**.",
         ))
 
     @commands.command(name="removetime")
@@ -163,7 +163,7 @@ class Dev(commands.Cog, name="Dev"):
         embed = embeds.success_embed(
             "Time removed",
             f"Removed **{format_duration(result['seconds_removed'])}**, **{result['xp_removed']} XP**, and "
-            f"**{result['coins_removed']} coins** from {member.mention}'s stats.",
+            f"**{result['coins_removed']} Chronocoins** from {member.mention}'s stats.",
         )
         if subject_key:
             info = SUBJECT_INFO[subject_key]
@@ -206,26 +206,26 @@ class Dev(commands.Cog, name="Dev"):
             )
         await ctx.send(embed=embed)
 
-    @commands.command(name="removecoins")
+    @commands.command(name="removecoins", aliases=["removecoin", "removechronocoins", "removechronocoin"])
     @is_dev()
     @commands.guild_only()
     async def remove_coins_cmd(self, ctx: commands.Context, member: discord.Member, amount: int) -> None:
-        """[Dev only] Subtract coins directly (floors at 0).
+        """[Dev only] Subtract Chronocoins directly (floors at 0).
 
         Usage: .removecoins @user 500
         """
         if amount <= 0:
-            await ctx.send(embed=embeds.error_embed("Give a positive coin amount to remove."))
+            await ctx.send(embed=embeds.error_embed("Give a positive Chronocoin amount to remove."))
             return
 
         new_balance = await self.db.remove_coins(member.id, ctx.guild.id, amount)
         log.info(
-            f"DEV COIN REMOVE| {ctx.author} ({ctx.author.id}) removed {amount} coins from "
+            f"DEV COIN REMOVE| {ctx.author} ({ctx.author.id}) removed {amount} Chronocoins from "
             f"{member} ({member.id}) in guild {ctx.guild.id}"
         )
         await ctx.send(embed=embeds.success_embed(
-            "Coins removed",
-            f"Removed **{amount}** coins from {member.mention}. New balance: **{new_balance:,}**.",
+            "Chronocoins removed",
+            f"Removed **{amount} Chronocoins** from {member.mention}. New balance: **{new_balance:,} Chronocoins**.",
         ))
 
     @commands.command(name="addcandy")
@@ -334,7 +334,7 @@ class Dev(commands.Cog, name="Dev"):
             name="Your Profile in this Server",
             value=(
                 f"\u25B8 **Level:** {cur_stats.get('level', 0)} ({cur_stats.get('xp', 0):,} XP)\n"
-                f"\u25B8 **Coins:** {cur_curr.get('coins', 0):,} (Lifetime: {cur_curr.get('lifetime_earned', 0):,})\n"
+                f"\u25B8 **Chronocoins:** {cur_curr.get('coins', 0):,} (Lifetime: {cur_curr.get('lifetime_earned', 0):,})\n"
                 f"\u25B8 **Streak:** {cur_stats.get('current_streak', 0)} days\n"
                 f"\u25B8 **Pets:** {pets_str}"
             ),
@@ -363,7 +363,7 @@ class Dev(commands.Cog, name="Dev"):
             "\u2705 Database Seeded & Restored Successfully!",
             (
                 f"**Target Server:** `{ctx.guild.id}`\n\n"
-                f"\u25B8 **Your Balance:** {cur_curr.get('coins', 0):,} coins\n"
+                f"\u25B8 **Your Balance:** {cur_curr.get('coins', 0):,} Chronocoins\n"
                 f"\u25B8 **Your Level:** Level {cur_stats.get('level', 0)} ({cur_stats.get('xp', 0):,} XP)\n"
                 f"\u25B8 **Your Streak:** {cur_stats.get('current_streak', 0)} days\n"
                 f"\u25B8 **Your Pets:** {len(pets)} pet(s) active\n\n"
@@ -386,7 +386,7 @@ class Dev(commands.Cog, name="Dev"):
         await ctx.send(embed=embeds.success_embed(
             "Guild Data Synced",
             f"Synced **{total}** rows from `{source_guild_id}` to `{ctx.guild.id}`!\n"
-            f"Your balance in this server is now **{cur_curr.get('coins', 0):,}** coins.",
+            f"Your balance in this server is now **{cur_curr.get('coins', 0):,}** Chronocoins.",
         ))
 
     @commands.command(name="backupdb")
@@ -456,7 +456,7 @@ class Dev(commands.Cog, name="Dev"):
                 "• **📚 Subject Mastery Badges:** Deep grinds up to 100 hours each in Physics, Chem, and Maths (`Einstein Mode`, `Periodic Legend`, `Euler's Heir`)\n"
                 "• **🎃 Halloween Badges:** Candy milestones (`Candy Overlord`) and Jack-o'-Lantern pass progression (`The Great Pumpkin`)\n"
                 "• **🔥 High-Tier Grind Badges:** Badges for 1-year study streaks, `Weekend Warrior`, `Triple Threat` (all 3 subjects in 1 day), and `JEE Sigma Mode` (12h daily grind!)\n"
-                "• **💰 Scaled Coin Payouts:** Every single newly-unlocked achievement immediately rewards a generous coin bonus!\n"
+                "• **💰 Scaled Chronocoin Payouts:** Every single newly-unlocked achievement immediately rewards a generous Chronocoin bonus!\n"
                 f"*Check your badge book with `{p}achievements` or inspect specific categories with `{p}achievements <category>`.*"
             ),
             inline=False,
@@ -467,7 +467,7 @@ class Dev(commands.Cog, name="Dev"):
             value=(
                 "Every single screen, card, and interaction in the bot has been redesigned from the ground up:\n"
                 "• **🎨 Unified Embed System:** Clean typography, consistent brand color palettes, and crisp progress bars.\n"
-                "• **📊 Refined Study & Stats Views:** Revamped `.stats`, `.profile`, `.session`, and `.balance` displaying both Coins and Candy seamlessly.\n"
+                "• **📊 Refined Study & Stats Views:** Revamped `.stats`, `.profile`, `.session`, and `.balance` displaying both Chronocoins and Candy seamlessly.\n"
                 "• **🛍️ Polished Collection & Shop Screens:** Modernized `.pets`, `.inventory`, and interactive `.candyshop` views.\n"
                 "• **📑 Crystal-Clear Menus:** Streamlined `.help` keyword navigation and responsive buttons."
             ),
@@ -489,7 +489,7 @@ class Dev(commands.Cog, name="Dev"):
             name="🚀 Commands to Try Right Now",
             value=(
                 f"`{p}achievements` \u2014 View your unlocked & locked badges\n"
-                f"`{p}balance` \u2014 Check your Coins & Candy balances\n"
+                f"`{p}balance` \u2014 Check your Chronocoins & Candy balances\n"
                 f"`{p}pumpkin` \u2014 Check your Halloween Pass progress\n"
                 f"`{p}help` \u2014 Browse the revamped command directory"
             ),
@@ -554,7 +554,7 @@ class Dev(commands.Cog, name="Dev"):
         embed.add_field(
             name="\u26A1 Jackpots & Seasonal Treat Drops",
             value=(
-                "\u2022 **\U0001F3B0 Jackpot Rolls (8% Chance):** Impress legendary authors for an unexpected **up to 2.5x coin bounty**!\n"
+                "\u2022 **\U0001F3B0 Jackpot Rolls (8% Chance):** Impress legendary authors for an unexpected **up to 2.5x Chronocoin bounty**!\n"
                 f"\u2022 **\U0001F383 Halloween Event Bonus:** A 25% chance on every beg to find a **Hallo-Box + \U0001F36C Candy**!\n"
                 f"\u2022 **\u23F1\uFE0F Short Cooldown:** Quick to use between study pomodoro blocks."
             ),
@@ -564,8 +564,8 @@ class Dev(commands.Cog, name="Dev"):
         embed.add_field(
             name="\U0001F680 Try It Out Right Now",
             value=(
-                f"`{p}beg` \u2014 Go beg an author or professor for mercy and coins\n"
-                f"`{p}balance` \u2014 Check your updated Coin & Candy balance\n"
+                f"`{p}beg` \u2014 Go beg an author or professor for mercy and Chronocoins\n"
+                f"`{p}balance` \u2014 Check your updated Chronocoin & Candy balance\n"
                 f"`{p}achievements` \u2014 Check your unlocked badges (161 badges live!)\n"
                 f"`{p}pumpkin` \u2014 Track your Halloween Pass progress"
             ),

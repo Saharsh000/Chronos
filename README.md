@@ -20,7 +20,7 @@
 
 ## ⚡ Overview
 
-**Chronos** transforms study channels into a productive, gamified community. Unlike standard timer bots that rely on fragile in-memory clocks, Chronos uses an asynchronous, transaction-safe SQLite database with live per-minute XP/coin crediting, daily streak preservation, custom audio study-rooms, and rich interactive Discord embeds.
+**Chronos** transforms study channels into a productive, gamified community. Unlike standard timer bots that rely on fragile in-memory clocks, Chronos uses an asynchronous, transaction-safe SQLite database with live per-minute XP/Chronocoin crediting, daily streak preservation, custom audio study-rooms, and rich interactive Discord embeds.
 
 ---
 
@@ -48,7 +48,7 @@
 * Feed them treats (`.foodshop`, `.feed`) to boost growth and companionship.
 
 ### 🪙 Economy, Loot & Seasonal Passes
-* **Coin Economy**: Earn currency per study minute, daily streaks (`.daily`), work tasks, and weekly bonuses.
+* **Chronocoin Economy**: Earn currency per study minute, daily streaks (`.daily`), work tasks, and weekly bonuses.
 * **Interactive Shop**: Buy XP boosts, streak freezes, mystery boxes, and server-exclusive titles (`.shop`).
 * **Halloween Seasonal Event**:
   * **Jack-o'-Lantern Pass** (`.pumpkin`): 1-per-account seasonal study pass with 5 carving stages and milestone loot.
@@ -65,7 +65,7 @@
 | Command | Aliases | Description |
 | :--- | :--- | :--- |
 | `.start [subject]` | — | Begin a tracked study session (e.g. `.start Physics`) |
-| `.stop` | `.end` | End session, log stats, and claim XP/coins earned |
+| `.stop` | `.end` | End session, log stats, and claim XP/Chronocoins earned |
 | `.session` | `.current` | View your active live study session timer |
 | `.active` | `.online` | List everyone currently studying in the server |
 | `.pomodoro` | `.pomo` | Check or join the synchronized VC Pomodoro cycle |
@@ -94,14 +94,14 @@
 ### 🪙 Economy & Items
 | Command | Aliases | Description |
 | :--- | :--- | :--- |
-| `.balance` | `.bal`, `.coins` | Check your wallet (Coins & Seasonal Candy) |
+| `.balance` | `.bal`, `.coins` | Check your wallet (Chronocoins & Seasonal Candy) |
 | `.daily` | — | Claim once-per-day streak rewards & bonus loot |
 | `.shop` | `.store` | Browse boosts, streak freezes, and profile titles |
-| `.buy <item> [qty]` | — | Purchase items using earned coins |
+| `.buy <item> [qty]` | — | Purchase items using earned Chronocoins |
 | `.inventory` | `.inv` | View your owned consumables, boosts, and titles |
 | `.use <item>` | — | Activate consumable items (e.g. XP Boost, Sugar Rush) |
 | `.settitle <title>` | — | Equip an owned title to your profile card |
-| `.work` / `.beg` | `.grind` | Quick mini-tasks for extra coins and random drops |
+| `.work` / `.beg` | `.grind` | Quick mini-tasks for extra Chronocoins and random drops |
 | `.weekly` | — | Weekly jackpot payout and rare box drops |
 
 ### 🐾 Pets & Companions
@@ -181,7 +181,7 @@ Chronos/
 ├── cogs/              # Modular feature extensions (discord.ext.commands.Cog)
 │   ├── sessions.py    # Live session monitor loop & VC checkins
 │   ├── stats.py       # User profile cards, leaderboards & metrics
-│   ├── economy.py     # Coin wallet, shop, inventory, daily/work/weekly
+│   ├── economy.py     # Chronocoin wallet, shop, inventory, daily/work/weekly
 │   ├── pets.py        # Companions, evolution engine & feeding
 │   ├── halloween.py   # Jack-o'-Lantern season pass & Hallo-Boxes
 │   ├── progress.py    # Syllabus tracker & chapter logs

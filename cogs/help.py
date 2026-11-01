@@ -64,7 +64,7 @@ PAGE_KEYWORDS: dict[str, int] = {
     "stats": 1, "leaderboard": 1, "lb": 1, "rank": 1, "compare": 1, "hof": 1,
     "achievements": 2, "badges": 2, "ach": 2,
     "syllabus": 3, "progress": 3, "jee": 3, "chapter": 3, "trivia": 3, "quiz": 3,
-    "economy": 4, "coins": 4, "shop": 4, "daily": 4, "work": 4, "buy": 4,
+    "economy": 4, "coins": 4, "chronocoins": 4, "shop": 4, "daily": 4, "work": 4, "buy": 4,
     "pets": 5, "food": 5, "pet": 5, "feed": 5, "pumpkin": 5, "pass": 5, "halloween": 5, "candy": 5, "candyshop": 5, "boxes": 5, "openbox": 5, "open": 5, "event": 5,
     "pomodoro": 6, "pomo": 6, "admin": 6, "config": 6, "tiers": 6, "tags": 6,
     "how": 7, "info": 7, "works": 7,
@@ -94,7 +94,7 @@ def _build_pages(prefix: str) -> list[discord.Embed]:
     pages.append(_page("\u23F3 Chronos \u2014 Help", (
         "\u23F3 **CHRONOS** \u2014 Study & Focus Tracker\n"
         "\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\n"
-        "Track your grind. Earn XP & coins. Collect pets.\n"
+        "Track your grind. Earn XP & Chronocoins. Collect pets.\n"
         "Flex on the leaderboard.\n\n"
         "**\U0001F680 Quick Start**\n"
         f"`{prefix}start [subject]` \u2014 begin a study session\n"
@@ -110,7 +110,7 @@ def _build_pages(prefix: str) -> list[discord.Embed]:
     pages.append(_page("\U0001F4C8 Stats & Leaderboards", (
         "\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\n"
         "Track your progress and compete with others.\n\n"
-        f"`{prefix}stats [@user]` \u2014 full study profile: time, level, streak, coins\n"
+        f"`{prefix}stats [@user]` \u2014 full study profile: time, level, streak, Chronocoins\n"
         f"`{prefix}rank [@user]` \u2014 level, XP, tier, and server rank\n"
         f"`{prefix}subjects [@user]` \u2014 Physics / Chemistry / Maths breakdown\n"
         f"`{prefix}leaderboard [period] [subject]` \u2014 server leaderboard\n"
@@ -124,7 +124,7 @@ def _build_pages(prefix: str) -> list[discord.Embed]:
     pages.append(_page("\U0001F3C5 Achievements", (
         "\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\n"
         "Unlock badges as you hit milestones \u2014 each one\n"
-        "pays out bonus coins too.\n\n"
+        "pays out bonus Chronocoins too.\n\n"
         f"`{prefix}achievements [@user | category]`\n"
         f"  \u2514 browse unlocked & locked badges\n"
         f"  \u2514 aliases: `{prefix}badges`, `{prefix}ach`\n\n"
@@ -136,7 +136,7 @@ def _build_pages(prefix: str) -> list[discord.Embed]:
     pages.append(_page("\U0001F4DA JEE Syllabus & Progress", (
         "\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\n"
         "Log your JEE prep progress & grind theory trivia.\n\n"
-        f"`{prefix}trivia [r|p|c|m|lb|me]` \u2014 CJA JEE Theory Trivia (win coins & marks!)\n"
+        f"`{prefix}trivia [r|p|c|m|lb|me]` \u2014 CJA JEE Theory Trivia (win Chronocoins & marks!)\n"
         f"`{prefix}syllabus [subject] [chapter]` \u2014 browse the JEE Main syllabus (`{prefix}syl`)\n"
         f"`{prefix}chapterdone <subject> <chapter>` \u2014 log a completed chapter\n"
         f"`{prefix}subtopicdone <subject> <chapter> <subtopic>` \u2014 log a subtopic\n"
@@ -148,18 +148,18 @@ def _build_pages(prefix: str) -> list[discord.Embed]:
         "books, PYQs, and revisions are free text.*"
     ), 4))
 
-    # 5 — Coin Economy
-    pages.append(_page("\U0001FA99 Coin Economy", (
+    # 5 — Chronocoin Economy
+    pages.append(_page("\U0001FA99 Chronocoin Economy", (
         "\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\n"
-        "Coins are earned automatically while studying.\n"
+        "Chronocoins are earned automatically while studying.\n"
         "Spend them in the shop, or lose them if your streak breaks \U0001F480\n\n"
         f"**Earning**\n"
         f"`{prefix}daily` \u2014 daily reward + streak bonuses\n"
-        f"`{prefix}work` \u2014 quick task for coins + XP (`{prefix}grind`)\n"
+        f"`{prefix}work` \u2014 quick task for Chronocoins + XP (`{prefix}grind`)\n"
         f"`{prefix}beg` \u2014 beg for scraps \u2014 10 min cooldown\n"
         f"`{prefix}weekly` \u2014 big weekly reward + free Mystery Box\n\n"
         f"**Spending**\n"
-        f"`{prefix}balance` \u2014 check your coins (`{prefix}bal`, `{prefix}coins`)\n"
+        f"`{prefix}balance` \u2014 check your Chronocoins (`{prefix}bal`, `{prefix}coins`)\n"
         f"`{prefix}shop` \u2014 browse items for sale\n"
         f"`{prefix}buy <item> [qty]` \u2014 purchase an item\n"
         f"`{prefix}inventory` \u2014 see what you own (`{prefix}inv`)\n"
@@ -211,7 +211,7 @@ def _build_pages(prefix: str) -> list[discord.Embed]:
     # 8 — How It Works
     pages.append(_page("\u2139\uFE0F How It Works", (
         "\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\n\n"
-        f"\u25B8 **XP & coins** are earned per-minute while your session runs \u2014 "
+        f"\u25B8 **XP & Chronocoins** are earned per-minute while your session runs \u2014 "
         f"they update live, not just at `{prefix}stop`.\n\n"
         f"\u25B8 Your equipped pet (`{prefix}equip`) earns XP passively while you study, "
         f"plus whatever you `{prefix}feed` it.\n\n"
@@ -220,9 +220,9 @@ def _build_pages(prefix: str) -> list[discord.Embed]:
         "ends automatically.\n\n"
         "\u25B8 All day boundaries (streaks, daily, leaderboards) use **IST** (UTC+5:30).\n\n"
         "\u25B8 Consecutive study days build a **streak** \u2014 a Streak Freeze from the shop "
-        "auto-protects one missed day. **Break your streak and you lose coins.** \U0001F480\n\n"
+        "auto-protects one missed day. **Break your streak and you lose Chronocoins.** \U0001F480\n\n"
         f"\u25B8 Subjects accept shorthands: `phy`/`p`, `chem`/`c`, `math`/`m`.\n\n"
-        f"\u25B8 Unlocking an **achievement** also pays coins (`{prefix}achievements`)."
+        f"\u25B8 Unlocking an **achievement** also pays Chronocoins (`{prefix}achievements`)."
     ), 8))
 
     return pages

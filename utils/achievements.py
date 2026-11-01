@@ -136,7 +136,7 @@ def _coins(amount: int, name: str, emoji: str) -> Achievement:
         id=f"coins_{amount}",
         name=name,
         emoji=emoji,
-        description=f"Earn {amount:,} lifetime coins.",
+        description=f"Earn {amount:,} lifetime Chronocoins.",
         category="Economy",
         check=lambda c, _a=amount: c["coins_lifetime"] >= _a,
         reward_coins=int(amount * 0.08),
@@ -319,7 +319,7 @@ ACHIEVEMENTS: list[Achievement] = [
     #  ECONOMY — Coins  (7)
     # ============================================================== #
     _coins(500,    "Pocket Change",          "\U0001FA99"),
-    _coins(2500,   "Coin Hoarder",           "\U0001F4B0"),
+    _coins(2500,   "Chronocoin Hoarder",           "\U0001F4B0"),
     _coins(5000,   "Nickel & Dimed",         "\U0001F4B5"),
     _coins(10000,  "High Roller",            "\U0001F3B0"),
     _coins(25000,  "Money Talks",            "\U0001F4B8"),

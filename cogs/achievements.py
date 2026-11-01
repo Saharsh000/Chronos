@@ -112,7 +112,7 @@ class Achievements(commands.Cog, name="Achievements"):
 
         lines = []
         for a in items:
-            reward = f" (+{a.reward_coins:,} coins)" if a.reward_coins else ""
+            reward = f" (+{a.reward_coins:,} Chronocoins)" if a.reward_coins else ""
             if a.id in unlocked_at:
                 lines.append(f"\u2705 {a.emoji} **{a.name}** \u2014 {a.description}{reward}")
             else:

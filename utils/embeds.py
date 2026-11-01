@@ -149,7 +149,7 @@ def achievement_unlock_embed(member: discord.abc.User, achievements: list["Achie
     also pays out coins (see utils/achievements.py `reward_coins`)."""
     if len(achievements) == 1:
         a = achievements[0]
-        reward_line = f"\n\U0001FA99 +{a.reward_coins:,} coins" if a.reward_coins else ""
+        reward_line = f"\n\U0001FA99 +{a.reward_coins:,} Chronocoins" if a.reward_coins else ""
         embed = base_embed(
             title="\U0001F3C5 Achievement Unlocked!",
             description=f"{a.emoji} **{a.name}**\n{a.description}{reward_line}",
@@ -158,11 +158,11 @@ def achievement_unlock_embed(member: discord.abc.User, achievements: list["Achie
     else:
         lines = [
             f"{a.emoji} **{a.name}** \u2014 {a.description}"
-            + (f" (+{a.reward_coins:,} coins)" if a.reward_coins else "")
+            + (f" (+{a.reward_coins:,} Chronocoins)" if a.reward_coins else "")
             for a in achievements
         ]
         total_coins = sum(a.reward_coins for a in achievements)
-        footer_line = f"\n{DIVIDER}\n\U0001FA99 **+{total_coins:,} coins total**" if total_coins else ""
+        footer_line = f"\n{DIVIDER}\n\U0001FA99 **+{total_coins:,} Chronocoins total**" if total_coins else ""
         embed = base_embed(
             title=f"\U0001F3C5 {len(achievements)} Achievements Unlocked!",
             description="\n".join(lines) + footer_line,

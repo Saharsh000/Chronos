@@ -180,7 +180,7 @@ class Stats(commands.Cog, name="Stats"):
     @commands.command(name="stats", aliases=["profile", "me"])
     async def stats_cmd(self, ctx: commands.Context, member: Optional[discord.Member] = None) -> None:
         """View in-depth personal study statistics: time, XP, level,
-        streaks, coins, achievements, and behavioral analytics."""
+        streaks, Chronocoins, achievements, and behavioral analytics."""
         target = member or ctx.author
         stats = await self.db.get_or_create_user_stats(target.id, ctx.guild.id)
         active_session = await self.db.get_active_session(target.id, ctx.guild.id)
@@ -225,7 +225,7 @@ class Stats(commands.Cog, name="Stats"):
             f"`{progress_bar}` {current_into:,}/{needed_for_next:,} XP",
             f"",
             f"\u25B8 **Total XP** \u2014 {stats['xp']:,}",
-            f"\u25B8 **Coins** \u2014 {currency['coins']:,} \U0001FA99",
+            f"\u25B8 **Chronocoins** \u2014 {currency['coins']:,} \U0001FA99",
             f"\u25B8 **Achievements** \u2014 {len(unlocked_ids)}/{len(ACHIEVEMENTS)} \U0001F3C5",
         ]
 

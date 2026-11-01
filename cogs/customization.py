@@ -101,14 +101,14 @@ class Customization(commands.Cog, name="Customization"):
         )
 
         builtin_lines = [
-            f"{item['emoji']} **{item['title_text']}** \u2014 {item['price']:,} coins"
+            f"{item['emoji']} **{item['title_text']}** \u2014 {item['price']:,} Chronocoins"
             for item in economy.SHOP_ITEMS.values() if item["type"] == "title"
         ]
         embed.add_field(name="Built-in", value="\n".join(builtin_lines) or "None", inline=False)
 
         if custom:
             custom_lines = [
-                f"{item['emoji']} **{item['title_text']}** \u2014 {item['price']:,} coins (`{item_id}`)"
+                f"{item['emoji']} **{item['title_text']}** \u2014 {item['price']:,} Chronocoins (`{item_id}`)"
                 for item_id, item in custom.items()
             ]
             embed.add_field(name="Custom (added by this server)", value="\n".join(custom_lines), inline=False)
@@ -132,7 +132,7 @@ class Customization(commands.Cog, name="Customization"):
         log.info(f"TAG ADD       | {ctx.author} ({ctx.author.id}) added tag '{tag_text}' (id={item_id}) in guild {ctx.guild.id}")
         await ctx.send(embed=embeds.success_embed(
             "Tag added",
-            f"**{tag_text}** is now purchasable for **{price:,} coins** via `{ctx.prefix}buy {tag_text}`.",
+            f"**{tag_text}** is now purchasable for **{price:,} Chronocoins** via `{ctx.prefix}buy {tag_text}`.",
         ))
 
     @commands.command(name="removetag")

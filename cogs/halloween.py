@@ -89,7 +89,7 @@ class PumpkinPassView(discord.ui.View):
         if result["candy"] > 0:
             reward_lines.append(f"🍬 **+{result['candy']:,} Candy**")
         if result["coins"] > 0:
-            reward_lines.append(f"🪙 **+{result['coins']:,} Coins**")
+            reward_lines.append(f"🪙 **+{result['coins']:,} Chronocoins**")
         for box_id, qty in result["boxes"].items():
             b = halloween_catalog.get_box(box_id)
             box_name = b["name"] if b else box_id
@@ -228,7 +228,7 @@ class Halloween(commands.Cog, name="Halloween"):
             if result["candy"] > 0:
                 reward_lines.append(f"🍬 **+{result['candy']:,} Candy**")
             if result["coins"] > 0:
-                reward_lines.append(f"🪙 **+{result['coins']:,} Coins**")
+                reward_lines.append(f"🪙 **+{result['coins']:,} Chronocoins**")
             for box_id, qty in result["boxes"].items():
                 b = halloween_catalog.get_box(box_id)
                 bname = b["name"] if b else box_id
@@ -467,7 +467,7 @@ class Halloween(commands.Cog, name="Halloween"):
         box = result["box"]
         reward_lines = [
             f"🍬 **+{result['candy']:,} Candy**",
-            f"🪙 **+{result['coins']:,} Coins**",
+            f"🪙 **+{result['coins']:,} Chronocoins**",
         ]
 
         # Pets
@@ -481,7 +481,7 @@ class Halloween(commands.Cog, name="Halloween"):
             else:
                 b_xp = pet_res.get("pet_xp_bonus", 500)
                 b_c = pet_res.get("coin_bonus", 500)
-                reward_lines.append(f"🐾 **Duplicate Pet ({p_name}):** +{b_xp} Pet XP & +{b_c} bonus coins!")
+                reward_lines.append(f"🐾 **Duplicate Pet ({p_name}):** +{b_xp} Pet XP & +{b_c} bonus Chronocoins!")
 
         # Food
         for fid, fqty in result["food"].items():
@@ -533,7 +533,7 @@ class Halloween(commands.Cog, name="Halloween"):
 
         reward = result["reward"]
         if reward["kind"] == "coins":
-            desc = f"🪙 You got **{reward['amount']:,} coins**!"
+            desc = f"🪙 You got **{reward['amount']:,} Chronocoins**!"
         elif reward["kind"] == "xp":
             desc = f"✨ You got **{reward['amount']:,} XP**!"
         else:
@@ -744,7 +744,7 @@ class Halloween(commands.Cog, name="Halloween"):
                 f"\U0001F4E6 **{hourly['boxes']:.1f} boxes** \u00B7 "
                 f"\U0001F36C **~{hourly['candy_total']:.0f} Candy** "
                 f"({hourly['candy_direct']:.0f} study + {hourly['candy_boxes']:.0f} boxes)\n"
-                f"\U0001F4B0 **~{hourly['coins_boxes']:,.0f} coins/hr** from boxes \u00B7 "
+                f"\U0001F4B0 **~{hourly['coins_boxes']:,.0f} Chronocoins/hr** from boxes \u00B7 "
                 f"\U0001F43E ~{hourly['pets']:.2f} pets \u00B7 \U0001F35B ~{hourly['food']:.1f} food\n\n"
                 f"**Pace:** maxing the pass takes **{max_hours:.0f}h** \u2014 about "
                 f"**{max_hours / 10:.1f}h/day** across the 10 days.\n"

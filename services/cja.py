@@ -413,10 +413,22 @@ class CJAService:
         return self._session
 
     def _headers(self, require_auth: bool = True) -> dict[str, str]:
-        headers = {"Content-Type": "application/json"}
+        # No Content-Type here: aiohttp adds it itself for POST bodies (json=...),
+        # and a GET has no body to describe.
+        headers = {"Accept": "application/json"}
         if require_auth and self.api_key:
             headers["Authorization"] = f"Bearer {self.api_key}"
         return headers
+
+    @staticmethod
+    def _parse_json(raw: str) -> Optional[dict[str, Any]]:
+        """Parse a response body as a JSON object, or None if it isn't one
+        (e.g. a Vercel HTML timeout/error page)."""
+        try:
+            data = json.loads(raw)
+        except ValueError:
+            return None
+        return data if isinstance(data, dict) else None
 
     async def close(self) -> None:
         if self._session and not self._session.closed:
@@ -464,48 +476,69 @@ class CJAService:
         headers = self._headers(require_auth=True)
         timeout = aiohttp.ClientTimeout(total=30)
 
+        # `last_problem` is the real reason a fetch failed. It goes into the logs
+        # and (if we can't fall back to a local question) into the error shown to
+        # the user, so a broken CJA call is never silently disguised.
+        last_problem = "unknown error"
+
         for attempt in range(2):
             try:
                 session = await self._get_session()
                 async with session.get(url, params=params, headers=headers, timeout=timeout) as resp:
-                    payload = await resp.json()
-                    if payload.get("ok"):
-                        return payload["data"]
+                    status = resp.status
+                    raw = await resp.text()
 
-                    err = payload.get("error", {})
-                    code = err.get("code", "UNKNOWN_ERROR")
-                    msg = err.get("message", "An error occurred fetching the question.")
-                    sugg = err.get("suggestions", [])
-                    retry_after = err.get("retryAfterSeconds", 0)
+                payload = self._parse_json(raw)
+                if payload is None:
+                    # Not JSON at all - typically a gateway/timeout HTML page.
+                    last_problem = f"HTTP {status} with a non-JSON body ({raw[:80].strip()!r})"
+                    log.warning("CJA get_question failed: %s | params=%s", last_problem, params)
+                    if attempt == 0:
+                        await asyncio.sleep(1)
+                        continue
+                    return self._get_offline_question(subject, chapter, reason=last_problem)
 
-                    # Retry once automatically on GENERATION_FAILED, then fallback
-                    if code == "GENERATION_FAILED":
-                        if attempt == 0:
-                            log.warning("CJA generation failed, retrying once...")
-                            await asyncio.sleep(1)
-                            continue
-                        log.warning("CJA generation failed twice; using verified question fallback.")
-                        return self._get_offline_question(subject, chapter)
+                if payload.get("ok"):
+                    return payload["data"]
 
-                    raise CJAError(code=code, message=msg, suggestions=sugg, retry_after=retry_after)
+                err = payload.get("error", {})
+                code = err.get("code", "UNKNOWN_ERROR")
+                msg = err.get("message", "An error occurred fetching the question.")
+                sugg = err.get("suggestions", [])
+                retry_after = err.get("retryAfterSeconds", 0)
+                log.warning("CJA get_question error %s (HTTP %s): %s | params=%s", code, status, msg, params)
+
+                # Retry once automatically on GENERATION_FAILED, then fallback
+                if code == "GENERATION_FAILED":
+                    last_problem = f"CJA could not generate a question ({msg})"
+                    if attempt == 0:
+                        await asyncio.sleep(1)
+                        continue
+                    log.warning("CJA generation failed twice; using verified question fallback.")
+                    return self._get_offline_question(subject, chapter, reason=last_problem)
+
+                raise CJAError(code=code, message=msg, suggestions=sugg, retry_after=retry_after)
 
             except aiohttp.ClientConnectorError as e:
-                log.warning(f"Could not connect to CJA ({e}); using offline question fallback.")
-                return self._get_offline_question(subject, chapter)
+                last_problem = f"could not connect to CJA ({type(e).__name__}: {e})"
+                log.warning("%s; using offline question fallback.", last_problem)
+                return self._get_offline_question(subject, chapter, reason=last_problem)
             except asyncio.TimeoutError:
+                last_problem = "CJA request timed out after 30s"
                 if attempt == 0:
-                    log.warning("CJA request timed out; retrying once...")
+                    log.warning("%s; retrying once...", last_problem)
                     await asyncio.sleep(1)
                     continue
-                log.warning("CJA request timed out twice; falling back to offline question pool.")
-                return self._get_offline_question(subject, chapter)
+                log.warning("%s twice; falling back to offline question pool.", last_problem)
+                return self._get_offline_question(subject, chapter, reason=last_problem)
             except CJAError:
                 raise
             except Exception as e:
-                log.error(f"Unexpected error in get_question: {e}", exc_info=True)
-                return self._get_offline_question(subject, chapter)
+                last_problem = f"unexpected {type(e).__name__}: {e}"
+                log.error("Unexpected error in get_question: %s", last_problem, exc_info=True)
+                return self._get_offline_question(subject, chapter, reason=last_problem)
 
-        return self._get_offline_question(subject, chapter)
+        return self._get_offline_question(subject, chapter, reason=last_problem)
 
     # ------------------------------------------------------------------ #
     # 2. POST /api/v1/question/:id/check
@@ -537,14 +570,21 @@ class CJAService:
         try:
             session = await self._get_session()
             async with session.post(url, json=body, headers=headers, timeout=timeout) as resp:
-                payload = await resp.json()
-                if payload.get("ok"):
-                    return payload["data"]
+                status = resp.status
+                raw = await resp.text()
 
-                err = payload.get("error", {})
-                code = err.get("code", "UNKNOWN_ERROR")
-                msg = err.get("message", "Could not check answer.")
-                raise CJAError(code=code, message=msg)
+            payload = self._parse_json(raw)
+            if payload is None:
+                log.warning("CJA check_answer: HTTP %s with non-JSON body (%r)", status, raw[:80].strip())
+                raise CJAError("BAD_RESPONSE", f"Grading server returned HTTP {status} (not JSON).")
+            if payload.get("ok"):
+                return payload["data"]
+
+            err = payload.get("error", {})
+            code = err.get("code", "UNKNOWN_ERROR")
+            msg = err.get("message", "Could not check answer.")
+            log.warning("CJA check_answer error %s (HTTP %s): %s | q=%s answer=%r", code, status, msg, question_id, answer)
+            raise CJAError(code=code, message=msg)
         except asyncio.TimeoutError:
             raise CJAError("TIMEOUT", "Verification timed out with the grading server.")
         except CJAError:
@@ -593,7 +633,12 @@ class CJAService:
     # ------------------------------------------------------------------ #
     # Offline fallbacks & helpers
     # ------------------------------------------------------------------ #
-    def _get_offline_question(self, subject: Optional[str] = None, chapter: Optional[str] = None) -> dict[str, Any]:
+    def _get_offline_question(
+        self,
+        subject: Optional[str] = None,
+        chapter: Optional[str] = None,
+        reason: str = "",
+    ) -> dict[str, Any]:
         """Return a verified question matching the subject/chapter filter."""
         import random
         pool = OFFLINE_QUESTION_POOL
@@ -604,7 +649,11 @@ class CJAService:
                 q.pop("_answer", None)
                 return q
             # If chapter was explicitly requested but not in offline pool, don't pretend it's that chapter!
-            raise CJAError("GENERATION_FAILED", f"Could not generate question for chapter '{chapter}'. Please retry in a few seconds!")
+            why = f" ({reason})" if reason else ""
+            raise CJAError(
+                "CJA_UNAVAILABLE",
+                f"Couldn't get a '{chapter}' question from CJA right now{why}. Please retry in a few seconds!",
+            )
 
         if subject:
             filtered = [q for q in pool if q["subject"]["id"].lower() == subject.lower() or subject.lower() in q["subject"]["id"].lower()]

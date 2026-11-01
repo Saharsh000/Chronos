@@ -160,7 +160,7 @@ class Sessions(commands.Cog, name="Sessions"):
         )
         embed.add_field(name="\u23F1\uFE0F Focus time", value=format_duration(result["duration"]), inline=True)
         embed.add_field(name="\U0001F4C8 XP gained", value=f"+{result['xp_earned']} XP", inline=True)
-        embed.add_field(name="\U0001FA99 Coins earned", value=f"+{result['coins_earned']}", inline=True)
+        embed.add_field(name="\U0001FA99 Chronocoins earned", value=f"+{result['coins_earned']}", inline=True)
         if result.get("subject"):
             info = SUBJECT_INFO[result["subject"]]
             embed.add_field(name="Subject", value=f"{info['emoji']} {info['label']}", inline=True)
@@ -185,7 +185,7 @@ class Sessions(commands.Cog, name="Sessions"):
                 title="💔 Streak Lost!",
                 description=(
                     f"<@{ctx.author.id}> lost their **{broken_from}-day** study streak "
-                    f"and was penalized **{penalty} coins**.\n"
+                    f"and was penalized **{penalty} Chronocoins**.\n"
                     f"Study today to start building a new one!"
                 ),
                 color=embeds.COLOR_ERROR,
@@ -258,7 +258,7 @@ class Sessions(commands.Cog, name="Sessions"):
             title="💔 Streak Lost!",
             description=(
                 f"<@{credit['user_id']}> lost their **{broken_from}-day** study streak "
-                f"and was penalized **{penalty} coins**.\n"
+                f"and was penalized **{penalty} Chronocoins**.\n"
                 f"Study today to start building a new one!"
             ),
             color=embeds.COLOR_ERROR,

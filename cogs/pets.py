@@ -60,7 +60,7 @@ def build_pet_shop_page(
     header = embeds.base_embed(
         title=f"{info['emoji']} Pet Shop \u2014 {info['label']}",
         description=(
-            f"\U0001FA99 **{coins:,}** coins \u00B7 owned **{owned_here}/{len(species_ids)}** in this tier\n"
+            f"\U0001FA99 **{coins:,}** Chronocoins \u00B7 owned **{owned_here}/{len(species_ids)}** in this tier\n"
             f"Buy with `{prefix}buypet <name>` \u00B7 \u2B50 = already owned{gate}"
         ),
         color=info["color"],
@@ -76,7 +76,7 @@ def build_pet_shop_page(
         affordable = coins >= price
         mark = " \u2B50" if owned else ("" if affordable else " \U0001F512")
         cards.append(embeds.card_embed(
-            title=f"{species['name']} \u2014 {price:,} coins{mark}",
+            title=f"{species['name']} \u2014 {price:,} Chronocoins{mark}",
             description=f"*{species['species']}. {species['desc']}*\n{chain}",
             color=info["color"] if (owned or affordable) else embeds.COLOR_MUTED,
             thumbnail=species["stages"][0]["sprite"],
@@ -97,7 +97,7 @@ def build_food_shop_page(
     header = embeds.base_embed(
         title=f"{info['emoji']} Food Shop \u2014 {info['label']}",
         description=(
-            f"\U0001FA99 **{coins:,}** coins\n"
+            f"\U0001FA99 **{coins:,}** Chronocoins\n"
             f"Buy with `{prefix}buyfood <name> [qty]` \u00B7 feed with `{prefix}feed <name> [qty]`"
         ),
         color=info["color"],
@@ -111,7 +111,7 @@ def build_food_shop_page(
         have_text = f" \u00B7 you have **{have}**" if have else ""
         affordable = coins >= f["cost"]
         cards.append(embeds.card_embed(
-            title=f"{f['name']} \u2014 {f['cost']:,} coins",
+            title=f"{f['name']} \u2014 {f['cost']:,} Chronocoins",
             description=f"+{f['xp']:,} pet XP{have_text}",
             color=info["color"] if affordable else embeds.COLOR_MUTED,
             thumbnail=f["sprite"],
@@ -221,7 +221,7 @@ class Pets(commands.Cog, name="Pets"):
                 "already_owned": "You already own that pet.",
                 "not_found": "That pet doesn't exist.",
                 "level_too_low": f"You need to be Level {config.PET_UNLOCK_LEVEL}+ to buy a pet.",
-                "insufficient_funds": "You don't have enough coins for that.",
+                "insufficient_funds": "You don't have enough Chronocoins for that.",
             }
             await ctx.send(embed=embeds.error_embed(reasons.get(result["reason"], "Purchase failed.")))
             return
@@ -236,7 +236,7 @@ class Pets(commands.Cog, name="Pets"):
         )
         embed = embeds.success_embed(
             "Pet unlocked!",
-            f"You got **{species['name']}** the {species['species']} for **{result['price']:,} coins**.{note}",
+            f"You got **{species['name']}** the {species['species']} for **{result['price']:,} Chronocoins**.{note}",
         )
         embed.color = _pet_embed_color(species_id)
         embed.set_thumbnail(url=species["stages"][0]["sprite"])
@@ -439,7 +439,7 @@ class Pets(commands.Cog, name="Pets"):
         if not result["success"]:
             reasons = {
                 "not_found": "That food doesn't exist.",
-                "insufficient_funds": "You don't have enough coins for that.",
+                "insufficient_funds": "You don't have enough Chronocoins for that.",
             }
             await ctx.send(embed=embeds.error_embed(reasons.get(result["reason"], "Purchase failed.")))
             return
@@ -448,7 +448,7 @@ class Pets(commands.Cog, name="Pets"):
         qty_text = f" \u00D7{result['qty']}" if result["qty"] > 1 else ""
         embed = embeds.success_embed(
             "Purchased!",
-            f"**{f['name']}**{qty_text} for **{result['total_price']:,} coins**.\n"
+            f"**{f['name']}**{qty_text} for **{result['total_price']:,} Chronocoins**.\n"
             f"Feed it to your equipped pet with `{ctx.prefix}feed {f['name']}`.",
         )
         embed.color = food_catalog.FOOD_TIER_INFO[f["tier"]]["color"]
@@ -534,8 +534,8 @@ class Pets(commands.Cog, name="Pets"):
         qty_text = f" \u00D7{result['qty']}" if result["qty"] > 1 else ""
         await ctx.send(embed=embeds.success_embed(
             "Sold!",
-            f"Sold **{f['name']}**{qty_text} for **{result['refund']:,} coins**. "
-            f"New balance: {result['new_balance']:,} coins.",
+            f"Sold **{f['name']}**{qty_text} for **{result['refund']:,} Chronocoins**. "
+            f"New balance: {result['new_balance']:,} Chronocoins.",
         ))
 
     # ------------------------------------------------------------------ #

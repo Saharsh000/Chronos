@@ -38,19 +38,19 @@ class Economy(commands.Cog, name="Economy"):
     # ------------------------------------------------------------------ #
     # Balance
     # ------------------------------------------------------------------ #
-    @commands.command(name="balance", aliases=["coins", "bal"])
+    @commands.command(name="balance", aliases=["coins", "chronocoins", "chronocoin", "bal"])
     @commands.guild_only()
     async def balance_cmd(self, ctx: commands.Context, member: Optional[discord.Member] = None) -> None:
-        """Check your (or someone else's) coin balance."""
+        """Check your (or someone else's) Chronocoin balance."""
         target = member or ctx.author
         currency = await self.db.get_or_create_currency(target.id, ctx.guild.id)
         candy = currency.get("candy", 0)
         embed = embeds.base_embed(
             title=f"\U0001FA99 {target.display_name}'s Wallet",
             description=(
-                f"\U0001F4B0 **Balance**\n{currency['coins']:,} coins\n\n"
+                f"\U0001F4B0 **Balance**\n{currency['coins']:,} Chronocoins\n\n"
                 f"\U0001F36C **Candy**\n{candy:,} candy\n\n"
-                f"\U0001F4C8 **Lifetime earned**\n{currency['lifetime_earned']:,} coins"
+                f"\U0001F4C8 **Lifetime earned**\n{currency['lifetime_earned']:,} Chronocoins"
             ),
             color=embeds.COLOR_ECONOMY,
         )
@@ -63,12 +63,12 @@ class Economy(commands.Cog, name="Economy"):
     @commands.command(name="shop", aliases=["store"])
     @commands.guild_only()
     async def shop_cmd(self, ctx: commands.Context) -> None:
-        """Browse the coin shop."""
+        """Browse the Chronocoin shop."""
         currency = await self.db.get_or_create_currency(ctx.author.id, ctx.guild.id)
         embed = embeds.base_embed(
             title="\U0001F6D2 Chronos Shop",
             description=(
-                f"\U0001FA99 **{currency['coins']:,} coins available**\n"
+                f"\U0001FA99 **{currency['coins']:,} Chronocoins available**\n"
                 "Pick an item by its number or name."
             ),
             color=embeds.COLOR_ECONOMY,
@@ -116,7 +116,7 @@ class Economy(commands.Cog, name="Economy"):
         result = await self.db.buy_item(ctx.author.id, ctx.guild.id, item_id, quantity)
         if not result["success"]:
             reasons = {
-                "insufficient_funds": "You don't have enough coins for that.",
+                "insufficient_funds": "You don't have enough Chronocoins for that.",
                 "already_owned": "You already own that title.",
                 "not_found": "That item doesn't exist.",
                 "title_quantity": "You can only buy 1 of a title at a time - it's a one-time unlock.",
@@ -141,7 +141,7 @@ class Economy(commands.Cog, name="Economy"):
         )
         await ctx.send(embed=embeds.success_embed(
             "Purchased!",
-            f"{purchased['emoji']} **{purchased['name']}**{qty_text} for **{result['total_price']:,} coins**.{note}",
+            f"{purchased['emoji']} **{purchased['name']}**{qty_text} for **{result['total_price']:,} Chronocoins**.{note}",
         ))
         await self._announce_achievements(ctx)
 
@@ -194,7 +194,7 @@ class Economy(commands.Cog, name="Economy"):
 
         now = int(time.time())
         boost_lines = []
-        for effect_id, label in (("xp_boost", "\u26A1 XP Boost"), ("coin_boost", "\U0001F4B0 Coin Boost")):
+        for effect_id, label in (("xp_boost", "\u26A1 XP Boost"), ("coin_boost", "\U0001F4B0 Chronocoin Boost")):
             effect = await self.db.get_active_effect(target.id, ctx.guild.id, effect_id, now)
             if effect:
                 remaining = max(0, effect["expires_at"] - now)
@@ -207,11 +207,11 @@ class Economy(commands.Cog, name="Economy"):
     @commands.command(name="use")
     @commands.guild_only()
     async def use_cmd(self, ctx: commands.Context, *, item: str) -> None:
-        """Activate a boost item (e.g. XP Boost, Coin Boost) from your inventory."""
+        """Activate a boost item (e.g. XP Boost, Chronocoin Boost) from your inventory."""
         item_id = self._resolve_arg(item)
         if item_id is None or economy.SHOP_ITEMS.get(item_id, {}).get("type") != "boost":
             await ctx.send(embed=embeds.error_embed(
-                f"That's not a usable boost. Try `{ctx.prefix}use xp boost` or `{ctx.prefix}use coin boost`."
+                f"That's not a usable boost. Try `{ctx.prefix}use xp boost` or `{ctx.prefix}use chronocoin boost`."
             ))
             return
 
@@ -271,7 +271,7 @@ class Economy(commands.Cog, name="Economy"):
     @commands.command(name="daily")
     @commands.guild_only()
     async def daily_cmd(self, ctx: commands.Context) -> None:
-        """Claim your once-per-day coin reward. Streak bonuses stack the more consecutive days you claim."""
+        """Claim your once-per-day Chronocoin reward. Streak bonuses stack the more consecutive days you claim."""
         result = await self.db.claim_daily(ctx.author.id, ctx.guild.id)
         if not result["success"]:
             await ctx.send(embed=embeds.info_embed(
@@ -286,15 +286,15 @@ class Economy(commands.Cog, name="Economy"):
             description="Your daily haul is in. Keep the streak alive tomorrow.",
             color=embeds.COLOR_SUCCESS,
         )
-        embed.add_field(name="\U0001FA99 Base coins", value=f"+{result['base_coins']:,}", inline=True)
+        embed.add_field(name="\U0001FA99 Base Chronocoins", value=f"+{result['base_coins']:,}", inline=True)
         embed.add_field(name="\U0001F525 Streak bonus", value=f"+{result['streak_bonus']:,}", inline=True)
         embed.add_field(name="\U0001F4C8 XP earned", value=f"+{result['xp']} XP", inline=True)
-        embed.add_field(name="\U0001FA99 Total coins", value=f"**+{result['coins']:,}**", inline=True)
+        embed.add_field(name="\U0001FA99 Total Chronocoins", value=f"**+{result['coins']:,}**", inline=True)
         embed.add_field(name="\U0001F525 Daily streak", value=f"{result['daily_streak']} days", inline=True)
-        embed.add_field(name="\U0001F4B0 New balance", value=f"{result['new_balance']:,} coins", inline=True)
+        embed.add_field(name="\U0001F4B0 New balance", value=f"{result['new_balance']:,} Chronocoins", inline=True)
 
         if result["milestone"]:
-            milestone_lines = [f"+{result['milestone']['coins']:,} bonus coins"]
+            milestone_lines = [f"+{result['milestone']['coins']:,} bonus Chronocoins"]
             if result["milestone_item"]:
                 item = economy.SHOP_ITEMS.get(result["milestone_item"], {})
                 milestone_lines.append(f"{item.get('emoji', '')} Free {item.get('name', result['milestone_item'])}")
@@ -349,7 +349,7 @@ class Economy(commands.Cog, name="Economy"):
     @commands.command(name="work", aliases=["grind"])
     @commands.guild_only()
     async def work_cmd(self, ctx: commands.Context) -> None:
-        """Do a quick task for some coins (+ a little XP). Short cooldown - meant to be used often."""
+        """Do a quick task for some Chronocoins (+ a little XP). Short cooldown - meant to be used often."""
         result = await self.db.claim_work(ctx.author.id, ctx.guild.id)
         if not result["success"]:
             await ctx.send(embed=embeds.info_embed(
@@ -363,9 +363,9 @@ class Economy(commands.Cog, name="Economy"):
             description="A little extra progress for the grind.",
             color=embeds.COLOR_SUCCESS,
         )
-        embed.add_field(name="\U0001FA99 Coins earned", value=f"+{result['coins']:,}", inline=True)
+        embed.add_field(name="\U0001FA99 Chronocoins earned", value=f"+{result['coins']:,}", inline=True)
         embed.add_field(name="\U0001F4C8 XP earned", value=f"+{result['xp']} XP", inline=True)
-        embed.add_field(name="\U0001F4B0 New balance", value=f"{result['new_balance']:,} coins", inline=True)
+        embed.add_field(name="\U0001F4B0 New balance", value=f"{result['new_balance']:,} Chronocoins", inline=True)
 
         # HALLOWEEN EVENT: Chance to find a Hallo-Box + Candy while working
         if random.random() < 0.35:
@@ -393,7 +393,7 @@ class Economy(commands.Cog, name="Economy"):
     @commands.command(name="beg")
     @commands.guild_only()
     async def beg_cmd(self, ctx: commands.Context) -> None:
-        """Beg for a few coins. Very short cooldown, small payout, and a chance of nothing."""
+        """Beg for a few Chronocoins. Very short cooldown, small payout, and a chance of nothing."""
         result = await self.db.claim_beg(ctx.author.id, ctx.guild.id)
         if not result["success"]:
             await ctx.send(embed=embeds.info_embed(
@@ -421,16 +421,16 @@ class Economy(commands.Cog, name="Economy"):
                 description=f"> {scenario.story}{quote_text}",
                 color=embeds.COLOR_SUCCESS,
             )
-            embed.add_field(name="\U0001F4B0 Coins Received", value=f"+{payout:,} coins", inline=True)
-            embed.add_field(name="\U0001F3E6 New Balance", value=f"{new_balance:,} coins", inline=True)
+            embed.add_field(name="\U0001F4B0 Chronocoins Received", value=f"+{payout:,} Chronocoins", inline=True)
+            embed.add_field(name="\U0001F3E6 New Balance", value=f"{new_balance:,} Chronocoins", inline=True)
         else:
             embed = embeds.base_embed(
                 title=f"{scenario.emoji} {scenario.npc} \u00B7 {scenario.title}",
                 description=f"> {scenario.story}{quote_text}",
                 color=embeds.COLOR_WARNING,
             )
-            embed.add_field(name="\u274C Coins Received", value="0 coins", inline=True)
-            embed.add_field(name="\U0001F3E6 Current Balance", value=f"{new_balance:,} coins", inline=True)
+            embed.add_field(name="\u274C Chronocoins Received", value="0 Chronocoins", inline=True)
+            embed.add_field(name="\U0001F3E6 Current Balance", value=f"{new_balance:,} Chronocoins", inline=True)
 
         embeds.set_footer(embed, f"Role: {scenario.role} \u00B7 {ctx.prefix}beg")
 
@@ -454,7 +454,7 @@ class Economy(commands.Cog, name="Economy"):
     @commands.command(name="weekly")
     @commands.guild_only()
     async def weekly_cmd(self, ctx: commands.Context) -> None:
-        """Claim a large once-a-week coin reward, plus a free Mystery Box."""
+        """Claim a large once-a-week Chronocoin reward, plus a free Mystery Box."""
         result = await self.db.claim_weekly(ctx.author.id, ctx.guild.id)
         if not result["success"]:
             await ctx.send(embed=embeds.info_embed(
@@ -468,8 +468,8 @@ class Economy(commands.Cog, name="Economy"):
             description="The big weekly haul has landed.",
             color=embeds.COLOR_SUCCESS,
         )
-        embed.add_field(name="\U0001FA99 Coins earned", value=f"+{result['coins']:,}", inline=True)
-        embed.add_field(name="\U0001F4B0 New balance", value=f"{result['new_balance']:,} coins", inline=True)
+        embed.add_field(name="\U0001FA99 Chronocoins earned", value=f"+{result['coins']:,}", inline=True)
+        embed.add_field(name="\U0001F4B0 New balance", value=f"{result['new_balance']:,} Chronocoins", inline=True)
         embed.add_field(name="\U0001F381 Bonus", value="Free Mystery Box", inline=True)
 
         # HALLOWEEN EVENT: Guaranteed High-Tier Hallo-Box & Big Candy Stash

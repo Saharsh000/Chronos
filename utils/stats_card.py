@@ -251,7 +251,7 @@ def render_stats_card_sync(
 
     # Card 3: Wealth & Seasonal Candy
     draw.rounded_rectangle([c3_x, c1_y, c3_x + card_w, c1_y + card_h], radius=16, fill=CARD_BG, outline=CARD_BORDER, width=1)
-    draw.text((c3_x + 22, c1_y + 20), "💰 COINS & EVENT STASH", font=f_card_tag, fill=ACCENT_GOLD)
+    draw.text((c3_x + 22, c1_y + 20), "💰 CHRONOCOINS & EVENT STASH", font=f_card_tag, fill=ACCENT_GOLD)
     coins_str = f"{coins:,}"
     draw.text((c3_x + 22, c1_y + 48), f"{coins_str} 🪙", font=f_big_val, fill=ACCENT_GOLD)
     draw.text((c3_x + 22, c1_y + 115), f"🍬 {candy:,} Candy in Inventory", font=f_card_sub, fill=TEXT_WHITE)

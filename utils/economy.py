@@ -24,7 +24,7 @@ SHOP_ITEMS: dict[str, dict[str, Any]] = {
         "emoji": "\U0001F381",  # 🎁
         "price": 150,
         "type": "consumable",
-        "description": "A box of random goodies - coins, XP, or even a rare item. Open with `.openbox`.",
+        "description": "A box of random goodies - Chronocoins, XP, or even a rare item. Open with `.openbox`.",
     },
     "streak_freeze": {
         "name": "Streak Freeze",
@@ -44,14 +44,14 @@ SHOP_ITEMS: dict[str, dict[str, Any]] = {
         "description": "`.use` to double the XP you earn from studying for the next 60 minutes.",
     },
     "coin_boost": {
-        "name": "Coin Boost",
+        "name": "Chronocoin Boost",
         "emoji": "\U0001F4B0",  # 💰
         "price": 300,
         "type": "boost",
         "effect_id": "coin_boost",
         "duration_minutes": 60,
         "multiplier": 2,
-        "description": "`.use` to double the coins you earn from studying for the next 60 minutes.",
+        "description": "`.use` to double the Chronocoins you earn from studying for the next 60 minutes.",
     },
     "title_scholar": {
         "name": "Title: The Scholar",
@@ -132,6 +132,12 @@ SHOP_ORDER: list[str] = [
 def resolve_item_id(text: str) -> Optional[str]:
     """Match user-typed text (id, or a loose name match) to a shop item id."""
     key = text.strip().lower().replace(" ", "_").replace("-", "_")
+    aliases = {
+        "chronocoin_boost": "coin_boost",
+        "chronocoins_boost": "coin_boost",
+    }
+    if key in aliases:
+        return aliases[key]
     if key in SHOP_ITEMS:
         return key
     for item_id, item in SHOP_ITEMS.items():
