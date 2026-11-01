@@ -313,7 +313,9 @@ class TriviaQuestionView(discord.ui.View):
                 btn = discord.ui.Button(
                     label=f"Option {opt['key']}",
                     style=discord.ButtonStyle.primary,
-                    custom_id=f"cja:ans:{self.q_id}:{opt['key']}",
+                    # No custom_id on purpose: Discord caps it at 100 chars and
+                    # CJA question ids can be long. These views aren't persistent,
+                    # so discord.py's auto-generated short id is all we need.
                 )
                 btn.callback = self._make_button_callback(opt["key"])
                 self.add_item(btn)
@@ -335,7 +337,6 @@ class TriviaQuestionView(discord.ui.View):
                 min_values=1,
                 max_values=min(4, len(select_options)),
                 options=select_options,
-                custom_id=f"cja:multi:{self.q_id}",
             )
             select.callback = self._select_callback
             self.add_item(select)
@@ -345,7 +346,6 @@ class TriviaQuestionView(discord.ui.View):
                 label="Submit Integer Answer",
                 style=discord.ButtonStyle.success,
                 emoji="🔢",
-                custom_id=f"cja:int:{self.q_id}",
             )
             btn.callback = self._integer_callback
             self.add_item(btn)

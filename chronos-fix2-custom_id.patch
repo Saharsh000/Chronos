@@ -1,0 +1,51 @@
+diff -ruN -x __pycache__ -x .pytest_cache a/cogs/trivia.py b/cogs/trivia.py
+--- a/cogs/trivia.py	2026-11-01 19:37:04.014275102 +0000
++++ b/cogs/trivia.py	2026-11-01 19:37:08.000000000 +0000
+@@ -313,7 +313,9 @@
+                 btn = discord.ui.Button(
+                     label=f"Option {opt['key']}",
+                     style=discord.ButtonStyle.primary,
+-                    custom_id=f"cja:ans:{self.q_id}:{opt['key']}",
++                    # No custom_id on purpose: Discord caps it at 100 chars and
++                    # CJA question ids can be long. These views aren't persistent,
++                    # so discord.py's auto-generated short id is all we need.
+                 )
+                 btn.callback = self._make_button_callback(opt["key"])
+                 self.add_item(btn)
+@@ -335,7 +337,6 @@
+                 min_values=1,
+                 max_values=min(4, len(select_options)),
+                 options=select_options,
+-                custom_id=f"cja:multi:{self.q_id}",
+             )
+             select.callback = self._select_callback
+             self.add_item(select)
+@@ -345,7 +346,6 @@
+                 label="Submit Integer Answer",
+                 style=discord.ButtonStyle.success,
+                 emoji="🔢",
+-                custom_id=f"cja:int:{self.q_id}",
+             )
+             btn.callback = self._integer_callback
+             self.add_item(btn)
+diff -ruN -x __pycache__ -x .pytest_cache a/services/cja.py b/services/cja.py
+--- a/services/cja.py	2026-11-01 19:37:04.012017665 +0000
++++ b/services/cja.py	2026-11-01 19:37:10.000000000 +0000
+@@ -15,6 +15,7 @@
+ import logging
+ from pathlib import Path
+ from typing import Any, Optional
++from urllib.parse import quote
+ 
+ import aiohttp
+ 
+@@ -562,7 +563,8 @@
+         if not self.base_url:
+             raise CJAError("UNCONFIGURED", "CJA_URL is not set and question was not found in offline cache.")
+ 
+-        url = f"{self.base_url}/api/v1/question/{question_id}/check"
++        # quote() so ids containing '/', '+', '=' etc. can't break the URL path.
++        url = f"{self.base_url}/api/v1/question/{quote(str(question_id), safe='')}/check"
+         headers = self._headers(require_auth=True)
+         timeout = aiohttp.ClientTimeout(total=30)
+         body = {"answer": answer}

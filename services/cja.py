@@ -15,6 +15,7 @@ import json
 import logging
 from pathlib import Path
 from typing import Any, Optional
+from urllib.parse import quote
 
 import aiohttp
 
@@ -562,7 +563,8 @@ class CJAService:
         if not self.base_url:
             raise CJAError("UNCONFIGURED", "CJA_URL is not set and question was not found in offline cache.")
 
-        url = f"{self.base_url}/api/v1/question/{question_id}/check"
+        # quote() so ids containing '/', '+', '=' etc. can't break the URL path.
+        url = f"{self.base_url}/api/v1/question/{quote(str(question_id), safe='')}/check"
         headers = self._headers(require_auth=True)
         timeout = aiohttp.ClientTimeout(total=30)
         body = {"answer": answer}
