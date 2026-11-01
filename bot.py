@@ -28,6 +28,7 @@ INITIAL_EXTENSIONS = (
     "cogs.social",
     "cogs.progress",
     "cogs.customization",
+    "cogs.trivia",
     "cogs.admin",
     "cogs.dev",
     "cogs.help",

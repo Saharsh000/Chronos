@@ -116,6 +116,13 @@ POMODORO_LONG_BREAK_MINUTES = int(os.getenv("POMODORO_LONG_BREAK_MINUTES", "15")
 POMODORO_CYCLES_BEFORE_LONG_BREAK = int(os.getenv("POMODORO_CYCLES_BEFORE_LONG_BREAK", "4"))
 POMODORO_MONITOR_INTERVAL_SECONDS = int(os.getenv("POMODORO_MONITOR_INTERVAL_SECONDS", "15"))
 
+# --- CJA (Chronos JEE API) & Trivia -------------------------------------------
+CJA_URL = os.getenv("CJA_URL", "").rstrip("/")
+CJA_KEY = os.getenv("CJA_KEY", "")
+TRIVIA_COOLDOWN_SECONDS = int(os.getenv("TRIVIA_COOLDOWN_SECONDS", "10"))
+TRIVIA_MAIN_TIME_LIMIT = int(os.getenv("TRIVIA_MAIN_TIME_LIMIT", "60"))
+TRIVIA_ADVANCED_TIME_LIMIT = int(os.getenv("TRIVIA_ADVANCED_TIME_LIMIT", "90"))
+
 
 def validate() -> None:
     """Fail fast with a clear message if required config is missing/invalid."""

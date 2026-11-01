@@ -297,6 +297,22 @@ CREATE TABLE IF NOT EXISTS halloween_pass (
     updated_at        INTEGER NOT NULL,
     PRIMARY KEY (user_id, guild_id)
 );
+
+-- JEE Trivia Statistics & Leaderboard
+CREATE TABLE IF NOT EXISTS user_trivia_stats (
+    user_id              INTEGER NOT NULL,
+    guild_id             INTEGER NOT NULL,
+    questions_attempted  INTEGER NOT NULL DEFAULT 0,
+    questions_correct    INTEGER NOT NULL DEFAULT 0,
+    total_marks          INTEGER NOT NULL DEFAULT 0,
+    total_coins_won      INTEGER NOT NULL DEFAULT 0,
+    current_streak       INTEGER NOT NULL DEFAULT 0,
+    best_streak          INTEGER NOT NULL DEFAULT 0,
+    last_played_at       INTEGER NOT NULL DEFAULT 0,
+    PRIMARY KEY (user_id, guild_id)
+);
+
+CREATE INDEX IF NOT EXISTS idx_trivia_guild_marks ON user_trivia_stats (guild_id, total_marks DESC);
 """
 
 # Columns added to `user_stats` after its original release. Applied by
@@ -437,7 +453,7 @@ class Database:
         tables = [
             "user_stats", "subject_stats", "user_currency", "user_inventory",
             "achievements_unlocked", "user_pets", "user_daily", "user_cooldowns",
-            "halloween_pass",
+            "halloween_pass", "user_trivia_stats",
         ]
         total_synced = 0
         for table in tables:
@@ -487,6 +503,23 @@ class Database:
             updated_at        INTEGER NOT NULL,
             PRIMARY KEY (user_id, guild_id)
         );
+        """)
+        await self._conn.execute("""
+        CREATE TABLE IF NOT EXISTS user_trivia_stats (
+            user_id              INTEGER NOT NULL,
+            guild_id             INTEGER NOT NULL,
+            questions_attempted  INTEGER NOT NULL DEFAULT 0,
+            questions_correct    INTEGER NOT NULL DEFAULT 0,
+            total_marks          INTEGER NOT NULL DEFAULT 0,
+            total_coins_won      INTEGER NOT NULL DEFAULT 0,
+            current_streak       INTEGER NOT NULL DEFAULT 0,
+            best_streak          INTEGER NOT NULL DEFAULT 0,
+            last_played_at       INTEGER NOT NULL DEFAULT 0,
+            PRIMARY KEY (user_id, guild_id)
+        );
+        """)
+        await self._conn.execute("""
+        CREATE INDEX IF NOT EXISTS idx_trivia_guild_marks ON user_trivia_stats (guild_id, total_marks DESC);
         """)
 
     async def _migrate_table(self, table: str, migrations: dict[str, str]) -> None:
@@ -2564,3 +2597,113 @@ class Database:
             return {"success": True, "item": item, "quantity": qty, "price": total_price}
 
         return {"success": False, "reason": "unknown_type"}
+
+    # ------------------------------------------------------------------ #
+    # Trivia Stats & Leaderboard
+    # ------------------------------------------------------------------ #
+    async def get_or_create_trivia_stats(self, user_id: int, guild_id: int) -> dict[str, Any]:
+        """Fetch or initialize trivia record for (user_id, guild_id)."""
+        cur = await self.conn.execute(
+            "SELECT * FROM user_trivia_stats WHERE user_id = ? AND guild_id = ?",
+            (user_id, guild_id),
+        )
+        row = await cur.fetchone()
+        if row:
+            return dict(row)
+
+        await self.conn.execute(
+            "INSERT OR IGNORE INTO user_trivia_stats "
+            "(user_id, guild_id, questions_attempted, questions_correct, total_marks, total_coins_won, current_streak, best_streak, last_played_at) "
+            "VALUES (?, ?, 0, 0, 0, 0, 0, 0, 0)",
+            (user_id, guild_id),
+        )
+        await self.conn.commit()
+        return {
+            "user_id": user_id,
+            "guild_id": guild_id,
+            "questions_attempted": 0,
+            "questions_correct": 0,
+            "total_marks": 0,
+            "total_coins_won": 0,
+            "current_streak": 0,
+            "best_streak": 0,
+            "last_played_at": 0,
+        }
+
+    async def record_trivia_attempt(
+        self,
+        user_id: int,
+        guild_id: int,
+        correct: bool,
+        marks: int,
+        coins_won: int,
+        now: Optional[int] = None,
+    ) -> dict[str, Any]:
+        """Update trivia stats after a question is checked, managing streaks and coins."""
+        now = now if now is not None else int(time.time())
+        current = await self.get_or_create_trivia_stats(user_id, guild_id)
+
+        new_attempted = current["questions_attempted"] + 1
+        new_correct = current["questions_correct"] + (1 if correct else 0)
+        new_marks = current["total_marks"] + marks
+        new_coins_won = current["total_coins_won"] + coins_won
+
+        if correct:
+            new_streak = current["current_streak"] + 1
+            new_best_streak = max(current["best_streak"], new_streak)
+        else:
+            new_streak = 0
+            new_best_streak = current["best_streak"]
+
+        await self.conn.execute(
+            """
+            UPDATE user_trivia_stats
+            SET questions_attempted = ?,
+                questions_correct = ?,
+                total_marks = ?,
+                total_coins_won = ?,
+                current_streak = ?,
+                best_streak = ?,
+                last_played_at = ?
+            WHERE user_id = ? AND guild_id = ?
+            """,
+            (
+                new_attempted,
+                new_correct,
+                new_marks,
+                new_coins_won,
+                new_streak,
+                new_best_streak,
+                now,
+                user_id,
+                guild_id,
+            ),
+        )
+
+        if coins_won > 0:
+            await self._add_coins_raw(user_id, guild_id, coins_won)
+
+        await self.conn.commit()
+        return {
+            "questions_attempted": new_attempted,
+            "questions_correct": new_correct,
+            "total_marks": new_marks,
+            "total_coins_won": new_coins_won,
+            "current_streak": new_streak,
+            "best_streak": new_best_streak,
+            "coins_won": coins_won,
+        }
+
+    async def get_trivia_leaderboard(self, guild_id: int, limit: int = 10) -> list[dict[str, Any]]:
+        """Return the top trivia performers for a guild ordered by total_marks DESC."""
+        cur = await self.conn.execute(
+            """
+            SELECT user_id, questions_attempted, questions_correct, total_marks, total_coins_won, current_streak, best_streak
+            FROM user_trivia_stats
+            WHERE guild_id = ? AND questions_attempted > 0
+            ORDER BY total_marks DESC, questions_correct DESC
+            LIMIT ?
+            """,
+            (guild_id, limit),
+        )
+        return [dict(r) for r in await cur.fetchall()]
