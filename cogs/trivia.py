@@ -2,14 +2,18 @@
 
 Supports:
 - `,trivia`: Interactive JEE Trivia Hub & Syllabus Explorer (All 89 Chapters, 737 Topics)
-- `,trivia r`: Instant random question across all subjects
-- `,trivia p/c/m`: Interactive Section & Chapter selector for Physics, Chem, Maths
-- `,trivia <chapter>` (e.g. `,trivia goc`, `,trivia emi`, `,trivia p&c`): Direct chapter lookup & topic selection
+- `,trivia r`: Quick instant random question across all subjects (single-shot mode, stops after answer)
+- `,trivia p/c/m`: Continuous study practice mode with section & chapter explorer
+- `,trivia <chapter>` (e.g. `,trivia oscillations`, `,trivia goc`, `,trivia emi`): Direct chapter practice
+- Continuous mode features:
+  - `[▶️ Next Question]`: Seamlessly asks the next question in the active chapter/topic
+  - `[🔀 Change Chapter / Topic]`: Switch to another chapter in the subject
+  - `[📚 Change Subject]`: Switch between Physics, Chemistry, and Mathematics
+  - `[🛑 Stop Trivia]`: Conclude study session with a comprehensive performance summary
 - `,trivia lb`: Server trivia leaderboard
 - `,trivia me`: Personal trivia performance stats
 - 10-second cooldown between trivia question starts
-- Dynamic coin rewards, XP grants, Halloween Candy drops, and streak tracking
-- Interactive Discord UI (Buttons for Single/Match/Assertion-Reason, Multi-Select for Multiple Correct, Modals for Integers)
+- Official JEE Marking (+4 / -1) and dynamic coin & XP awards
 """
 from __future__ import annotations
 
@@ -89,6 +93,10 @@ SECTION_EMOJIS = {
 }
 
 
+# ====================================================================== #
+# 1. Modals & Question Components                                        #
+# ====================================================================== #
+
 class TriviaIntegerModal(discord.ui.Modal, title="Submit Integer Answer"):
     """Modal dialog for integer-type JEE questions."""
 
@@ -115,24 +123,179 @@ class TriviaIntegerModal(discord.ui.Modal, title="Submit Integer Answer"):
         await self.view.handle_answer(interaction, val_int)
 
 
+class TriviaContinuousControlsView(discord.ui.View):
+    """Controls presented after a question concludes in continuous practice mode."""
+
+    def __init__(
+        self,
+        bot: commands.Bot,
+        ctx: commands.Context,
+        subject: Optional[str],
+        chapter: Optional[str],
+        topic: Optional[str],
+        session_stats: dict[str, int],
+    ) -> None:
+        super().__init__(timeout=180)
+        self.bot = bot
+        self.ctx = ctx
+        self.subject = subject
+        self.chapter = chapter
+        self.topic = topic
+        self.session_stats = session_stats
+        self.message: Optional[discord.Message] = None
+        self._build_components()
+
+    def _build_components(self) -> None:
+        next_btn = discord.ui.Button(
+            label="▶️ Next Question",
+            style=discord.ButtonStyle.success,
+            row=0,
+        )
+        next_btn.callback = self._next_callback
+        self.add_item(next_btn)
+
+        ch_btn = discord.ui.Button(
+            label="🔀 Change Chapter / Topic",
+            style=discord.ButtonStyle.primary,
+            row=0,
+        )
+        ch_btn.callback = self._change_chapter_callback
+        self.add_item(ch_btn)
+
+        sub_btn = discord.ui.Button(
+            label="📚 Change Subject",
+            style=discord.ButtonStyle.secondary,
+            row=0,
+        )
+        sub_btn.callback = self._change_subject_callback
+        self.add_item(sub_btn)
+
+        stop_btn = discord.ui.Button(
+            label="🛑 Stop Trivia",
+            style=discord.ButtonStyle.danger,
+            row=0,
+        )
+        stop_btn.callback = self._stop_callback
+        self.add_item(stop_btn)
+
+    async def _next_callback(self, interaction: discord.Interaction) -> None:
+        if interaction.user.id != self.ctx.author.id:
+            await interaction.response.send_message("Only the command caller can use these controls.", ephemeral=True)
+            return
+        trivia_cog: Trivia = self.bot.get_cog("Trivia")
+        if not trivia_cog or not trivia_cog._check_cooldown(self.ctx):
+            await interaction.response.send_message("⏳ Please wait a moment for the 10-second cooldown.", ephemeral=True)
+            return
+        await interaction.response.defer()
+        self.stop()
+        await trivia_cog._start_question(
+            self.ctx,
+            subject=self.subject,
+            chapter=self.chapter,
+            topic=self.topic,
+            continuous=True,
+            session_stats=self.session_stats,
+            edit_msg=self.message,
+        )
+
+    async def _change_chapter_callback(self, interaction: discord.Interaction) -> None:
+        if interaction.user.id != self.ctx.author.id:
+            await interaction.response.send_message("Only the command caller can use these controls.", ephemeral=True)
+            return
+        await interaction.response.defer()
+        self.stop()
+        trivia_cog: Trivia = self.bot.get_cog("Trivia")
+        if trivia_cog:
+            await trivia_cog._show_chapter_browser(
+                self.ctx,
+                subject=self.subject or "physics",
+                continuous=True,
+                session_stats=self.session_stats,
+                edit_msg=self.message,
+            )
+
+    async def _change_subject_callback(self, interaction: discord.Interaction) -> None:
+        if interaction.user.id != self.ctx.author.id:
+            await interaction.response.send_message("Only the command caller can use these controls.", ephemeral=True)
+            return
+        await interaction.response.defer()
+        self.stop()
+        trivia_cog: Trivia = self.bot.get_cog("Trivia")
+        if trivia_cog:
+            await trivia_cog._show_hub(
+                self.ctx,
+                continuous=True,
+                session_stats=self.session_stats,
+                edit_msg=self.message,
+            )
+
+    async def _stop_callback(self, interaction: discord.Interaction) -> None:
+        if interaction.user.id != self.ctx.author.id:
+            await interaction.response.send_message("Only the command caller can use these controls.", ephemeral=True)
+            return
+        self.stop()
+        for item in self.children:
+            item.disabled = True
+
+        att = self.session_stats.get("attempted", 0)
+        cor = self.session_stats.get("correct", 0)
+        mks = self.session_stats.get("marks", 0)
+        cns = self.session_stats.get("coins", 0)
+        acc = (cor / att * 100) if att > 0 else 0
+
+        summary_embed = embeds.base_embed(
+            title="🏁 Practice Trivia Session Concluded",
+            description=(
+                f"Great work practicing today, **{self.ctx.author.display_name}**!\n\n"
+                f"📝 **Questions Attempted:** `{att}`\n"
+                f"🎯 **Accuracy:** `{cor}/{att}` ({acc:.1f}%)\n"
+                f"📈 **Net Marks Earned:** `{mks:+} Marks`\n"
+                f"🪙 **Coins Won:** `+{cns:,}` 🪙\n\n"
+                f"Type `,trivia` anytime to explore the syllabus or start another practice session!"
+            ),
+            color=embeds.COLOR_INFO,
+        )
+        embeds.set_footer(summary_embed, "Session ended. All marks & coins saved to your profile.")
+        await interaction.response.edit_message(embed=summary_embed, view=self)
+
+    async def on_timeout(self) -> None:
+        for item in self.children:
+            item.disabled = True
+        if self.message:
+            try:
+                await self.message.edit(view=self)
+            except Exception:
+                pass
+
+
 class TriviaQuestionView(discord.ui.View):
     """Interactive component view for handling user responses to trivia questions."""
 
     def __init__(
         self,
         bot: commands.Bot,
+        ctx: commands.Context,
         question_data: dict[str, Any],
-        author_id: int,
-        guild_id: int,
         timeout_seconds: int = 60,
+        continuous: bool = False,
+        subject: Optional[str] = None,
+        chapter: Optional[str] = None,
+        topic: Optional[str] = None,
+        session_stats: Optional[dict[str, int]] = None,
     ) -> None:
         super().__init__(timeout=timeout_seconds)
         self.bot = bot
+        self.ctx = ctx
         self.db = bot.db
         self.q = question_data
-        self.author_id = author_id
-        self.guild_id = guild_id
+        self.author_id = ctx.author.id
+        self.guild_id = ctx.guild.id
         self.q_id = question_data["id"]
+        self.continuous = continuous
+        self.subject = subject
+        self.chapter = chapter
+        self.topic = topic
+        self.session_stats = session_stats or {"attempted": 0, "correct": 0, "marks": 0, "coins": 0}
         self.answered_users: set[int] = set()
         self.results_summary: list[dict[str, Any]] = []
         self.message: Optional[discord.Message] = None
@@ -238,7 +401,7 @@ class TriviaQuestionView(discord.ui.View):
             coins_won = 5
             xp_won = 5
 
-        # Update Database
+        # Update Database (fixed arguments: user.id, self.guild_id, amount)
         stats = await self.db.record_trivia_attempt(
             user_id=user.id,
             guild_id=self.guild_id,
@@ -248,9 +411,17 @@ class TriviaQuestionView(discord.ui.View):
         )
 
         if coins_won > 0:
-            await self.db.add_coins(user.id, coins_won)
+            await self.db.add_coins(user.id, self.guild_id, coins_won)
         if xp_won > 0:
-            await self.db.add_xp(user.id, self.guild_id, xp_won)
+            await self.db.grant_xp(user.id, self.guild_id, xp_won)
+
+        # Update session stats for author in continuous mode
+        if user.id == self.author_id:
+            self.session_stats["attempted"] += 1
+            if is_correct:
+                self.session_stats["correct"] += 1
+            self.session_stats["marks"] += marks
+            self.session_stats["coins"] += coins_won
 
         # Halloween candy drop
         candy_str = ""
@@ -343,12 +514,28 @@ class TriviaQuestionView(discord.ui.View):
         else:
             embed.add_field(name="⏰ Time Expired", value="Nobody submitted an answer before the timer ran out.", inline=False)
 
-        embeds.set_footer(embed, "Use ,trivia r for another question | ,trivia lb for leaderboard")
-
-        try:
-            await self.message.edit(embed=embed, view=self)
-        except Exception as e:
-            log.warning(f"Failed to edit trivia message on conclusion: {e}")
+        # If continuous mode is enabled, show the next question controls!
+        if self.continuous:
+            embeds.set_footer(embed, "Practice Mode Active · Click Next Question to continue or Stop to finish")
+            controls_view = TriviaContinuousControlsView(
+                bot=self.bot,
+                ctx=self.ctx,
+                subject=self.subject,
+                chapter=self.chapter,
+                topic=self.topic,
+                session_stats=self.session_stats,
+            )
+            controls_view.message = self.message
+            try:
+                await self.message.edit(embed=embed, view=controls_view)
+            except Exception as e:
+                log.warning(f"Failed to edit trivia message with continuous controls: {e}")
+        else:
+            embeds.set_footer(embed, "Use ,trivia r for another question | ,trivia p/c/m for continuous practice")
+            try:
+                await self.message.edit(embed=embed, view=self)
+            except Exception as e:
+                log.warning(f"Failed to edit trivia message on conclusion: {e}")
 
 
 # ====================================================================== #
@@ -358,10 +545,18 @@ class TriviaQuestionView(discord.ui.View):
 class TriviaHubView(discord.ui.View):
     """Main interactive Hub for exploring all 89 chapters and 737 topics."""
 
-    def __init__(self, bot: commands.Bot, ctx: commands.Context) -> None:
+    def __init__(
+        self,
+        bot: commands.Bot,
+        ctx: commands.Context,
+        continuous: bool = False,
+        session_stats: Optional[dict[str, int]] = None,
+    ) -> None:
         super().__init__(timeout=60)
         self.bot = bot
         self.ctx = ctx
+        self.continuous = continuous
+        self.session_stats = session_stats or {"attempted": 0, "correct": 0, "marks": 0, "coins": 0}
         self.message: Optional[discord.Message] = None
         self._build_components()
 
@@ -424,7 +619,13 @@ class TriviaHubView(discord.ui.View):
         self.stop()
         trivia_cog: Trivia = self.bot.get_cog("Trivia")
         if trivia_cog:
-            await trivia_cog._show_chapter_browser(self.ctx, subject=subject, edit_msg=self.message)
+            await trivia_cog._show_chapter_browser(
+                self.ctx,
+                subject=subject,
+                continuous=True,
+                session_stats=self.session_stats,
+                edit_msg=self.message,
+            )
 
     async def _random_callback(self, interaction: discord.Interaction) -> None:
         if interaction.user.id != self.ctx.author.id:
@@ -436,7 +637,7 @@ class TriviaHubView(discord.ui.View):
             return
         await interaction.response.defer()
         self.stop()
-        await trivia_cog._start_question(self.ctx, edit_msg=self.message)
+        await trivia_cog._start_question(self.ctx, continuous=False, edit_msg=self.message)
 
     async def _stats_callback(self, interaction: discord.Interaction) -> None:
         trivia_cog: Trivia = self.bot.get_cog("Trivia")
@@ -458,6 +659,8 @@ class TriviaChapterBrowserView(discord.ui.View):
         ctx: commands.Context,
         subject: str,
         selected_section: Optional[str] = None,
+        continuous: bool = True,
+        session_stats: Optional[dict[str, int]] = None,
     ) -> None:
         super().__init__(timeout=60)
         self.bot = bot
@@ -465,6 +668,8 @@ class TriviaChapterBrowserView(discord.ui.View):
         self.subject = subject
         self.sections = get_sections(subject)
         self.selected_section = selected_section or (self.sections[0] if self.sections else None)
+        self.continuous = continuous
+        self.session_stats = session_stats or {"attempted": 0, "correct": 0, "marks": 0, "coins": 0}
         self.message: Optional[discord.Message] = None
         self._build_components()
 
@@ -568,7 +773,14 @@ class TriviaChapterBrowserView(discord.ui.View):
         self.stop()
         trivia_cog: Trivia = self.bot.get_cog("Trivia")
         if trivia_cog:
-            await trivia_cog._show_topic_menu(self.ctx, self.subject, ch_data, edit_msg=self.message)
+            await trivia_cog._show_topic_menu(
+                self.ctx,
+                self.subject,
+                ch_data,
+                continuous=self.continuous,
+                session_stats=self.session_stats,
+                edit_msg=self.message,
+            )
 
     async def _random_section_callback(self, interaction: discord.Interaction) -> None:
         if interaction.user.id != self.ctx.author.id:
@@ -585,7 +797,14 @@ class TriviaChapterBrowserView(discord.ui.View):
             return
         await interaction.response.defer()
         self.stop()
-        await trivia_cog._start_question(self.ctx, subject=self.subject, chapter=chosen_ch["id"], edit_msg=self.message)
+        await trivia_cog._start_question(
+            self.ctx,
+            subject=self.subject,
+            chapter=chosen_ch["id"],
+            continuous=True,
+            session_stats=self.session_stats,
+            edit_msg=self.message,
+        )
 
     async def _random_subject_callback(self, interaction: discord.Interaction) -> None:
         if interaction.user.id != self.ctx.author.id:
@@ -597,7 +816,13 @@ class TriviaChapterBrowserView(discord.ui.View):
             return
         await interaction.response.defer()
         self.stop()
-        await trivia_cog._start_question(self.ctx, subject=self.subject, edit_msg=self.message)
+        await trivia_cog._start_question(
+            self.ctx,
+            subject=self.subject,
+            continuous=True,
+            session_stats=self.session_stats,
+            edit_msg=self.message,
+        )
 
     async def _back_hub_callback(self, interaction: discord.Interaction) -> None:
         if interaction.user.id != self.ctx.author.id:
@@ -607,7 +832,12 @@ class TriviaChapterBrowserView(discord.ui.View):
         self.stop()
         trivia_cog: Trivia = self.bot.get_cog("Trivia")
         if trivia_cog:
-            await trivia_cog._show_hub(self.ctx, edit_msg=self.message)
+            await trivia_cog._show_hub(
+                self.ctx,
+                continuous=self.continuous,
+                session_stats=self.session_stats,
+                edit_msg=self.message,
+            )
 
 
 class TriviaTopicSelectView(discord.ui.View):
@@ -619,12 +849,16 @@ class TriviaTopicSelectView(discord.ui.View):
         ctx: commands.Context,
         subject: str,
         chapter: dict[str, Any],
+        continuous: bool = True,
+        session_stats: Optional[dict[str, int]] = None,
     ) -> None:
         super().__init__(timeout=60)
         self.bot = bot
         self.ctx = ctx
         self.subject = subject
         self.chapter = chapter
+        self.continuous = continuous
+        self.session_stats = session_stats or {"attempted": 0, "correct": 0, "marks": 0, "coins": 0}
         self.selected_topic_id: Optional[str] = None
         self.message: Optional[discord.Message] = None
         self._build_components()
@@ -661,7 +895,7 @@ class TriviaTopicSelectView(discord.ui.View):
 
         # 2. Action Buttons
         start_btn = discord.ui.Button(
-            label="▶️ Start Chapter Question",
+            label="▶️ Start Chapter Practice",
             style=discord.ButtonStyle.success,
             emoji="🎯",
             row=1,
@@ -684,7 +918,7 @@ class TriviaTopicSelectView(discord.ui.View):
         selected = interaction.data.get("values", [None])[0]
         self.selected_topic_id = None if selected == "all" else selected
         await interaction.response.send_message(
-            f"✅ Target topic set to: **{self.selected_topic_id or 'Any in Chapter'}**.\nClick **Start Chapter Question** to begin!",
+            f"✅ Target topic set to: **{self.selected_topic_id or 'Any in Chapter'}**.\nClick **Start Chapter Practice** to begin!",
             ephemeral=True,
         )
 
@@ -703,6 +937,8 @@ class TriviaTopicSelectView(discord.ui.View):
             subject=self.subject,
             chapter=self.chapter["id"],
             topic=self.selected_topic_id,
+            continuous=True,
+            session_stats=self.session_stats,
             edit_msg=self.message,
         )
 
@@ -718,6 +954,8 @@ class TriviaTopicSelectView(discord.ui.View):
                 self.ctx,
                 subject=self.subject,
                 selected_section=self.chapter.get("section"),
+                continuous=self.continuous,
+                session_stats=self.session_stats,
                 edit_msg=self.message,
             )
 
@@ -756,11 +994,11 @@ class Trivia(commands.Cog, name="Trivia"):
 
         Usage:
         `,trivia` — Interactive Syllabus Browser Hub (all 89 chapters & 737 topics)
-        `,trivia r` — Quick instant random question across all subjects
-        `,trivia p` — Physics section & chapter browser (29 chapters)
-        `,trivia c` — Chemistry section & chapter browser (34 chapters)
-        `,trivia m` — Mathematics section & chapter browser (26 chapters)
-        `,trivia <chapter>` (e.g. `,trivia goc`, `,trivia emi`, `,trivia p&c`) — Direct chapter lookup & topic selection
+        `,trivia r` — Quick instant random question across all subjects (single-shot)
+        `,trivia p` — Physics section & chapter practice (29 chapters, continuous practice)
+        `,trivia c` — Chemistry section & chapter practice (34 chapters, continuous practice)
+        `,trivia m` — Mathematics section & chapter practice (26 chapters, continuous practice)
+        `,trivia <chapter>` (e.g. `,trivia oscillations`, `,trivia goc`, `,trivia emi`) — Direct chapter practice
         `,trivia lb` — Server trivia leaderboard
         `,trivia me` — Your personal trivia statistics
         """
@@ -781,34 +1019,34 @@ class Trivia(commands.Cog, name="Trivia"):
             await self._show_hub(ctx)
             return
 
-        # 4. Instant Random Question
+        # 4. Instant Random Question (single-shot mode, stops after answer)
         if sub in ("r", "rand", "random"):
             if not self._check_cooldown(ctx):
                 return
-            await self._start_question(ctx)
+            await self._start_question(ctx, continuous=False)
             return
 
-        # 5. Subject shortcuts
+        # 5. Subject shortcuts (enters continuous practice mode)
         if sub in ("p", "physics", "phys"):
-            await self._show_chapter_browser(ctx, "physics")
+            await self._show_chapter_browser(ctx, "physics", continuous=True)
             return
         if sub in ("c", "chemistry", "chem"):
-            await self._show_chapter_browser(ctx, "chemistry")
+            await self._show_chapter_browser(ctx, "chemistry", continuous=True)
             return
         if sub in ("m", "mathematics", "math", "maths"):
-            await self._show_chapter_browser(ctx, "mathematics")
+            await self._show_chapter_browser(ctx, "mathematics", continuous=True)
             return
 
-        # 6. Direct Chapter Search! (e.g. ,trivia goc, ,trivia emi, ,trivia thermodynamics)
+        # 6. Direct Chapter Search! (e.g. ,trivia oscillations, ,trivia goc, ,trivia emi)
         matched_sub, matched_ch = find_chapter(sub)
         if matched_ch and matched_sub:
-            await self._show_topic_menu(ctx, matched_sub["id"], matched_ch)
+            await self._show_topic_menu(ctx, matched_sub["id"], matched_ch, continuous=True)
             return
 
         # 7. Fallback to start random question
         if not self._check_cooldown(ctx):
             return
-        await self._start_question(ctx)
+        await self._start_question(ctx, continuous=False)
 
     def _make_hub_embed(self) -> discord.Embed:
         embed = embeds.base_embed(
@@ -820,11 +1058,11 @@ class Trivia(commands.Cog, name="Trivia"):
                 "📐 **Mathematics** — `26 Chapters` · `166 Topics`\n\n"
                 "⚡ **89 Chapters** & **737 Topics** total · Official JEE Marking (`+4` / `-1`)\n"
                 "💰 Earn coins & XP · ⏱️ 10-second cooldown between rounds\n\n"
-                "👇 *Click a subject below to browse all chapters & topics, or click Instant Random!*"
+                "👇 *Click a subject below to enter continuous practice mode, or click Instant Random!*"
             ),
             color=0x38BDF8,
         )
-        embeds.set_footer(embed, "Tip: Use shortcuts like ,trivia goc or ,trivia emi to jump directly to any chapter!")
+        embeds.set_footer(embed, "Tip: Use shortcuts like ,trivia oscillations or ,trivia goc directly!")
         return embed
 
     def _make_browser_embed(self, subject: str, selected_section: Optional[str]) -> discord.Embed:
@@ -850,7 +1088,7 @@ class Trivia(commands.Cog, name="Trivia"):
             ),
             color=color,
         )
-        embeds.set_footer(embed, "Choose a section or chapter below, or click Random")
+        embeds.set_footer(embed, "Practice Mode · Continuous trivia with Next Question controls")
         return embed
 
     def _make_topic_embed(self, subject: str, chapter: dict[str, Any]) -> discord.Embed:
@@ -873,17 +1111,23 @@ class Trivia(commands.Cog, name="Trivia"):
                 f"**Subject:** {subject.capitalize()} · **Exams:** `{exams_str}`\n"
                 f"**Official Topics Covered ({len(topics)} total):**\n"
                 f"{topic_text}\n\n"
-                f"🎯 *Select a specific topic from the dropdown below, or click **Start Chapter Question** to begin!*"
+                f"🎯 *Select a specific topic from the dropdown below, or click **Start Chapter Practice** to begin!*"
             ),
             color=color,
         )
-        embeds.set_footer(embed, "100% JEE Theory Trivia · Official +4/-1 Marking")
+        embeds.set_footer(embed, "100% JEE Theory Trivia · Continuous Practice Mode Enabled")
         return embed
 
-    async def _show_hub(self, ctx: commands.Context, edit_msg: Optional[discord.Message] = None) -> None:
+    async def _show_hub(
+        self,
+        ctx: commands.Context,
+        continuous: bool = False,
+        session_stats: Optional[dict[str, int]] = None,
+        edit_msg: Optional[discord.Message] = None,
+    ) -> None:
         """Display the main interactive syllabus hub."""
         embed = self._make_hub_embed()
-        view = TriviaHubView(self.bot, ctx)
+        view = TriviaHubView(self.bot, ctx, continuous=continuous, session_stats=session_stats)
         if edit_msg:
             try:
                 await edit_msg.edit(embed=embed, view=view)
@@ -899,10 +1143,19 @@ class Trivia(commands.Cog, name="Trivia"):
         ctx: commands.Context,
         subject: str,
         selected_section: Optional[str] = None,
+        continuous: bool = True,
+        session_stats: Optional[dict[str, int]] = None,
         edit_msg: Optional[discord.Message] = None,
     ) -> None:
         """Display the section and chapter browser for a subject."""
-        view = TriviaChapterBrowserView(self.bot, ctx, subject, selected_section)
+        view = TriviaChapterBrowserView(
+            self.bot,
+            ctx,
+            subject,
+            selected_section,
+            continuous=continuous,
+            session_stats=session_stats,
+        )
         embed = self._make_browser_embed(subject, view.selected_section)
         if edit_msg:
             try:
@@ -919,11 +1172,20 @@ class Trivia(commands.Cog, name="Trivia"):
         ctx: commands.Context,
         subject: str,
         chapter: dict[str, Any],
+        continuous: bool = True,
+        session_stats: Optional[dict[str, int]] = None,
         edit_msg: Optional[discord.Message] = None,
     ) -> None:
         """Display chapter details and topic selector."""
         embed = self._make_topic_embed(subject, chapter)
-        view = TriviaTopicSelectView(self.bot, ctx, subject, chapter)
+        view = TriviaTopicSelectView(
+            self.bot,
+            ctx,
+            subject,
+            chapter,
+            continuous=continuous,
+            session_stats=session_stats,
+        )
         if edit_msg:
             try:
                 await edit_msg.edit(embed=embed, view=view)
@@ -940,6 +1202,8 @@ class Trivia(commands.Cog, name="Trivia"):
         subject: Optional[str] = None,
         chapter: Optional[str] = None,
         topic: Optional[str] = None,
+        continuous: bool = False,
+        session_stats: Optional[dict[str, int]] = None,
         edit_msg: Optional[discord.Message] = None,
     ) -> None:
         """Fetch question from CJA and render the interactive question embed."""
@@ -963,6 +1227,7 @@ class Trivia(commands.Cog, name="Trivia"):
                 subject=subject,
                 chapter=chapter,
                 topic=topic,
+                fast=True,
                 hide_answer=True,
                 embed=True,
             )
@@ -1011,17 +1276,21 @@ class Trivia(commands.Cog, name="Trivia"):
         embed.add_field(name="🎯 Topic", value=f"`{topic_name}`", inline=True)
         embed.add_field(name="⚡ Details", value=f"{diff} · {q_type_name}", inline=True)
 
-        embeds.set_footer(
-            embed,
-            f"⏱️ Time limit: {timeout_sec}s · Answer using the components below!",
-        )
+        footer_text = f"⏱️ Time limit: {timeout_sec}s · Answer using the components below!"
+        if continuous:
+            footer_text += " · Practice Mode (Next Question controls after answer)"
+        embeds.set_footer(embed, footer_text)
 
         view = TriviaQuestionView(
             bot=self.bot,
+            ctx=ctx,
             question_data=q_data,
-            author_id=ctx.author.id,
-            guild_id=ctx.guild.id,
             timeout_seconds=timeout_sec,
+            continuous=continuous,
+            subject=subject,
+            chapter=chapter or q_data.get("chapter", {}).get("id"),
+            topic=topic,
+            session_stats=session_stats,
         )
 
         await msg.edit(embed=embed, view=view)

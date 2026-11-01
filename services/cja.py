@@ -351,6 +351,32 @@ OFFLINE_QUESTION_POOL: list[dict[str, Any]] = [
             "concept": "King's Property: ∫₀ᵃ f(x) dx = ∫₀ᵃ f(a-x) dx",
         },
     },
+    {
+        "id": "offline_phys_shm_10",
+        "exam": {"id": "main", "name": "JEE Main"},
+        "subject": {"id": "physics", "name": "Physics"},
+        "chapter": {"id": "oscillations", "name": "Oscillations", "section": "Oscillations and Waves"},
+        "topic": {"id": "simple-harmonic-motion-and-its-equation", "name": "Simple Harmonic Motion & Energy"},
+        "type": {"id": "single", "name": "Single Correct", "instructions": "Choose the one correct option."},
+        "difficulty": "medium",
+        "question": "For a particle executing simple harmonic motion (SHM) with amplitude A, at what displacement from the mean position are its kinetic energy and potential energy equal (assuming zero potential energy at mean position)?",
+        "options": [
+            {"key": "A", "text": "x = A / 2"},
+            {"key": "B", "text": "x = A / √2"},
+            {"key": "C", "text": "x = A / √3"},
+            {"key": "D", "text": "x = A / 4"},
+        ],
+        "verified": True,
+        "_answer": {
+            "result": "correct",
+            "correct": True,
+            "marks": 4,
+            "marking": {"correct": 4, "incorrect": -1},
+            "answer": {"options": ["B"], "integer": None, "display": "B"},
+            "explanation": "In SHM, KE = 1/2 m ω² (A² - x²) and PE = 1/2 m ω² x². Equating KE = PE: A² - x² = x² => 2x² = A² => x = A / √2.",
+            "concept": "Energy in Simple Harmonic Motion: KE = PE at x = A/√2",
+        },
+    },
 ]
 
 # In-memory store for offline question answers
@@ -407,17 +433,20 @@ class CJAService:
         exam: Optional[str] = None,
         q_type: Optional[str] = None,
         difficulty: Optional[str] = None,
+        fast: bool = True,
         hide_answer: bool = True,
         embed: bool = True,
     ) -> dict[str, Any]:
         """Fetch a trivia question from CJA with 30s timeout and automatic retry on GENERATION_FAILED."""
         # Fallback to local verified pool if CJA is unconfigured
         if not self.base_url:
-            return self._get_offline_question(subject)
+            return self._get_offline_question(subject, chapter)
 
         params: dict[str, Any] = {"hideAnswer": "true" if hide_answer else "false"}
         if embed:
             params["embed"] = "true"
+        if fast:
+            params["fast"] = "true"
         if subject:
             params["subject"] = subject.lower()
         if chapter:
@@ -456,27 +485,27 @@ class CJAService:
                             await asyncio.sleep(1)
                             continue
                         log.warning("CJA generation failed twice; using verified question fallback.")
-                        return self._get_offline_question(subject)
+                        return self._get_offline_question(subject, chapter)
 
                     raise CJAError(code=code, message=msg, suggestions=sugg, retry_after=retry_after)
 
             except aiohttp.ClientConnectorError as e:
                 log.warning(f"Could not connect to CJA ({e}); using offline question fallback.")
-                return self._get_offline_question(subject)
+                return self._get_offline_question(subject, chapter)
             except asyncio.TimeoutError:
                 if attempt == 0:
                     log.warning("CJA request timed out; retrying once...")
                     await asyncio.sleep(1)
                     continue
                 log.warning("CJA request timed out twice; falling back to offline question pool.")
-                return self._get_offline_question(subject)
+                return self._get_offline_question(subject, chapter)
             except CJAError:
                 raise
             except Exception as e:
                 log.error(f"Unexpected error in get_question: {e}", exc_info=True)
-                return self._get_offline_question(subject)
+                return self._get_offline_question(subject, chapter)
 
-        return self._get_offline_question(subject)
+        return self._get_offline_question(subject, chapter)
 
     # ------------------------------------------------------------------ #
     # 2. POST /api/v1/question/:id/check
@@ -564,16 +593,24 @@ class CJAService:
     # ------------------------------------------------------------------ #
     # Offline fallbacks & helpers
     # ------------------------------------------------------------------ #
-    def _get_offline_question(self, subject: Optional[str] = None) -> dict[str, Any]:
-        """Return a random question matching the subject filter from the offline pool."""
+    def _get_offline_question(self, subject: Optional[str] = None, chapter: Optional[str] = None) -> dict[str, Any]:
+        """Return a verified question matching the subject/chapter filter."""
         import random
         pool = OFFLINE_QUESTION_POOL
+        if chapter:
+            filtered = [q for q in pool if q.get("chapter", {}).get("id", "").lower() == chapter.lower()]
+            if filtered:
+                q = random.choice(filtered).copy()
+                q.pop("_answer", None)
+                return q
+            # If chapter was explicitly requested but not in offline pool, don't pretend it's that chapter!
+            raise CJAError("GENERATION_FAILED", f"Could not generate question for chapter '{chapter}'. Please retry in a few seconds!")
+
         if subject:
             filtered = [q for q in pool if q["subject"]["id"].lower() == subject.lower() or subject.lower() in q["subject"]["id"].lower()]
             if filtered:
                 pool = filtered
         q = random.choice(pool).copy()
-        # Ensure answer is hidden
         q.pop("_answer", None)
         return q
 
