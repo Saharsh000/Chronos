@@ -178,6 +178,84 @@ OFFLINE_QUESTION_POOL: list[dict[str, Any]] = [
             "concept": "Orthogonal Matrices: Properties of Determinant and Transpose",
         },
     },
+    {
+        "id": "offline_phys_optics_07",
+        "exam": {"id": "main", "name": "JEE Main"},
+        "subject": {"id": "physics", "name": "Physics"},
+        "chapter": {"id": "wave-optics", "name": "Wave Optics", "section": "Optics"},
+        "topic": {"id": "brewsters-law", "name": "Polarization by Reflection (Brewster's Law)"},
+        "type": {"id": "single", "name": "Single Correct", "instructions": "Choose the one correct option."},
+        "difficulty": "medium",
+        "question": "When unpolarized light is incident on a transparent dielectric medium at the polarizing angle (Brewster's angle θ_p), which of the following statements is strictly true?",
+        "options": [
+            {"key": "A", "text": "The reflected and refracted rays are parallel to each other"},
+            {"key": "B", "text": "The reflected and refracted rays are mutually perpendicular (angle = 90°)"},
+            {"key": "C", "text": "The refracted ray is 100% completely linearly polarized"},
+            {"key": "D", "text": "No light enters the refracting medium (total internal reflection)"},
+        ],
+        "verified": True,
+        "_answer": {
+            "result": "correct",
+            "correct": True,
+            "marks": 4,
+            "marking": {"correct": 4, "incorrect": -1},
+            "answer": {"options": ["B"], "integer": None, "display": "B"},
+            "explanation": "According to Brewster's law, at the polarizing angle of incidence θ_p, the reflected ray is completely linearly polarized with vibrations perpendicular to the plane of incidence, and the reflected and refracted rays are at right angles (θ_p + r = 90°).",
+            "concept": "Brewster's Law: tan(θ_p) = μ and Perpendicular Rays",
+        },
+    },
+    {
+        "id": "offline_chem_salt_08",
+        "exam": {"id": "main", "name": "JEE Main"},
+        "subject": {"id": "chemistry", "name": "Chemistry"},
+        "chapter": {"id": "qualitative-analysis", "name": "Qualitative Salt Analysis", "section": "Inorganic Chemistry"},
+        "topic": {"id": "brown-ring", "name": "Brown Ring Test for Nitrate Ion"},
+        "type": {"id": "single", "name": "Single Correct", "instructions": "Choose the one correct option."},
+        "difficulty": "hard",
+        "question": "In the brown ring test for the detection of nitrate (NO₃⁻) ion, what is the chemical formula and oxidation state of iron in the brown ring complex?",
+        "options": [
+            {"key": "A", "text": "[Fe(H₂O)₅(NO)]²⁺ with Fe in +1 oxidation state"},
+            {"key": "B", "text": "[Fe(H₂O)₅(NO₂)]³⁺ with Fe in +3 oxidation state"},
+            {"key": "C", "text": "[Fe(H₂O)₄(NO)₂]²⁺ with Fe in +2 oxidation state"},
+            {"key": "D", "text": "[Fe(NO)₆]³⁺ with Fe in +3 oxidation state"},
+        ],
+        "verified": True,
+        "_answer": {
+            "result": "correct",
+            "correct": True,
+            "marks": 4,
+            "marking": {"correct": 4, "incorrect": -1},
+            "answer": {"options": ["A"], "integer": None, "display": "A"},
+            "explanation": "The brown ring is formed by the pentaaquanitrosyliron(I) complex [Fe(H₂O)₅(NO)]²⁺. Nitric oxide acts as NO⁺, transferring an electron to Fe²⁺ to yield Fe⁺ (+1 state) with 3 unpaired electrons (magnetic moment ~ 3.87 BM).",
+            "concept": "Brown Ring Complex: [Fe(H₂O)₅(NO)]SO₄ and Fe(I) State",
+        },
+    },
+    {
+        "id": "offline_math_calculus_09",
+        "exam": {"id": "main", "name": "JEE Main"},
+        "subject": {"id": "mathematics", "name": "Mathematics"},
+        "chapter": {"id": "definite-integrals", "name": "Definite Integrals", "section": "Calculus"},
+        "topic": {"id": "kings-rule", "name": "King's Property of Definite Integrals"},
+        "type": {"id": "single", "name": "Single Correct", "instructions": "Choose the one correct option."},
+        "difficulty": "medium",
+        "question": "What is the value of the definite integral ∫₀^(π/2) [sin³(x) / (sin³(x) + cos³(x))] dx?",
+        "options": [
+            {"key": "A", "text": "π"},
+            {"key": "B", "text": "π/2"},
+            {"key": "C", "text": "π/4"},
+            {"key": "D", "text": "0"},
+        ],
+        "verified": True,
+        "_answer": {
+            "result": "correct",
+            "correct": True,
+            "marks": 4,
+            "marking": {"correct": 4, "incorrect": -1},
+            "answer": {"options": ["C"], "integer": None, "display": "C"},
+            "explanation": "Applying King's property ∫ₐᵇ f(x) dx = ∫ₐᵇ f(a+b-x) dx: Replace x with (π/2 - x) to get I = ∫₀^(π/2) [cos³(x) / (cos³(x) + sin³(x))] dx. Adding the two integrals gives 2I = ∫₀^(π/2) 1 dx = π/2 => I = π/4.",
+            "concept": "King's Property: ∫₀ᵃ f(x) dx = ∫₀ᵃ f(a-x) dx",
+        },
+    },
 ]
 
 # In-memory store for offline question answers
@@ -198,9 +276,15 @@ class CJAService:
     """Async client for CJA endpoints."""
 
     def __init__(self) -> None:
-        self.base_url = config.CJA_URL
-        self.api_key = config.CJA_KEY
         self._session: Optional[aiohttp.ClientSession] = None
+
+    @property
+    def base_url(self) -> str:
+        return config.CJA_URL
+
+    @property
+    def api_key(self) -> str:
+        return config.CJA_KEY
 
     async def _get_session(self) -> aiohttp.ClientSession:
         if self._session is None or self._session.closed:
@@ -270,11 +354,14 @@ class CJAService:
                     sugg = err.get("suggestions", [])
                     retry_after = err.get("retryAfterSeconds", 0)
 
-                    # Retry once automatically on GENERATION_FAILED
-                    if code == "GENERATION_FAILED" and attempt == 0:
-                        log.warning("CJA generation failed, retrying once...")
-                        await asyncio.sleep(1)
-                        continue
+                    # Retry once automatically on GENERATION_FAILED, then fallback
+                    if code == "GENERATION_FAILED":
+                        if attempt == 0:
+                            log.warning("CJA generation failed, retrying once...")
+                            await asyncio.sleep(1)
+                            continue
+                        log.warning("CJA generation failed twice; using verified question fallback.")
+                        return self._get_offline_question(subject)
 
                     raise CJAError(code=code, message=msg, suggestions=sugg, retry_after=retry_after)
 
