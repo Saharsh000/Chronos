@@ -72,6 +72,59 @@ class ChronosBot(commands.Bot):
         activity = discord.Activity(type=discord.ActivityType.watching, name=f"{config.PREFIX}help")
         await self.change_presence(activity=activity)
 
+    async def on_command_completion(self, ctx: commands.Context) -> None:
+        if not ctx.guild or not ctx.author or ctx.author.bot:
+            return
+        try:
+            await self._check_top3_daily_perk(ctx)
+        except Exception:
+            log.exception(f"Error checking Top 3 daily perk for user {ctx.author.id}")
+
+    async def _check_top3_daily_perk(self, ctx: commands.Context) -> None:
+        import time
+        from utils import streaks, embeds, emojis
+        now = int(time.time())
+        today = streaks.date_str(now)
+
+        claimed = await self.db.get_top3_daily_claim(ctx.author.id, ctx.guild.id, today)
+        if claimed:
+            return
+
+        top3 = await self.db.get_top3_members(ctx.guild.id)
+        if not top3:
+            return
+
+        rank = None
+        for i, (uid, _) in enumerate(top3):
+            if uid == ctx.author.id:
+                rank = i + 1
+                break
+
+        if not rank:
+            return
+
+        perk = await self.db.claim_top3_daily_perk(ctx.author.id, ctx.guild.id, rank, today, now=now)
+        if not perk:
+            return
+
+        coin_icon = emojis.coin(ctx.guild)
+        box_icon = emojis.item(perk["item_award"], ctx.guild)
+        embed = embeds.base_embed(
+            title=f"👑 Top 3 Daily Dawn Perk — {perk['badge']}",
+            description=(
+                f"Rise and shine, {ctx.author.mention}! As one of the server's **Top 3 Study Champions**, "
+                f"your first command of the day unlocked the **{perk['perk_name']}**!\n\n"
+                f"⚡ **Active Focus Buff:** `{perk['boost_desc']}`\n"
+                f"🪙 **Daily Coins:** `+{perk['coins']}` {coin_icon}\n"
+                f"🎁 **Vault Drop:** `+1` {box_icon} **{perk['item_name']}**\n\n"
+                f"*Keep setting the standard on the study leaderboard!*"
+            ),
+            color=embeds.COLOR_LEVELUP if rank == 1 else embeds.COLOR_PROGRESS,
+        )
+        embed.set_thumbnail(url=ctx.author.display_avatar.url)
+        embeds.set_footer(embed, "Leaderboard Top 3 Perks · Resets daily at 00:00 IST")
+        await ctx.send(embed=embed)
+
     async def on_command_error(self, ctx: commands.Context, error: commands.CommandError) -> None:
         from utils import embeds
 

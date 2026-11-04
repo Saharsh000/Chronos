@@ -313,6 +313,34 @@ CREATE TABLE IF NOT EXISTS user_trivia_stats (
 );
 
 CREATE INDEX IF NOT EXISTS idx_trivia_guild_marks ON user_trivia_stats (guild_id, total_marks DESC);
+
+-- Top 3 Leaderboard Daily Dawn Perks
+CREATE TABLE IF NOT EXISTS top3_daily_claims (
+    user_id     INTEGER NOT NULL,
+    guild_id    INTEGER NOT NULL,
+    rank        INTEGER NOT NULL,
+    claim_date  TEXT NOT NULL,
+    claimed_at  INTEGER NOT NULL,
+    PRIMARY KEY (user_id, guild_id, claim_date)
+);
+
+-- Chronotes: User Notes Suite
+CREATE TABLE IF NOT EXISTS user_notes (
+    note_id     INTEGER PRIMARY KEY AUTOINCREMENT,
+    user_id     INTEGER NOT NULL,
+    guild_id    INTEGER NOT NULL,
+    title       TEXT NOT NULL,
+    subject     TEXT NOT NULL DEFAULT 'General',
+    content     TEXT NOT NULL,
+    image_url   TEXT,
+    is_pinned   INTEGER NOT NULL DEFAULT 0,
+    color_hex   TEXT NOT NULL DEFAULT '#38BDF8',
+    created_at  INTEGER NOT NULL,
+    updated_at  INTEGER NOT NULL
+);
+
+CREATE INDEX IF NOT EXISTS idx_user_notes_lookup ON user_notes (user_id, guild_id, subject);
+CREATE INDEX IF NOT EXISTS idx_user_notes_pinned ON user_notes (user_id, guild_id, is_pinned DESC, updated_at DESC);
 """
 
 # Columns added to `user_stats` after its original release. Applied by
@@ -520,6 +548,37 @@ class Database:
         """)
         await self._conn.execute("""
         CREATE INDEX IF NOT EXISTS idx_trivia_guild_marks ON user_trivia_stats (guild_id, total_marks DESC);
+        """)
+        await self._conn.execute("""
+        CREATE TABLE IF NOT EXISTS top3_daily_claims (
+            user_id     INTEGER NOT NULL,
+            guild_id    INTEGER NOT NULL,
+            rank        INTEGER NOT NULL,
+            claim_date  TEXT NOT NULL,
+            claimed_at  INTEGER NOT NULL,
+            PRIMARY KEY (user_id, guild_id, claim_date)
+        );
+        """)
+        await self._conn.execute("""
+        CREATE TABLE IF NOT EXISTS user_notes (
+            note_id     INTEGER PRIMARY KEY AUTOINCREMENT,
+            user_id     INTEGER NOT NULL,
+            guild_id    INTEGER NOT NULL,
+            title       TEXT NOT NULL,
+            subject     TEXT NOT NULL DEFAULT 'General',
+            content     TEXT NOT NULL,
+            image_url   TEXT,
+            is_pinned   INTEGER NOT NULL DEFAULT 0,
+            color_hex   TEXT NOT NULL DEFAULT '#38BDF8',
+            created_at  INTEGER NOT NULL,
+            updated_at  INTEGER NOT NULL
+        );
+        """)
+        await self._conn.execute("""
+        CREATE INDEX IF NOT EXISTS idx_user_notes_lookup ON user_notes (user_id, guild_id, subject);
+        """)
+        await self._conn.execute("""
+        CREATE INDEX IF NOT EXISTS idx_user_notes_pinned ON user_notes (user_id, guild_id, is_pinned DESC, updated_at DESC);
         """)
 
     async def _migrate_table(self, table: str, migrations: dict[str, str]) -> None:
@@ -2806,3 +2865,193 @@ class Database:
         )
         total_players = (await cur.fetchone())[0]
         return rank, max(1, total_players)
+
+    # ------------------------------------------------------------------ #
+    # Top 3 Leaderboard Daily Dawn Perks
+    # ------------------------------------------------------------------ #
+    async def get_top3_members(self, guild_id: int) -> list[tuple[int, int]]:
+        """Return list of (user_id, total_seconds) for the top 3 all-time
+        study leaders in guild_id with > 0 seconds."""
+        totals = await self.get_alltime_totals(guild_id)
+        ranking = sorted(totals.items(), key=lambda kv: kv[1], reverse=True)
+        return [(uid, secs) for uid, secs in ranking[:3] if secs > 0]
+
+    async def get_top3_daily_claim(
+        self, user_id: int, guild_id: int, claim_date: str
+    ) -> Optional[dict[str, Any]]:
+        """Return claim row if user has claimed their top 3 daily perk on claim_date."""
+        cur = await self.conn.execute(
+            "SELECT * FROM top3_daily_claims WHERE user_id = ? AND guild_id = ? AND claim_date = ?",
+            (user_id, guild_id, claim_date),
+        )
+        row = await cur.fetchone()
+        return dict(row) if row else None
+
+    async def claim_top3_daily_perk(
+        self, user_id: int, guild_id: int, rank: int, claim_date: str, now: Optional[int] = None
+    ) -> Optional[dict[str, Any]]:
+        """Award unique daily dawn perk to a top-3 leaderboard member.
+        Returns perk details dictionary, or None if already claimed today."""
+        now = now if now is not None else int(time.time())
+        existing = await self.get_top3_daily_claim(user_id, guild_id, claim_date)
+        if existing:
+            return None
+
+        if rank == 1:
+            perk_name = "Sovereign's Dawn Blessing"
+            badge = "👑 Rank #1 Sovereign"
+            coins_award = 120
+            item_award = "mystery_box"
+            item_name = "Ancient Mystery Chest"
+            boost_desc = "+100% XP & Coin Gain (2 Hours)"
+            await self.activate_effect(user_id, guild_id, "xp_boost", 7200, multiplier=2, now=now)
+            await self.activate_effect(user_id, guild_id, "coin_boost", 7200, multiplier=2, now=now)
+        elif rank == 2:
+            perk_name = "Ascendant's Dawn Grace"
+            badge = "⚔️ Rank #2 Ascendant"
+            coins_award = 80
+            item_award = "streak_freeze"
+            item_name = "Glacial Streak Freeze"
+            boost_desc = "+100% XP Boost (1.5 Hours)"
+            await self.activate_effect(user_id, guild_id, "xp_boost", 5400, multiplier=2, now=now)
+        elif rank == 3:
+            perk_name = "Vanguard's Dawn Resolve"
+            badge = "🥉 Rank #3 Vanguard"
+            coins_award = 50
+            item_award = "xp_boost"
+            item_name = "Bottle o' XP Elixir"
+            boost_desc = "+100% Coin Boost (1 Hour)"
+            await self.activate_effect(user_id, guild_id, "coin_boost", 3600, multiplier=2, now=now)
+        else:
+            return None
+
+        await self.add_coins(user_id, guild_id, coins_award)
+        if item_award:
+            await self.add_item(user_id, guild_id, item_award, 1)
+
+        await self.conn.execute(
+            """
+            INSERT INTO top3_daily_claims (user_id, guild_id, rank, claim_date, claimed_at)
+            VALUES (?, ?, ?, ?, ?)
+            """,
+            (user_id, guild_id, rank, claim_date, now),
+        )
+        await self.conn.commit()
+
+        return {
+            "rank": rank,
+            "perk_name": perk_name,
+            "badge": badge,
+            "coins": coins_award,
+            "item_award": item_award,
+            "item_name": item_name,
+            "boost_desc": boost_desc,
+        }
+
+    # ------------------------------------------------------------------ #
+    # Chronotes: User Study Notebook Database Operations
+    # ------------------------------------------------------------------ #
+    async def create_note(
+        self, user_id: int, guild_id: int, title: str, content: str,
+        subject: str = "General", image_url: Optional[str] = None,
+        is_pinned: bool = False, color_hex: str = "#38BDF8", now: Optional[int] = None,
+    ) -> int:
+        now = now if now is not None else int(time.time())
+        cur = await self.conn.execute(
+            """
+            INSERT INTO user_notes (user_id, guild_id, title, subject, content, image_url, is_pinned, color_hex, created_at, updated_at)
+            VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+            """,
+            (user_id, guild_id, title.strip(), subject.strip(), content.strip(), image_url, 1 if is_pinned else 0, color_hex, now, now),
+        )
+        await self.conn.commit()
+        return cur.lastrowid
+
+    async def get_user_notes(
+        self, user_id: int, guild_id: int, subject: Optional[str] = None,
+        search: Optional[str] = None, pinned_only: bool = False, limit: int = 50,
+    ) -> list[dict[str, Any]]:
+        query = "SELECT * FROM user_notes WHERE user_id = ? AND guild_id = ?"
+        params: list[Any] = [user_id, guild_id]
+
+        if subject and subject.lower() not in ("all", "any"):
+            query += " AND LOWER(subject) = ?"
+            params.append(subject.lower())
+
+        if pinned_only:
+            query += " AND is_pinned = 1"
+
+        if search:
+            query += " AND (title LIKE ? OR content LIKE ?)"
+            s_param = f"%{search.strip()}%"
+            params.extend([s_param, s_param])
+
+        query += " ORDER BY is_pinned DESC, updated_at DESC LIMIT ?"
+        params.append(limit)
+
+        cur = await self.conn.execute(query, tuple(params))
+        rows = await cur.fetchall()
+        return [dict(r) for r in rows]
+
+    async def get_note_by_id(self, note_id: int, user_id: int) -> Optional[dict[str, Any]]:
+        cur = await self.conn.execute(
+            "SELECT * FROM user_notes WHERE note_id = ? AND user_id = ?",
+            (note_id, user_id),
+        )
+        row = await cur.fetchone()
+        return dict(row) if row else None
+
+    async def update_note(
+        self, note_id: int, user_id: int, title: Optional[str] = None,
+        content: Optional[str] = None, subject: Optional[str] = None,
+        is_pinned: Optional[int] = None, image_url: Optional[str] = None,
+        now: Optional[int] = None,
+    ) -> bool:
+        note = await self.get_note_by_id(note_id, user_id)
+        if not note:
+            return False
+
+        now = now if now is not None else int(time.time())
+        new_title = title if title is not None else note["title"]
+        new_content = content if content is not None else note["content"]
+        new_subject = subject if subject is not None else note["subject"]
+        new_pinned = is_pinned if is_pinned is not None else note["is_pinned"]
+        new_image = image_url if image_url is not None else note["image_url"]
+
+        await self.conn.execute(
+            """
+            UPDATE user_notes
+            SET title = ?, content = ?, subject = ?, is_pinned = ?, image_url = ?, updated_at = ?
+            WHERE note_id = ? AND user_id = ?
+            """,
+            (new_title, new_content, new_subject, new_pinned, new_image, now, note_id, user_id),
+        )
+        await self.conn.commit()
+        return True
+
+    async def delete_note(self, note_id: int, user_id: int) -> bool:
+        cur = await self.conn.execute(
+            "DELETE FROM user_notes WHERE note_id = ? AND user_id = ?",
+            (note_id, user_id),
+        )
+        await self.conn.commit()
+        return cur.rowcount > 0
+
+    async def get_note_stats(self, user_id: int, guild_id: int) -> dict[str, Any]:
+        cur = await self.conn.execute(
+            "SELECT COUNT(*) AS total, SUM(CASE WHEN is_pinned = 1 THEN 1 ELSE 0 END) AS pinned FROM user_notes WHERE user_id = ? AND guild_id = ?",
+            (user_id, guild_id),
+        )
+        row = await cur.fetchone()
+        total = row["total"] if row and row["total"] else 0
+        pinned = row["pinned"] if row and row["pinned"] else 0
+
+        cur_sub = await self.conn.execute(
+            "SELECT subject, COUNT(*) AS count FROM user_notes WHERE user_id = ? AND guild_id = ? GROUP BY subject",
+            (user_id, guild_id),
+        )
+        sub_rows = await cur_sub.fetchall()
+        subject_counts = {r["subject"]: r["count"] for r in sub_rows}
+
+        return {"total": total, "pinned": pinned, "subject_counts": subject_counts}
+

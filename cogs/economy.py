@@ -379,6 +379,80 @@ class Economy(commands.Cog, name="Economy"):
         await ctx.send(embed=embed)
         await self._announce_achievements(ctx)
 
+    @commands.command(name="dailyperks", aliases=["dailyperk", "top3perks", "perks", "top3"])
+    @commands.guild_only()
+    async def top3_perks_cmd(self, ctx: commands.Context) -> None:
+        """View the Top 3 Leaderboard Daily Dawn Perks and today's claim status."""
+        import time
+        from utils import streaks
+        now = int(time.time())
+        today = streaks.date_str(now)
+
+        top3 = await self.db.get_top3_members(ctx.guild.id)
+        coin_e = emojis.coin(ctx.guild)
+
+        embed = embeds.base_embed(
+            title="👑 Top 3 Leaderboard Daily Dawn Perks",
+            description=(
+                "The server's **Top 3 Study Champions** unlock exclusive buffs and daily drops on their "
+                "very first command every day (resets 00:00 IST)!\n\n"
+                "**Perk Tier Breakdown:**\n"
+                "🥇 **Rank #1 Sovereign:** +100% XP & Coin Gain (2h) · +120 Chronocoins · 1× Ancient Mystery Chest\n"
+                "🥈 **Rank #2 Ascendant:** +100% XP Boost (1.5h) · +80 Chronocoins · 1× Glacial Streak Freeze\n"
+                "🥉 **Rank #3 Vanguard:** +100% Coin Boost (1h) · +50 Chronocoins · 1× Bottle o' XP Elixir\n"
+            ),
+            color=embeds.COLOR_LEVELUP,
+        )
+
+        lines = []
+        user_rank = None
+        user_claim = await self.db.get_top3_daily_claim(ctx.author.id, ctx.guild.id, today)
+
+        titles = [
+            ("👑 Rank #1 Sovereign", "120 🪙 · 1× Mystery Box · 2h XP+Coin Boost"),
+            ("⚔️ Rank #2 Ascendant", "80 🪙 · 1× Streak Freeze · 1.5h XP Boost"),
+            ("🥉 Rank #3 Vanguard", "50 🪙 · 1× XP Elixir · 1h Coin Boost"),
+        ]
+
+        if not top3:
+            lines.append("*No members have logged study time yet.*")
+        else:
+            for i in range(3):
+                title, reward_str = titles[i]
+                if i < len(top3):
+                    uid, secs = top3[i]
+                    if uid == ctx.author.id:
+                        user_rank = i + 1
+                    member = ctx.guild.get_member(uid)
+                    name = member.display_name if member else f"User {uid}"
+                    claim = await self.db.get_top3_daily_claim(uid, ctx.guild.id, today)
+                    status = "✅ *Claimed Today*" if claim else "⏳ *Pending First Command*"
+                    lines.append(f"**{title}** — **{name}**\n▸ {reward_str}\n▸ Status: {status}\n")
+                else:
+                    lines.append(f"**{title}** — *Unclaimed Slot*\n▸ {reward_str}\n")
+
+        embed.add_field(name="🏛️ Today's Throne Holders", value="\n".join(lines), inline=False)
+
+        if user_rank:
+            if user_claim:
+                status_text = f"You are **Rank #{user_rank}**! You have already claimed today's dawn perk."
+            else:
+                perk = await self.db.claim_top3_daily_perk(ctx.author.id, ctx.guild.id, user_rank, today, now=now)
+                if perk:
+                    status_text = f"You are **Rank #{user_rank}**! 🎉 **Just activated:** {perk['perk_name']} (+{perk['coins']} coins, +1 {perk['item_name']})!"
+                else:
+                    status_text = f"You are **Rank #{user_rank}**! Your perk is ready."
+            embed.add_field(name="🎯 Your Standing", value=status_text, inline=False)
+        else:
+            embed.add_field(
+                name="🎯 Your Standing",
+                value="You are currently outside the top 3. Log more study sessions with `.start` to climb the leaderboard!",
+                inline=False,
+            )
+
+        embeds.set_footer(embed, "Perks activate automatically on your first command each IST day!")
+        await ctx.send(embed=embed)
+
     # ------------------------------------------------------------------ #
     # Extra coin-earning commands (on top of studying + `.daily`) - added
     # since pets and pet food (see cogs/pets.py) aren't cheap.
