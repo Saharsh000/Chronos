@@ -17,6 +17,7 @@ from discord.ext import commands
 
 from utils import economy
 from utils import embeds
+from utils import emojis
 from utils import food as food_catalog
 from utils import halloween as halloween_catalog
 from utils.beg_scenarios import roll_beg_scenario
@@ -45,12 +46,13 @@ class Economy(commands.Cog, name="Economy"):
         target = member or ctx.author
         currency = await self.db.get_or_create_currency(target.id, ctx.guild.id)
         candy = currency.get("candy", 0)
+        coin_e = emojis.coin(ctx.guild)
         embed = embeds.base_embed(
-            title=f"\U0001FA99 {target.display_name}'s Wallet",
+            title=f"{coin_e} {target.display_name}'s Wallet",
             description=(
-                f"\U0001F4B0 **Balance**\n{currency['coins']:,} Chronocoins\n\n"
-                f"\U0001F36C **Candy**\n{candy:,} candy\n\n"
-                f"\U0001F4C8 **Lifetime earned**\n{currency['lifetime_earned']:,} Chronocoins"
+                f"💰 **Balance**\n{currency['coins']:,} {coin_e} Chronocoins\n\n"
+                f"🍬 **Candy**\n{candy:,} candy\n\n"
+                f"📈 **Lifetime earned**\n{currency['lifetime_earned']:,} {coin_e} Chronocoins"
             ),
             color=embeds.COLOR_ECONOMY,
         )
@@ -65,10 +67,11 @@ class Economy(commands.Cog, name="Economy"):
     async def shop_cmd(self, ctx: commands.Context) -> None:
         """Browse the Chronocoin shop."""
         currency = await self.db.get_or_create_currency(ctx.author.id, ctx.guild.id)
+        coin_e = emojis.coin(ctx.guild)
         embed = embeds.base_embed(
-            title="\U0001F6D2 Chronos Shop",
+            title="🛒 Chronos Shop",
             description=(
-                f"\U0001FA99 **{currency['coins']:,} Chronocoins available**\n"
+                f"{coin_e} **{currency['coins']:,} Chronocoins available**\n"
                 "Pick an item by its number or name."
             ),
             color=embeds.COLOR_ECONOMY,
@@ -281,17 +284,21 @@ class Economy(commands.Cog, name="Economy"):
             ))
             return
 
+        coin_e = emojis.coin(ctx.guild)
+        streak_e = emojis.streak(ctx.guild)
+        xp_e = emojis.xp(ctx.guild)
+
         embed = embeds.base_embed(
-            title="\u2705 Daily reward claimed",
+            title="✅ Daily reward claimed",
             description="Your daily haul is in. Keep the streak alive tomorrow.",
             color=embeds.COLOR_SUCCESS,
         )
-        embed.add_field(name="\U0001FA99 Base Chronocoins", value=f"+{result['base_coins']:,}", inline=True)
-        embed.add_field(name="\U0001F525 Streak bonus", value=f"+{result['streak_bonus']:,}", inline=True)
-        embed.add_field(name="\U0001F4C8 XP earned", value=f"+{result['xp']} XP", inline=True)
-        embed.add_field(name="\U0001FA99 Total Chronocoins", value=f"**+{result['coins']:,}**", inline=True)
-        embed.add_field(name="\U0001F525 Daily streak", value=f"{result['daily_streak']} days", inline=True)
-        embed.add_field(name="\U0001F4B0 New balance", value=f"{result['new_balance']:,} Chronocoins", inline=True)
+        embed.add_field(name=f"{coin_e} Base Chronocoins", value=f"+{result['base_coins']:,}", inline=True)
+        embed.add_field(name=f"{streak_e} Streak bonus", value=f"+{result['streak_bonus']:,}", inline=True)
+        embed.add_field(name=f"{xp_e} XP earned", value=f"+{result['xp']} XP", inline=True)
+        embed.add_field(name=f"{coin_e} Total Chronocoins", value=f"**+{result['coins']:,}**", inline=True)
+        embed.add_field(name=f"{streak_e} Daily streak", value=f"{result['daily_streak']} days", inline=True)
+        embed.add_field(name="💰 New balance", value=f"{result['new_balance']:,} {coin_e}", inline=True)
 
         if result["milestone"]:
             milestone_lines = [f"+{result['milestone']['coins']:,} bonus Chronocoins"]
@@ -358,14 +365,16 @@ class Economy(commands.Cog, name="Economy"):
             ))
             return
 
+        coin_e = emojis.coin(ctx.guild)
+        xp_e = emojis.xp(ctx.guild)
         embed = embeds.base_embed(
-            title="\u2705 Quick task complete",
+            title="✅ Quick task complete",
             description="A little extra progress for the grind.",
             color=embeds.COLOR_SUCCESS,
         )
-        embed.add_field(name="\U0001FA99 Chronocoins earned", value=f"+{result['coins']:,}", inline=True)
-        embed.add_field(name="\U0001F4C8 XP earned", value=f"+{result['xp']} XP", inline=True)
-        embed.add_field(name="\U0001F4B0 New balance", value=f"{result['new_balance']:,} Chronocoins", inline=True)
+        embed.add_field(name=f"{coin_e} Chronocoins earned", value=f"+{result['coins']:,}", inline=True)
+        embed.add_field(name=f"{xp_e} XP earned", value=f"+{result['xp']} XP", inline=True)
+        embed.add_field(name="💰 New balance", value=f"{result['new_balance']:,} {coin_e}", inline=True)
 
         # HALLOWEEN EVENT: Chance to find a Hallo-Box + Candy while working
         if random.random() < 0.35:
@@ -413,24 +422,25 @@ class Economy(commands.Cog, name="Economy"):
         else:
             new_balance = result["new_balance"]
 
-        quote_text = f"\n\n\U0001F4AC *\"{scenario.quote}\"*" if scenario.quote else ""
+        quote_text = f"\n\n💬 *\"{scenario.quote}\"*" if scenario.quote else ""
+        coin_e = emojis.coin(ctx.guild)
 
         if is_success:
             embed = embeds.base_embed(
-                title=f"{scenario.emoji} {scenario.npc} \u00B7 {scenario.title}",
+                title=f"{scenario.emoji} {scenario.npc} · {scenario.title}",
                 description=f"> {scenario.story}{quote_text}",
                 color=embeds.COLOR_SUCCESS,
             )
-            embed.add_field(name="\U0001F4B0 Chronocoins Received", value=f"+{payout:,} Chronocoins", inline=True)
-            embed.add_field(name="\U0001F3E6 New Balance", value=f"{new_balance:,} Chronocoins", inline=True)
+            embed.add_field(name=f"{coin_e} Chronocoins Received", value=f"+{payout:,} {coin_e}", inline=True)
+            embed.add_field(name="🏦 New Balance", value=f"{new_balance:,} {coin_e}", inline=True)
         else:
             embed = embeds.base_embed(
-                title=f"{scenario.emoji} {scenario.npc} \u00B7 {scenario.title}",
+                title=f"{scenario.emoji} {scenario.npc} · {scenario.title}",
                 description=f"> {scenario.story}{quote_text}",
                 color=embeds.COLOR_WARNING,
             )
-            embed.add_field(name="\u274C Chronocoins Received", value="0 Chronocoins", inline=True)
-            embed.add_field(name="\U0001F3E6 Current Balance", value=f"{new_balance:,} Chronocoins", inline=True)
+            embed.add_field(name="❌ Chronocoins Received", value=f"0 {coin_e}", inline=True)
+            embed.add_field(name="🏦 Current Balance", value=f"{new_balance:,} {coin_e}", inline=True)
 
         embeds.set_footer(embed, f"Role: {scenario.role} \u00B7 {ctx.prefix}beg")
 
@@ -463,14 +473,15 @@ class Economy(commands.Cog, name="Economy"):
             ))
             return
 
+        coin_e = emojis.coin(ctx.guild)
         embed = embeds.base_embed(
-            title="\U0001F4C6 Weekly reward claimed",
+            title="📅 Weekly reward claimed",
             description="The big weekly haul has landed.",
             color=embeds.COLOR_SUCCESS,
         )
-        embed.add_field(name="\U0001FA99 Chronocoins earned", value=f"+{result['coins']:,}", inline=True)
-        embed.add_field(name="\U0001F4B0 New balance", value=f"{result['new_balance']:,} Chronocoins", inline=True)
-        embed.add_field(name="\U0001F381 Bonus", value="Free Mystery Box", inline=True)
+        embed.add_field(name=f"{coin_e} Chronocoins earned", value=f"+{result['coins']:,}", inline=True)
+        embed.add_field(name="💰 New balance", value=f"{result['new_balance']:,} {coin_e}", inline=True)
+        embed.add_field(name="🎁 Bonus", value="Free Mystery Box", inline=True)
 
         # HALLOWEEN EVENT: Guaranteed High-Tier Hallo-Box & Big Candy Stash
         weekly_box = "hbox_legendary" if random.random() < 0.20 else "hbox_epic"

@@ -245,6 +245,20 @@ def render_stats_card_sync(
     draw.text((c2_x + 22, c1_y + 20), "⚡ EXPERIENCE & FOCUS", font=f_card_tag, fill=ACCENT_PURPLE)
     xp_str = f"{total_xp:,} XP"
     draw.text((c2_x + 22, c1_y + 48), xp_str, font=f_big_val, fill=TEXT_WHITE)
+    # Paste actual Chronos XP pixel art icon if available
+    try:
+        xp_bbox = draw.textbbox((c2_x + 22, c1_y + 48), xp_str, font=f_big_val)
+        xp_w = xp_bbox[2] - xp_bbox[0]
+    except Exception:
+        xp_w = len(xp_str) * 20
+    xp_icon_path = os.path.join(os.path.dirname(os.path.dirname(__file__)), "assets", "icons", "chronos_xp_128.png")
+    if os.path.exists(xp_icon_path):
+        try:
+            with Image.open(xp_icon_path) as x_icon:
+                x_icon = x_icon.convert("RGBA").resize((34, 34), Image.Resampling.NEAREST)
+                img.paste(x_icon, (c2_x + 22 + xp_w + 14, c1_y + 50), x_icon)
+        except Exception:
+            pass
     draw.text((c2_x + 22, c1_y + 115), f"{sessions_count} Study Sessions Logged", font=f_card_sub, fill=TEXT_SUB)
     avg_m = (total_seconds // (sessions_count * 60)) if sessions_count > 0 else 0
     draw.text((c2_x + 22, c1_y + 145), f"Avg Session: {avg_m} minutes", font=f_card_sub, fill=TEXT_MUTED)
@@ -253,7 +267,24 @@ def render_stats_card_sync(
     draw.rounded_rectangle([c3_x, c1_y, c3_x + card_w, c1_y + card_h], radius=16, fill=CARD_BG, outline=CARD_BORDER, width=1)
     draw.text((c3_x + 22, c1_y + 20), "💰 CHRONOCOINS & EVENT STASH", font=f_card_tag, fill=ACCENT_GOLD)
     coins_str = f"{coins:,}"
-    draw.text((c3_x + 22, c1_y + 48), f"{coins_str} 🪙", font=f_big_val, fill=ACCENT_GOLD)
+    draw.text((c3_x + 22, c1_y + 48), coins_str, font=f_big_val, fill=ACCENT_GOLD)
+    # Paste actual Chronocoin pixel art icon next to coin value
+    try:
+        coin_bbox = draw.textbbox((c3_x + 22, c1_y + 48), coins_str, font=f_big_val)
+        coin_w = coin_bbox[2] - coin_bbox[0]
+    except Exception:
+        coin_w = len(coins_str) * 22
+    coin_icon_path = os.path.join(os.path.dirname(os.path.dirname(__file__)), "assets", "icons", "chronocoin_128.png")
+    if os.path.exists(coin_icon_path):
+        try:
+            with Image.open(coin_icon_path) as c_icon:
+                c_icon = c_icon.convert("RGBA").resize((36, 36), Image.Resampling.NEAREST)
+                img.paste(c_icon, (c3_x + 22 + coin_w + 14, c1_y + 49), c_icon)
+        except Exception:
+            draw.text((c3_x + 22 + coin_w + 10, c1_y + 48), "🪙", font=f_big_val, fill=ACCENT_GOLD)
+    else:
+        draw.text((c3_x + 22 + coin_w + 10, c1_y + 48), "🪙", font=f_big_val, fill=ACCENT_GOLD)
+
     draw.text((c3_x + 22, c1_y + 115), f"🍬 {candy:,} Candy in Inventory", font=f_card_sub, fill=TEXT_WHITE)
     draw.text((c3_x + 22, c1_y + 145), "Ready for Halloween Shop", font=f_card_sub, fill=TEXT_MUTED)
 
@@ -272,7 +303,22 @@ def render_stats_card_sync(
     # Panel 1: Study Streak
     draw.rounded_rectangle([p1_x, p_y, p1_x + panel_w, p_y + panel_h], radius=12, fill=PANEL_BG, outline=PANEL_BORDER, width=1)
     draw.text((p1_x + 18, p_y + 16), "🔥 STUDY STREAK", font=f_p_tag, fill=ACCENT_ORANGE)
-    draw.text((p1_x + 18, p_y + 46), f"{streak_days} Days", font=f_p_val, fill=TEXT_WHITE)
+    streak_str = f"{streak_days} Days"
+    draw.text((p1_x + 18, p_y + 46), streak_str, font=f_p_val, fill=TEXT_WHITE)
+    # Paste Minecraft Chronos Streak flame icon
+    try:
+        s_bbox = draw.textbbox((p1_x + 18, p_y + 46), streak_str, font=f_p_val)
+        s_w = s_bbox[2] - s_bbox[0]
+    except Exception:
+        s_w = len(streak_str) * 16
+    streak_icon_path = os.path.join(os.path.dirname(os.path.dirname(__file__)), "assets", "icons", "chronos_streak_128.png")
+    if os.path.exists(streak_icon_path):
+        try:
+            with Image.open(streak_icon_path) as s_icon:
+                s_icon = s_icon.convert("RGBA").resize((26, 26), Image.Resampling.NEAREST)
+                img.paste(s_icon, (p1_x + 18 + s_w + 10, p_y + 48), s_icon)
+        except Exception:
+            pass
     draw.text((p1_x + 18, p_y + 105), f"Longest: {longest_streak} Days", font=f_p_sub, fill=TEXT_MUTED)
 
     # Panel 2: Subject Specialty

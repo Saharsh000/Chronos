@@ -25,6 +25,7 @@ from discord.ext import commands, tasks
 
 import config
 from utils import embeds
+from utils import emojis
 from utils.subjects import SUBJECT_ALIASES, SUBJECT_HINT, SUBJECT_INFO, detect_subject, normalize_subject_key
 from utils.time_format import discord_timestamp, format_duration
 from utils.xp import tier_for_level
@@ -153,14 +154,16 @@ class Sessions(commands.Cog, name="Sessions"):
         if result["leveled_up"]:
             log.info(f"LEVEL UP      | user={result['user_id']} -> level {result['new_level']}")
 
+        coin_e = emojis.coin(ctx.guild)
+        xp_e = emojis.xp(ctx.guild)
         embed = embeds.base_embed(
-            title="\u2705 Session complete",
+            title="✅ Session complete",
             description=f"You focused for **{format_duration(result['duration'])}**. Nice work.",
             color=embeds.COLOR_SUCCESS,
         )
-        embed.add_field(name="\u23F1\uFE0F Focus time", value=format_duration(result["duration"]), inline=True)
-        embed.add_field(name="\U0001F4C8 XP gained", value=f"+{result['xp_earned']} XP", inline=True)
-        embed.add_field(name="\U0001FA99 Chronocoins earned", value=f"+{result['coins_earned']}", inline=True)
+        embed.add_field(name="⏱️ Focus time", value=format_duration(result["duration"]), inline=True)
+        embed.add_field(name=f"{xp_e} XP gained", value=f"+{result['xp_earned']} XP", inline=True)
+        embed.add_field(name=f"{coin_e} Chronocoins earned", value=f"+{result['coins_earned']} {coin_e}", inline=True)
         if result.get("subject"):
             info = SUBJECT_INFO[result["subject"]]
             embed.add_field(name="Subject", value=f"{info['emoji']} {info['label']}", inline=True)

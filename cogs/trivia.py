@@ -39,6 +39,7 @@ from services.cja import (
     get_subjects,
 )
 from utils import embeds
+from utils import emojis
 from utils.time_format import format_duration
 
 log = logging.getLogger("trivia")
@@ -450,6 +451,7 @@ class TriviaContinuousControlsView(discord.ui.View):
         cns = self.session_stats.get("coins", 0)
         acc = (cor / att * 100) if att > 0 else 0
 
+        coin_e = emojis.coin(self.ctx.guild)
         summary_embed = embeds.base_embed(
             title="🏁 Practice Trivia Session Concluded",
             description=(
@@ -457,7 +459,7 @@ class TriviaContinuousControlsView(discord.ui.View):
                 f"📝 **Questions Attempted:** `{att}`\n"
                 f"🎯 **Accuracy:** `{cor}/{att}` ({acc:.1f}%)\n"
                 f"📈 **Net Marks Earned:** `{mks:+} Marks`\n"
-                f"🪙 **Chronocoins Won:** `+{cns:,}` 🪙\n\n"
+                f"{coin_e} **Chronocoins Won:** `+{cns:,}` {coin_e}\n\n"
                 f"Type `,trivia` anytime to explore the syllabus or start another practice session!"
             ),
             color=embeds.COLOR_INFO,
@@ -566,7 +568,7 @@ class TriviaQuestionView(discord.ui.View):
 
         # Skip Question Button (costs 15 Chronocoins)
         skip_btn = discord.ui.Button(
-            label="Skip (15 🪙)",
+            label="Skip (15 Coins)",
             style=discord.ButtonStyle.secondary,
             emoji="⏩",
             row=1,
@@ -585,10 +587,11 @@ class TriviaQuestionView(discord.ui.View):
 
         SKIP_COST = 15
         success = await self.db.spend_coins(user.id, self.guild_id, SKIP_COST)
+        coin_e = emojis.coin(self.ctx.guild)
         if not success:
             curr = await self.db.get_or_create_currency(user.id, self.guild_id)
             await interaction.response.send_message(
-                f"❌ You need **{SKIP_COST} Chronocoins** to skip this question! (Current balance: `{curr['coins']}` 🪙)",
+                f"❌ You need **{SKIP_COST} Chronocoins** to skip this question! (Current balance: `{curr['coins']}` {coin_e})",
                 ephemeral=True,
             )
             return
@@ -706,6 +709,9 @@ class TriviaQuestionView(discord.ui.View):
         tier_info = get_trivia_tier(stats["total_marks"])
         official_ans_fmt = format_academic_text(str(official_ans))
         explanation_fmt = format_academic_text(explanation)
+        coin_e = emojis.coin(self.ctx.guild)
+        xp_e = emojis.xp(self.ctx.guild)
+        streak_e = emojis.streak(self.ctx.guild)
         if is_correct:
             result_embed = embeds.base_embed(
                 title=f"🎉 SPOT ON! CORRECT (+{marks} Marks)",
@@ -713,8 +719,8 @@ class TriviaQuestionView(discord.ui.View):
                     f"🏆 **Official Answer:** `[ {official_ans_fmt} ]`\n\n"
                     f"💡 **Explanation:** {explanation_fmt}\n\n"
                     f"━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━\n"
-                    f"💰 **Rewards:** `+{coins_won}` Chronocoins  •  ⚡ `+{xp_won}` XP\n"
-                    f"🔥 **Streak:** `{stats['current_streak']}` in a row (Peak: `{stats['best_streak']}`)\n"
+                    f"💰 **Rewards:** `+{coins_won}` {coin_e}  •  {xp_e} `+{xp_won}` XP\n"
+                    f"{streak_e} **Streak:** `{stats['current_streak']}` in a row (Peak: `{stats['best_streak']}`)\n"
                     f"🎖️ **Rank Status:** {tier_info['emoji']} `{tier_info['title']}` ({stats['total_marks']:,} marks){candy_str}"
                 ),
                 color=embeds.COLOR_SUCCESS,
@@ -726,7 +732,7 @@ class TriviaQuestionView(discord.ui.View):
                     f"🏆 **Official Answer:** `[ {official_ans_fmt} ]`\n\n"
                     f"💡 **Explanation:** {explanation_fmt}\n\n"
                     f"━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━\n"
-                    f"🪙 **Consolation:** `+{coins_won}` Chronocoins  •  ⚡ `+{xp_won}` XP\n"
+                    f"{coin_e} **Consolation:** `+{coins_won}` {coin_e}  •  {xp_e} `+{xp_won}` XP\n"
                     f"🔥 *Streak reset to 0. Study the concept above and bounce back!*"
                 ),
                 color=embeds.COLOR_ERROR,
@@ -779,8 +785,9 @@ class TriviaQuestionView(discord.ui.View):
         exam_name = self.q.get("exam", {}).get("name", "JEE")
         q_type = self.q.get("type", {}).get("id", "single")
 
+        coin_e = emojis.coin(self.ctx.guild)
         if skipped_by:
-            status_banner = f"⏩ **QUESTION SKIPPED BY {skipped_by.display_name.upper()} (15 🪙)**"
+            status_banner = f"⏩ **QUESTION SKIPPED BY {skipped_by.display_name.upper()} (15 {coin_e})**"
         elif self.results_summary:
             status_banner = "🎉 **ROUND CONCLUDED — SCORES LOCKED IN!**"
         else:
@@ -1631,13 +1638,14 @@ class Trivia(commands.Cog, name="Trivia"):
             value=f"{diff_badge} **{diff}**\n📝 `{q_type_name}`",
             inline=True,
         )
+        coin_e = emojis.coin(ctx.guild)
         embed.add_field(
             name="⏱️ Round Clock",
-            value=f"**{timeout_sec}s** timer\n⏩ Skip: `15 🪙`",
+            value=f"**{timeout_sec}s** timer\n⏩ Skip: `15 {coin_e}`",
             inline=True,
         )
 
-        footer_text = f"⏱️ {timeout_sec}s limit • Submit with buttons below • Skip costs 15 🪙"
+        footer_text = f"⏱️ {timeout_sec}s limit • Submit with buttons below • Skip costs 15 {coin_e}"
         if continuous:
             footer_text += " • Practice Mode"
         embeds.set_footer(embed, footer_text)
@@ -1757,20 +1765,21 @@ class Trivia(commands.Cog, name="Trivia"):
         # Core Exam Metrics
         embed.add_field(name="📈 Net Marks", value=f"**{stats['total_marks']:+,}** Marks", inline=True)
         embed.add_field(name="🎯 Accuracy", value=f"**{acc:.1f}%** ({cor}/{att})", inline=True)
+        # Economy & Status
+        coin_e = emojis.coin(ctx.guild)
+        streak_e = emojis.streak(ctx.guild)
         embed.add_field(
-            name="🔥 Streak",
+            name=f"{streak_e} Streak",
             value=f"**{stats['current_streak']}** current · Peak **{stats['best_streak']}**",
             inline=True,
         )
-
-        # Economy & Status
-        embed.add_field(name="🪙 Chronocoins", value=f"**{currency['coins']:,}** balance", inline=True)
-        embed.add_field(name="💰 Trivia Earnings", value=f"**+{stats['total_coins_won']:,}** 🪙 won", inline=True)
+        embed.add_field(name=f"{coin_e} Chronocoins", value=f"**{currency['coins']:,}** balance", inline=True)
+        embed.add_field(name="💰 Trivia Earnings", value=f"**+{stats['total_coins_won']:,}** {coin_e} won", inline=True)
         is_ready = time.time() - self.user_cooldowns.get(ctx.author.id, 0) >= config.TRIVIA_COOLDOWN_SECONDS
         status_txt = "🟢 **Ready to grind!**" if is_ready else "⏳ Cooldown active"
         embed.add_field(name="⏱️ Status", value=status_txt, inline=True)
 
-        embeds.set_footer(embed, f"Use {ctx.prefix}trivia r to attempt a question • Skip costs 15 🪙")
+        embeds.set_footer(embed, f"Use {ctx.prefix}trivia r to attempt a question • Skip costs 15 {coin_e}")
         await ctx.send(embed=embed)
 
 
