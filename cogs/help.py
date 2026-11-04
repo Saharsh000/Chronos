@@ -63,8 +63,8 @@ PAGE_KEYWORDS: dict[str, int] = {
     "overview": 0, "start": 0, "stop": 0, "session": 0, "sessions": 0, "study": 0,
     "stats": 1, "leaderboard": 1, "lb": 1, "rank": 1, "compare": 1, "hof": 1,
     "achievements": 2, "badges": 2, "ach": 2,
-    "syllabus": 3, "progress": 3, "jee": 3, "chapter": 3, "trivia": 3, "quiz": 3,
-    "economy": 4, "coins": 4, "chronocoins": 4, "shop": 4, "daily": 4, "work": 4, "buy": 4,
+    "syllabus": 3, "progress": 3, "jee": 3, "chapter": 3, "trivia": 3, "quiz": 3, "notes": 3, "note": 3, "chronotes": 3,
+    "economy": 4, "coins": 4, "chronocoins": 4, "shop": 4, "daily": 4, "work": 4, "buy": 4, "perks": 4, "top3": 4,
     "pets": 5, "food": 5, "pet": 5, "feed": 5, "pumpkin": 5, "pass": 5, "halloween": 5, "candy": 5, "candyshop": 5, "boxes": 5, "openbox": 5, "open": 5, "event": 5,
     "pomodoro": 6, "pomo": 6, "admin": 6, "config": 6, "tiers": 6, "tags": 6,
     "how": 7, "info": 7, "works": 7,
@@ -137,6 +137,7 @@ def _build_pages(prefix: str) -> list[discord.Embed]:
         "\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\n"
         "Log your JEE prep progress & grind theory trivia.\n\n"
         f"`{prefix}trivia [r|p|c|m|lb|me]` \u2014 CJA JEE Theory Trivia (win Chronocoins & marks!)\n"
+        f"`{prefix}notes` \u2014 Chronotes in-Discord notebook suite (`{prefix}note`)\n"
         f"`{prefix}syllabus [subject] [chapter]` \u2014 browse the JEE Main syllabus (`{prefix}syl`)\n"
         f"`{prefix}chapterdone <subject> <chapter>` \u2014 log a completed chapter\n"
         f"`{prefix}subtopicdone <subject> <chapter> <subtopic>` \u2014 log a subtopic\n"
@@ -155,6 +156,7 @@ def _build_pages(prefix: str) -> list[discord.Embed]:
         "Spend them in the shop, or lose them if your streak breaks \U0001F480\n\n"
         f"**Earning**\n"
         f"`{prefix}daily` \u2014 daily reward + streak bonuses\n"
+        f"`{prefix}dailyperks` \u2014 Top 3 Leaderboard daily dawn perks (`{prefix}perks`)\n"
         f"`{prefix}work` \u2014 quick task for Chronocoins + XP (`{prefix}grind`)\n"
         f"`{prefix}beg` \u2014 beg for scraps \u2014 10 min cooldown\n"
         f"`{prefix}weekly` \u2014 big weekly reward + free Mystery Box\n\n"

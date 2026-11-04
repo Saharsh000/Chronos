@@ -1276,3 +1276,126 @@ def render_inventory_card_sync(
 
     return _export_png(img)
 
+
+# ==============================================================================
+# 7. CHRONOTES INDEX CARD (1200x680)
+# ==============================================================================
+def render_note_card_sync(
+    title: str,
+    subject: str,
+    content: str,
+    author_name: str,
+    date_str: str,
+    is_pinned: bool = False,
+    note_id: Optional[int] = None,
+) -> bytes:
+    """Renders a digital notebook index card preview (1200x680 HD)."""
+    img = Image.new("RGBA", (CARD_WIDTH, CARD_HEIGHT), BG_COLOR)
+    draw = ImageDraw.Draw(img)
+
+    # Outer border & canvas
+    draw.rounded_rectangle([30, 30, CARD_WIDTH - 30, CARD_HEIGHT - 30], radius=24, fill=CARD_BG, outline=CARD_BORDER, width=2)
+
+    # Subject accent colors
+    sub_lower = subject.lower()
+    if "phys" in sub_lower:
+        sub_color = ACCENT_CYAN
+    elif "chem" in sub_lower:
+        sub_color = ACCENT_GREEN
+    elif "math" in sub_lower:
+        sub_color = ACCENT_ROSE
+    elif "form" in sub_lower:
+        sub_color = ACCENT_GOLD
+    elif "rev" in sub_lower:
+        sub_color = ACCENT_PURPLE
+    else:
+        sub_color = ACCENT_ORANGE
+
+    # Top pills row
+    cur_x = 60
+    # Subject pill
+    sub_tag = _sanitize_text(subject.upper())[:18]
+    f_tag = _get_font(13, bold=True)
+    tb = draw.textbbox((0, 0), sub_tag, font=f_tag)
+    tw = tb[2] - tb[0]
+    draw.rounded_rectangle([cur_x, 56, cur_x + tw + 24, 88], radius=8, fill=(sub_color[0], sub_color[1], sub_color[2], 40), outline=sub_color, width=1)
+    draw.text((cur_x + 12, 63), sub_tag, font=f_tag, fill=sub_color)
+    cur_x += tw + 36
+
+    # Pinned pill if pinned
+    if is_pinned:
+        draw.rounded_rectangle([cur_x, 56, cur_x + 95, 88], radius=8, fill=(251, 191, 36, 40), outline=ACCENT_GOLD, width=1)
+        draw.text((cur_x + 10, 63), "PINNED", font=f_tag, fill=ACCENT_GOLD)
+        cur_x += 107
+
+    # Note ID pill
+    if note_id:
+        id_str = f"NOTE #{note_id}"
+        draw.rounded_rectangle([cur_x, 56, cur_x + 90, 88], radius=8, fill=(30, 41, 59, 180), outline=PANEL_BORDER, width=1)
+        draw.text((cur_x + 10, 63), id_str, font=f_tag, fill=TEXT_MUTED)
+
+    # Author & Date on top right
+    meta_text = f"by {_sanitize_text(author_name)[:20]}  •  {date_str}"
+    f_meta = _get_font(13, bold=False)
+    m_bbox = draw.textbbox((0, 0), meta_text, font=f_meta)
+    mw = m_bbox[2] - m_bbox[0]
+    draw.text((CARD_WIDTH - 60 - mw, 63), meta_text, font=f_meta, fill=TEXT_MUTED)
+
+    # Title
+    f_title = _get_font(30, bold=True)
+    clean_title = _sanitize_text(title)[:60]
+    draw.text((60, 108), clean_title, font=f_title, fill=TEXT_WHITE)
+
+    # Divider bar
+    draw.line([(60, 160), (CARD_WIDTH - 60, 160)], fill=CARD_BORDER, width=2)
+    draw.line([(60, 160), (220, 160)], fill=sub_color, width=3)
+
+    # Note notebook body container
+    body_x = 60
+    body_y = 180
+    body_w = CARD_WIDTH - 120
+    body_h = 420
+    draw.rounded_rectangle([body_x, body_y, body_x + body_w, body_y + body_h], radius=16, fill=PANEL_BG, outline=PANEL_BORDER, width=1)
+
+    # Draw ruled lines like a clean digital notebook
+    for ly in range(body_y + 45, body_y + body_h - 15, 34):
+        draw.line([(body_x + 20, ly), (body_x + body_w - 20, ly)], fill=(26, 33, 46, 200), width=1)
+
+    # Format and render note content
+    f_content = _get_font(16, bold=False)
+    clean_content = _sanitize_text(content)
+    raw_lines = clean_content.split("\n")
+
+    # Wrap lines to fit width
+    wrapped_lines: list[str] = []
+    max_char_width = 82
+    for rline in raw_lines:
+        rline = rline.rstrip()
+        if not rline:
+            wrapped_lines.append("")
+            continue
+        while len(rline) > max_char_width:
+            cut = rline[:max_char_width].rfind(" ")
+            if cut == -1:
+                cut = max_char_width
+            wrapped_lines.append(rline[:cut])
+            rline = rline[cut:].lstrip()
+        if rline:
+            wrapped_lines.append(rline)
+
+    text_y = body_y + 18
+    for i, line in enumerate(wrapped_lines[:11]):
+        if i == 10 and len(wrapped_lines) > 11:
+            line = "... (Note truncated in visual preview · Read full note in Discord)"
+            draw.text((body_x + 30, text_y), line, font=_get_font(14, bold=True), fill=ACCENT_CYAN)
+        else:
+            draw.text((body_x + 30, text_y), line, font=f_content, fill=TEXT_SUB)
+        text_y += 34
+
+    # Footer
+    draw.text((60, 624), "CHRONOTES · IN-DISCORD STUDY NOTEBOOK", font=_get_font(12, bold=True), fill=TEXT_MUTED)
+    draw.text((CARD_WIDTH - 280, 624), "SECURE & SYNCHRONIZED STORAGE", font=_get_font(12, bold=False), fill=(71, 85, 105, 255))
+
+    return _export_png(img)
+
+
