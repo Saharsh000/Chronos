@@ -20,6 +20,7 @@ from __future__ import annotations
 import asyncio
 import logging
 import random
+import re
 import time
 from typing import Any, Optional
 
@@ -90,6 +91,176 @@ SECTION_EMOJIS = {
     "Statistics and Probability": "📊",
     "Trigonometry": "📏",
 }
+
+# Competitive JEE AIR Rank Ladder
+TRIVIA_RANKS = [
+    # (min_marks, title, emoji, badge, next_title)
+    (300, "IIT Bombay CSE God", "👑", "AIR 1", None),
+    (200, "Top 50 Ranker", "⚡", "AIR < 50", "IIT Bombay CSE God"),
+    (120, "Top IITian", "💎", "AIR < 500", "Top 50 Ranker"),
+    (70,  "Old IIT Topper", "🏆", "AIR < 2,500", "Top IITian"),
+    (40,  "NIT TPG Star", "🥇", "AIR < 10,000", "Old IIT Topper"),
+    (20,  "JEE Advanced Qualified", "🥈", "AIR < 25,000", "NIT TPG Star"),
+    (8,   "JEE Main Cleared", "🥉", "AIR < 100,000", "JEE Advanced Qualified"),
+    (0,   "Serious Aspirant", "📖", "Aspirant", "JEE Main Cleared"),
+    (-999999, "Kota Backbencher", "🎒", "Backbencher", "Serious Aspirant"),
+]
+
+def get_trivia_tier(marks: int) -> dict[str, Any]:
+    """Return the candidate's competitive rank tier and ladder progress."""
+    for min_m, title, emoji, badge, next_t in TRIVIA_RANKS:
+        if marks >= min_m:
+            next_m = None
+            if next_t:
+                for m, t, _, _, _ in TRIVIA_RANKS:
+                    if t == next_t:
+                        next_m = m
+                        break
+            return {
+                "title": title,
+                "emoji": emoji,
+                "badge": badge,
+                "next_title": next_t,
+                "next_marks": next_m,
+                "cur_min": min_m,
+            }
+    return {
+        "title": "Serious Aspirant",
+        "emoji": "📖",
+        "badge": "Aspirant",
+        "next_title": "JEE Main Cleared",
+        "next_marks": 8,
+        "cur_min": 0,
+    }
+
+
+# ====================================================================== #
+# Academic Equation & Question Pretty-Printers                            #
+# ====================================================================== #
+
+OPT_EMOJIS: dict[str, str] = {
+    "A": "🇦",
+    "B": "🇧",
+    "C": "🇨",
+    "D": "🇩",
+}
+
+MATH_REPLACEMENTS = [
+    (r"\alpha", "α"), (r"\beta", "β"), (r"\gamma", "γ"), (r"\Gamma", "Γ"),
+    (r"\delta", "δ"), (r"\Delta", "Δ"), (r"\epsilon", "ε"), (r"\varepsilon", "ε"),
+    (r"\zeta", "ζ"), (r"\eta", "η"), (r"\theta", "θ"), (r"\Theta", "Θ"),
+    (r"\iota", "ι"), (r"\kappa", "κ"), (r"\lambda", "λ"), (r"\Lambda", "Λ"),
+    (r"\mu", "μ"), (r"\nu", "ν"), (r"\xi", "ξ"), (r"\Xi", "Ξ"),
+    (r"\pi", "π"), (r"\Pi", "Π"), (r"\rho", "ρ"), (r"\sigma", "σ"),
+    (r"\Sigma", "Σ"), (r"\tau", "τ"), (r"\upsilon", "υ"), (r"\phi", "φ"),
+    (r"\Phi", "Φ"), (r"\chi", "χ"), (r"\psi", "ψ"), (r"\Psi", "Ψ"),
+    (r"\omega", "ω"), (r"\Omega", "Ω"),
+    (r"\times", "×"), (r"\cdot", "·"), (r"\pm", "±"), (r"\mp", "∓"),
+    (r"\div", "÷"), (r"\approx", "≈"), (r"\neq", "≠"), (r"\ne", "≠"),
+    (r"\leq", "≤"), (r"\le", "≤"), (r"\geq", "≥"), (r"\ge", "≥"),
+    (r"\propto", "∝"), (r"\infty", "∞"), (r"\partial", "∂"),
+    (r"\nabla", "∇"), (r"\hbar", "ℏ"), (r"\int", "∫"), (r"\oint", "∮"),
+    (r"\sum", "∑"), (r"\prod", "∏"),
+    (r"\rightarrow", "→"), (r"\to", "→"), (r"\leftarrow", "←"),
+    (r"\leftrightarrow", "↔"), (r"\rightleftharpoons", "⇌"),
+    (r"^{\circ}", "°"), (r"^\circ", "°"), (r"\circ", "°"),
+    (r"&lt;", "<"), (r"&gt;", ">"), (r"&amp;", "&"),
+]
+
+SUB_MAP = str.maketrans("0123456789+-=()aeoxijklnmpst", "₀₁₂₃₄₅₆₇₈₉₊₋₌₍₎ₐₑₒₓᵢⱼₖₗₘₙₚₛₜ")
+SUP_MAP = str.maketrans("0123456789+-=()nix", "⁰¹²³⁴⁵⁶⁷⁸⁹⁺⁻⁼⁽⁾ⁿⁱˣ")
+
+
+def format_academic_text(text: str) -> str:
+    """Format academic text, equations, and chemical symbols for crisp Discord rendering."""
+    if not text:
+        return text
+    s = text
+    for tex, sym in MATH_REPLACEMENTS:
+        s = s.replace(tex, sym)
+    # Fractions: \frac{a}{b} -> (a / b)
+    s = re.sub(r"\\frac\{([^{}]+)\}\{([^{}]+)\}", r"(\1 / \2)", s)
+    # Sqrt: \sqrt{x} -> √(x)
+    s = re.sub(r"\\sqrt\{([^{}]+)\}", r"√(\1)", s)
+    # Superscripts: ^{...} or ^...
+    s = re.sub(r"\^\{([0-9+\-=()nix]+)\}", lambda m: m.group(1).translate(SUP_MAP), s)
+    s = re.sub(r"\^([0-9+\-])", lambda m: m.group(1).translate(SUP_MAP), s)
+    # Subscripts: _{...} or _...
+    s = re.sub(r"_\{([0-9+\-=()aeoxijklnmpst]+)\}", lambda m: m.group(1).translate(SUB_MAP), s)
+    s = re.sub(r"_([0-9])", lambda m: m.group(1).translate(SUB_MAP), s)
+    # Clean text styles
+    s = re.sub(r"\\text\{([^{}]+)\}", r"\1", s)
+    s = re.sub(r"\\mathrm\{([^{}]+)\}", r"\1", s)
+    s = re.sub(r"\\mathbf\{([^{}]+)\}", r"**\1**", s)
+    s = re.sub(r"\\mathit\{([^{}]+)\}", r"*\1*", s)
+    # Strip stray math delimiters $ ... $
+    s = re.sub(r"\$\$?", "", s)
+    return s.strip()
+
+
+def format_matching_text(text: str) -> str:
+    """Format Match the Following List-I and List-II into clean structured sections."""
+    lines = [line.strip() for line in text.strip().split("\n") if line.strip()]
+    header = ""
+    list_1: list[str] = []
+    list_2: list[str] = []
+    current_list = 0
+
+    for line in lines:
+        lower = line.lower()
+        if "list-i:" in lower or "list 1:" in lower or "list i:" in lower:
+            current_list = 1
+            continue
+        elif "list-ii:" in lower or "list 2:" in lower or "list ii:" in lower:
+            current_list = 2
+            continue
+
+        if current_list == 0:
+            if not header:
+                header = line
+            else:
+                header += " " + line
+        elif current_list == 1:
+            list_1.append(line)
+        elif current_list == 2:
+            list_2.append(line)
+
+    if not list_1 or not list_2:
+        return format_academic_text(text)
+
+    out = []
+    if header:
+        out.append(f"**{format_academic_text(header)}**\n")
+
+    out.append("📋 **LIST — I**")
+    for item in list_1:
+        m = re.match(r"^([A-Za-z0-9]+)[\.\)]\s*(.*)$", item)
+        if m:
+            clean_item = format_academic_text(m.group(2))
+            out.append(f" ▸ `[{m.group(1).upper()}]` {clean_item}")
+        else:
+            out.append(f" ▸ {format_academic_text(item)}")
+
+    out.append("\n📋 **LIST — II**")
+    for item in list_2:
+        m = re.match(r"^([A-Za-z0-9]+)[\.\)]\s*(.*)$", item)
+        if m:
+            clean_item = format_academic_text(m.group(2))
+            out.append(f" ▸ `[{m.group(1)}]` {clean_item}")
+        else:
+            out.append(f" ▸ {format_academic_text(item)}")
+
+    return "\n".join(out)
+
+
+def format_matching_option(opt_text: str) -> str:
+    """Format mapping options like 'P→1, Q→2, R→3, S→4' into clean bullet items."""
+    parts = re.split(r"[,;]\s*", opt_text.strip())
+    formatted_parts = []
+    for p in parts:
+        p_clean = re.sub(r"\s*(?:→|->|-)\s*", " ➔ ", p.strip())
+        formatted_parts.append(f"`{p_clean}`")
+    return "  •  ".join(formatted_parts)
 
 
 # ====================================================================== #
@@ -310,14 +481,14 @@ class TriviaQuestionView(discord.ui.View):
 
         if q_type in ("single", "assertion_reason", "statements", "match"):
             for opt in options:
+                k = opt["key"]
                 btn = discord.ui.Button(
-                    label=f"Option {opt['key']}",
+                    label=f"Option {k}",
+                    emoji=OPT_EMOJIS.get(k),
                     style=discord.ButtonStyle.primary,
-                    # No custom_id on purpose: Discord caps it at 100 chars and
-                    # CJA question ids can be long. These views aren't persistent,
-                    # so discord.py's auto-generated short id is all we need.
+                    row=0,
                 )
-                btn.callback = self._make_button_callback(opt["key"])
+                btn.callback = self._make_button_callback(k)
                 self.add_item(btn)
 
         elif q_type == "multiple":
@@ -325,18 +496,23 @@ class TriviaQuestionView(discord.ui.View):
                 discord.SelectOption(
                     label=f"Option {opt['key']}",
                     value=opt["key"],
-                    description=opt.get("text", "")[:95],
+                    emoji=OPT_EMOJIS.get(opt["key"]),
+                    description=format_academic_text(opt.get("text", ""))[:95],
                 )
                 for opt in options
             ]
             if not select_options:
-                select_options = [discord.SelectOption(label=f"Option {k}", value=k) for k in ["A", "B", "C", "D"]]
+                select_options = [
+                    discord.SelectOption(label=f"Option {k}", value=k, emoji=OPT_EMOJIS.get(k))
+                    for k in ["A", "B", "C", "D"]
+                ]
 
             select = discord.ui.Select(
                 placeholder="Select one or more options (A, B, C, D)...",
                 min_values=1,
                 max_values=min(4, len(select_options)),
                 options=select_options,
+                row=0,
             )
             select.callback = self._select_callback
             self.add_item(select)
@@ -346,9 +522,46 @@ class TriviaQuestionView(discord.ui.View):
                 label="Submit Integer Answer",
                 style=discord.ButtonStyle.success,
                 emoji="🔢",
+                row=0,
             )
             btn.callback = self._integer_callback
             self.add_item(btn)
+
+        # Skip Question Button (costs 15 Chronocoins)
+        skip_btn = discord.ui.Button(
+            label="Skip (15 🪙)",
+            style=discord.ButtonStyle.secondary,
+            emoji="⏩",
+            row=1,
+        )
+        skip_btn.callback = self._skip_callback
+        self.add_item(skip_btn)
+
+    async def _skip_callback(self, interaction: discord.Interaction) -> None:
+        user = interaction.user
+        if user.id != self.author_id:
+            await interaction.response.send_message(
+                "Only the candidate who started this trivia question can skip it!",
+                ephemeral=True,
+            )
+            return
+
+        SKIP_COST = 15
+        success = await self.db.spend_coins(user.id, self.guild_id, SKIP_COST)
+        if not success:
+            curr = await self.db.get_or_create_currency(user.id, self.guild_id)
+            await interaction.response.send_message(
+                f"❌ You need **{SKIP_COST} Chronocoins** to skip this question! (Current balance: `{curr['coins']}` 🪙)",
+                ephemeral=True,
+            )
+            return
+
+        self.stop()
+        await interaction.response.send_message(
+            f"⏩ **Question Skipped!** Spent **{SKIP_COST} Chronocoins**.",
+            ephemeral=True,
+        )
+        await self.conclude_round(skipped_by=user)
 
     def _make_button_callback(self, key: str):
         async def callback(interaction: discord.Interaction) -> None:
@@ -453,24 +666,31 @@ class TriviaQuestionView(discord.ui.View):
         })
 
         # Send personalized feedback to the user
+        tier_info = get_trivia_tier(stats["total_marks"])
+        official_ans_fmt = format_academic_text(str(official_ans))
+        explanation_fmt = format_academic_text(explanation)
         if is_correct:
             result_embed = embeds.base_embed(
-                title=f"🎉 Correct Answer! (+{marks} Marks)",
+                title=f"🎉 SPOT ON! CORRECT (+{marks} Marks)",
                 description=(
-                    f"**Official Answer:** `{official_ans}`\n\n"
-                    f"💡 **Explanation:** {explanation}\n\n"
-                    f"💰 **Rewards:** +{coins_won} Chronocoins · +{xp_won} XP\n"
-                    f"🔥 **Streak:** {stats['current_streak']} in a row (Best: {stats['best_streak']}){candy_str}"
+                    f"🏆 **Official Answer:** `[ {official_ans_fmt} ]`\n\n"
+                    f"💡 **Explanation:** {explanation_fmt}\n\n"
+                    f"━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━\n"
+                    f"💰 **Rewards:** `+{coins_won}` Chronocoins  •  ⚡ `+{xp_won}` XP\n"
+                    f"🔥 **Streak:** `{stats['current_streak']}` in a row (Peak: `{stats['best_streak']}`)\n"
+                    f"🎖️ **Rank Status:** {tier_info['emoji']} `{tier_info['title']}` ({stats['total_marks']:,} marks){candy_str}"
                 ),
                 color=embeds.COLOR_SUCCESS,
             )
         else:
             result_embed = embeds.base_embed(
-                title=f"❌ Incorrect Answer ({marks:+} Marks)",
+                title=f"❌ MISSED! ({marks:+} Marks)",
                 description=(
-                    f"**Official Answer:** `{official_ans}`\n\n"
-                    f"💡 **Explanation:** {explanation}\n\n"
-                    f"Consolation: +{coins_won} Chronocoins · +{xp_won} XP · Streak reset to 0."
+                    f"🏆 **Official Answer:** `[ {official_ans_fmt} ]`\n\n"
+                    f"💡 **Explanation:** {explanation_fmt}\n\n"
+                    f"━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━\n"
+                    f"🪙 **Consolation:** `+{coins_won}` Chronocoins  •  ⚡ `+{xp_won}` XP\n"
+                    f"🔥 *Streak reset to 0. Study the concept above and bounce back!*"
                 ),
                 color=embeds.COLOR_ERROR,
             )
@@ -485,7 +705,7 @@ class TriviaQuestionView(discord.ui.View):
     async def on_timeout(self) -> None:
         await self.conclude_round()
 
-    async def conclude_round(self) -> None:
+    async def conclude_round(self, skipped_by: Optional[discord.User] = None) -> None:
         """Edit the message to show the finalized answer, explanation, and results."""
         for item in self.children:
             item.disabled = True
@@ -494,42 +714,84 @@ class TriviaQuestionView(discord.ui.View):
             return
 
         # Official answer: reuse what CJA already told us when someone answered.
-        # Only if nobody answered (timeout) do we have to ask CJA for it.
+        # Only if nobody answered (timeout/skip) do we fetch it from CJA with None (unattempted).
         try:
             full_check = self.official_result
             if full_check is None:
-                full_check = await cja_client.check_answer(self.q_id, "NONE")
-            official_ans = full_check.get("answer", {}).get("display", "N/A")
-            explanation = full_check.get("explanation", "")
-            concept = full_check.get("concept", "")
+                full_check = await cja_client.check_answer(self.q_id, None)
+            official_ans = full_check.get("answer", {}).get("display") or "Revealed"
+            explanation = full_check.get("explanation") or "No explanation available."
+            concept = full_check.get("concept") or "JEE Core Concept"
         except Exception as e:
             log.warning(f"Could not fetch official answer for round summary: {e}")
             official_ans = "Revealed"
             explanation = "Round ended."
-            concept = ""
+            concept = "JEE Core Concept"
+
+        # Apply academic formatting to answer, concept, and explanation
+        official_ans_fmt = format_academic_text(str(official_ans))
+        concept_fmt = format_academic_text(concept)
+        explanation_fmt = format_academic_text(explanation)
 
         # Update Embed
         subj_info = self.q.get("subject", {})
-        color = SUBJECT_COLORS.get(subj_info.get("id"), 0x38BDF8)
+        subj_name = subj_info.get("name", "JEE")
+        subj_id = subj_info.get("id", "chemistry")
+        color = SUBJECT_COLORS.get(subj_id, 0x38BDF8)
+        emoji = SUBJECT_EMOJIS.get(subj_id, "🧠")
+        exam_name = self.q.get("exam", {}).get("name", "JEE")
+        q_type = self.q.get("type", {}).get("id", "single")
+
+        if skipped_by:
+            status_banner = f"⏩ **QUESTION SKIPPED BY {skipped_by.display_name.upper()} (15 🪙)**"
+        elif self.results_summary:
+            status_banner = "🎉 **ROUND CONCLUDED — SCORES LOCKED IN!**"
+        else:
+            status_banner = "⏰ **TIME'S UP — SOLUTION REVEALED!**"
+
+        if q_type == "match":
+            formatted_q = format_matching_text(self.q.get("question", ""))
+        else:
+            formatted_q = format_academic_text(self.q.get("question", ""))
+
+        desc_parts = [
+            f"{status_banner}\n",
+            f"### 📋 Question\n{formatted_q}\n",
+            f"━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━",
+            f"🏆 **OFFICIAL ANSWER KEY:**  `[ {official_ans_fmt} ]`",
+            f"💡 **CORE CONCEPT:** *{concept_fmt}*",
+            f"━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━\n",
+            f"📖 **Detailed Theory Breakdown:**\n{explanation_fmt}\n",
+        ]
+
         embed = embeds.base_embed(
-            title=f"🏁 Trivia Round Concluded · {subj_info.get('name', 'JEE')}",
-            description=(
-                f"### {self.q.get('question', '')}\n\n"
-                f"✅ **Correct Answer:** `{official_ans}`\n\n"
-                f"💡 **Concept:** *{concept}*\n"
-                f"📖 **Explanation:** {explanation}"
-            ),
+            title=f"{emoji} {subj_name} Trivia  •  {exam_name} Solution",
+            description="\n".join(desc_parts),
             color=color,
         )
 
         if self.results_summary:
             summary_lines = []
-            for r in self.results_summary:
+            sorted_res = sorted(self.results_summary, key=lambda x: x["marks"], reverse=True)
+            for r in sorted_res:
                 status = "✅" if r["correct"] else "❌"
-                summary_lines.append(f"{status} **{r['user'].display_name}**: `{r['marks']:+} Marks` (+{r['coins']} Chronocoins)")
-            embed.add_field(name="👥 Round Results", value="\n".join(summary_lines), inline=False)
+                streak_txt = f" • 🔥 `{r['streak']}` streak" if r["streak"] > 1 else ""
+                summary_lines.append(
+                    f"{status} **{r['user'].display_name}**: `{r['marks']:+} Marks` (+{r['coins']} Coins · +{r['xp']} XP){streak_txt}"
+                )
+            embed.add_field(name="👥 Candidate Performance", value="\n".join(summary_lines), inline=False)
+        elif skipped_by:
+            embed.add_field(
+                name="⏩ Question Skipped",
+                value=f"*{skipped_by.display_name} paid 15 Chronocoins to reveal the solution and proceed.*",
+                inline=False,
+            )
         else:
-            embed.add_field(name="⏰ Time Expired", value="Nobody submitted an answer before the timer ran out.", inline=False)
+            embed.add_field(
+                name="⌛ Solution Revealed",
+                value="*Timer expired with no submissions. Review the full explanation above to master this concept for next time!*",
+                inline=False,
+            )
 
         # If continuous mode is enabled, show the next question controls!
         if self.continuous:
@@ -1270,32 +1532,75 @@ class Trivia(commands.Cog, name="Trivia"):
         chapter_name = q_data.get("chapter", {}).get("name", "General Theory")
         topic_name = q_data.get("topic", {}).get("name", "Concept Analysis")
         diff = q_data.get("difficulty", "medium").capitalize()
-        q_type_name = q_data.get("type", {}).get("name", "Single Correct")
-        instructions = q_data.get("type", {}).get("instructions", "Choose the correct option.")
+        diff_badge = {"Easy": "🟢", "Medium": "🟡", "Hard": "🔴"}.get(diff, "🟡")
+        q_type_info = q_data.get("type", {})
+        q_type_id = q_type_info.get("id", "single")
+        q_type_name = q_type_info.get("name", "Single Correct")
+        instructions = q_type_info.get("instructions", "Choose the correct option.")
         timeout_sec = config.TRIVIA_ADVANCED_TIME_LIMIT if exam_id == "advanced" else config.TRIVIA_MAIN_TIME_LIMIT
+
+        marking = q_data.get("marking", {})
+        pos_mark = marking.get("correct", 4)
+        neg_mark = marking.get("incorrect", -1)
+
+        # Format Question & Options
+        if q_type_id == "match":
+            formatted_question = format_matching_text(q_data.get("question", ""))
+        else:
+            formatted_question = format_academic_text(q_data.get("question", ""))
 
         options_text = []
         for opt in q_data.get("options", []):
-            options_text.append(f"**`[{opt['key']}]`** {opt['text']}")
-        options_block = "\n".join(options_text) if options_text else "*Integer type question: use the button below to submit.*"
+            k = opt["key"]
+            opt_emoji = OPT_EMOJIS.get(k, f"[{k}]")
+            if q_type_id == "match":
+                opt_str = format_matching_option(opt["text"])
+                options_text.append(f"{opt_emoji} **({k})**  {opt_str}")
+            else:
+                opt_str = format_academic_text(opt["text"])
+                options_text.append(f"{opt_emoji} **({k})**  {opt_str}")
+
+        if options_text:
+            options_block = "\n".join(options_text)
+        elif q_type_id == "integer":
+            options_block = "*🔢 Numerical integer type (range 0–99). Use the button below to submit your answer.*"
+        else:
+            options_block = "*Choose from the components below.*"
 
         embed = embeds.base_embed(
-            title=f"{emoji} {subj_name} Trivia · {exam_info}",
+            title=f"{emoji} {subj_name.upper()} TRIVIA  •  {exam_info.upper()}",
             description=(
-                f"### {q_data.get('question', '')}\n\n"
+                f"### 📋 Question\n"
+                f"{formatted_question}\n\n"
+                f"━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━\n"
+                f"### 🎯 Options\n"
                 f"{options_block}\n\n"
-                f"📌 *{instructions}*"
+                f"━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━\n"
+                f"📌 *{instructions}*\n"
+                f"⚖️ **Scoring:** `+{pos_mark}` for correct  •  `{neg_mark}` for incorrect"
             ),
             color=color,
         )
 
-        embed.add_field(name="📚 Chapter", value=f"`{chapter_name}`", inline=True)
-        embed.add_field(name="🎯 Topic", value=f"`{topic_name}`", inline=True)
-        embed.add_field(name="⚡ Details", value=f"{diff} · {q_type_name}", inline=True)
+        embed.add_field(
+            name="📚 Syllabus Path",
+            value=f"**{subj_name}** ▸ `{chapter_name}`\n*{topic_name}*",
+            inline=True,
+        )
+        embed.add_field(
+            name="⚡ Classification",
+            value=f"{diff_badge} **{diff}**\n📝 `{q_type_name}`",
+            inline=True,
+        )
+        embed.add_field(
+            name="⏱️ Round Clock",
+            value=f"**{timeout_sec}s** timer\n⏩ Skip: `15 🪙`",
+            inline=True,
+        )
 
-        footer_text = f"⏱️ Time limit: {timeout_sec}s · Answer using the components below!"
+        footer_text = f"⏱️ {timeout_sec}s limit • Submit with buttons below • Skip costs 15 🪙"
         if continuous:
-            footer_text += " · Practice Mode (Next Question controls after answer)"
+            footer_text += " • Practice Mode"
         embeds.set_footer(embed, footer_text)
 
         view = TriviaQuestionView(
@@ -1314,7 +1619,7 @@ class Trivia(commands.Cog, name="Trivia"):
         view.message = msg
 
     async def _send_leaderboard(self, ctx: commands.Context) -> None:
-        """Display the server trivia leaderboard."""
+        """Display the server trivia leaderboard with JEE AIR ladder climb."""
         rows = await self.db.get_trivia_leaderboard(ctx.guild.id, limit=10)
         if not rows:
             await ctx.send(embed=embeds.info_embed(
@@ -1324,53 +1629,109 @@ class Trivia(commands.Cog, name="Trivia"):
             return
 
         embed = embeds.base_embed(
-            title=f"🏆 JEE Trivia Leaderboard · {ctx.guild.name}",
-            description="Top academic contenders ranked by official JEE marks earned in `,trivia`:",
-            color=0xF59E0B,
+            title=f"🏆 JEE AIR Leaderboard • {ctx.guild.name}",
+            description="Official server rankings based on net JEE marks earned in `,trivia`:\n",
+            color=embeds.COLOR_LEVELUP,
         )
 
         medals = ["🥇", "🥈", "🥉"]
         lines = []
         for i, row in enumerate(rows):
-            medal = medals[i] if i < 3 else f"`#{i + 1}`"
+            rank_badge = medals[i] if i < 3 else f"`#{i + 1:02d}`"
             member = ctx.guild.get_member(row["user_id"])
             name = member.display_name if member else f"User {row['user_id']}"
             acc = (row["questions_correct"] / row["questions_attempted"] * 100) if row["questions_attempted"] > 0 else 0
+            tier = get_trivia_tier(row["total_marks"])
+            streak_txt = f" • 🔥 `{row['current_streak']}` streak" if row["current_streak"] > 0 else ""
             lines.append(
-                f"{medal} **{name}** — **{row['total_marks']:,} Marks**\n"
-                f"   └ `{row['questions_correct']}/{row['questions_attempted']}` ({acc:.1f}%) · 🔥 Streak: `{row['current_streak']}` (Best: `{row['best_streak']}`) · 🪙 `{row['total_coins_won']:,}` Chronocoins won"
+                f"{rank_badge} **{name}** {tier['emoji']} `[{tier['badge']}]`\n"
+                f"   └ **{row['total_marks']:+,} Marks** · `{acc:.0f}%` ({row['questions_correct']}/{row['questions_attempted']}){streak_txt}"
             )
 
-        embed.add_field(name="Rankings", value="\n".join(lines), inline=False)
-        embeds.set_footer(embed, f"{ctx.prefix}trivia r to play · {ctx.prefix}trivia me for your personal stats")
+        embed.add_field(name="🏅 Top Academic Contenders", value="\n".join(lines), inline=False)
+
+        # Personal climb section for the caller
+        author_rank, total_players = await self.db.get_user_trivia_rank(ctx.author.id, ctx.guild.id)
+        author_stats = await self.db.get_or_create_trivia_stats(ctx.author.id, ctx.guild.id)
+        author_tier = get_trivia_tier(author_stats["total_marks"])
+
+        climb_lines = [
+            f"**Current Standing:** Rank `#{author_rank}` of `{total_players}` candidates",
+            f"**Rank Tier:** {author_tier['emoji']} **{author_tier['title']}** (`{author_tier['badge']}`)",
+            f"**Net Score:** `{author_stats['total_marks']:+,} Marks`",
+        ]
+
+        if author_tier["next_title"] and author_tier["next_marks"] is not None:
+            needed = author_tier["next_marks"] - author_stats["total_marks"]
+            cur_prog = max(0, author_stats["total_marks"] - author_tier["cur_min"])
+            tot_prog = max(1, author_tier["next_marks"] - author_tier["cur_min"])
+            pct = min(100, int((cur_prog / tot_prog) * 100))
+            p_bar = embeds.bar(cur_prog, tot_prog, 12)
+            climb_lines.append(
+                f"**Ladder Progress:** `{p_bar}` **{pct}%**\n"
+                f"└ *Need **{needed} more marks** to unlock **{author_tier['next_title']}**!*"
+            )
+        else:
+            climb_lines.append("👑 **Apex Achieved!** You hold the highest possible rank (AIR 1)!")
+
+        embed.add_field(name="🧗 Your Climb Progress", value="\n".join(climb_lines), inline=False)
+        embeds.set_footer(embed, f"{ctx.prefix}trivia r to play • {ctx.prefix}trivia me for full candidate profile")
         await ctx.send(embed=embed)
 
     async def _send_user_stats(self, ctx: commands.Context) -> None:
-        """Display personal trivia metrics for the author."""
+        """Display personal trivia metrics and ladder climb for the author."""
         stats = await self.db.get_or_create_trivia_stats(ctx.author.id, ctx.guild.id)
+        rank, total_players = await self.db.get_user_trivia_rank(ctx.author.id, ctx.guild.id)
+        tier = get_trivia_tier(stats["total_marks"])
+        currency = await self.db.get_or_create_currency(ctx.author.id, ctx.guild.id)
+
         att = stats["questions_attempted"]
         cor = stats["questions_correct"]
         acc = (cor / att * 100) if att > 0 else 0
 
         embed = embeds.base_embed(
-            title=f"📊 Trivia Stats · {ctx.author.display_name}",
-            description="Your competitive JEE trivia performance record:",
-            color=embeds.COLOR_SOCIAL,
+            title=f"🎓 JEE Candidate Profile • {ctx.author.display_name}",
+            description=(
+                f"### {tier['emoji']} **{tier['title']}** `[{tier['badge']}]`\n"
+                f"Server Standing: **Rank #{rank}** of `{total_players}` candidates"
+            ),
+            color=embeds.COLOR_LEVELUP,
         )
         embed.set_thumbnail(url=ctx.author.display_avatar.url)
 
-        embed.add_field(name="🎯 Accuracy", value=f"**{acc:.1f}%** ({cor}/{att} correct)", inline=True)
-        embed.add_field(name="📈 Total Marks", value=f"**{stats['total_marks']:,}** Marks", inline=True)
-        embed.add_field(name="💰 Chronocoins Won", value=f"**+{stats['total_coins_won']:,}** 🪙", inline=True)
-        embed.add_field(name="🔥 Current Streak", value=f"**{stats['current_streak']}** in a row", inline=True)
-        embed.add_field(name="⚡ Best Streak", value=f"**{stats['best_streak']}** all-time", inline=True)
+        # Ladder progress
+        if tier["next_title"] and tier["next_marks"] is not None:
+            needed = tier["next_marks"] - stats["total_marks"]
+            cur_prog = max(0, stats["total_marks"] - tier["cur_min"])
+            tot_prog = max(1, tier["next_marks"] - tier["cur_min"])
+            pct = min(100, int((cur_prog / tot_prog) * 100))
+            p_bar = embeds.bar(cur_prog, tot_prog, 14)
+            progress_desc = (
+                f"`{p_bar}` **{pct}%**\n"
+                f"🎯 **{needed} marks** needed to rank up to **{tier['next_title']}**"
+            )
+        else:
+            progress_desc = "👑 **MAX RANK ACHIEVED** — You reign supreme at AIR 1!"
+
+        embed.add_field(name="🧗 Next Rank Target", value=progress_desc, inline=False)
+
+        # Core Exam Metrics
+        embed.add_field(name="📈 Net Marks", value=f"**{stats['total_marks']:+,}** Marks", inline=True)
+        embed.add_field(name="🎯 Accuracy", value=f"**{acc:.1f}%** ({cor}/{att})", inline=True)
         embed.add_field(
-            name="⏱️ Status",
-            value="Ready to grind!" if time.time() - self.user_cooldowns.get(ctx.author.id, 0) >= config.TRIVIA_COOLDOWN_SECONDS else "On cooldown",
+            name="🔥 Streak",
+            value=f"**{stats['current_streak']}** current · Peak **{stats['best_streak']}**",
             inline=True,
         )
 
-        embeds.set_footer(embed, f"Use {ctx.prefix}trivia r to start a new question")
+        # Economy & Status
+        embed.add_field(name="🪙 Chronocoins", value=f"**{currency['coins']:,}** balance", inline=True)
+        embed.add_field(name="💰 Trivia Earnings", value=f"**+{stats['total_coins_won']:,}** 🪙 won", inline=True)
+        is_ready = time.time() - self.user_cooldowns.get(ctx.author.id, 0) >= config.TRIVIA_COOLDOWN_SECONDS
+        status_txt = "🟢 **Ready to grind!**" if is_ready else "⏳ Cooldown active"
+        embed.add_field(name="⏱️ Status", value=status_txt, inline=True)
+
+        embeds.set_footer(embed, f"Use {ctx.prefix}trivia r to attempt a question • Skip costs 15 🪙")
         await ctx.send(embed=embed)
 
 
