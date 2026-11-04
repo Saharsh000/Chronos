@@ -878,3 +878,401 @@ def render_trivia_card_sync(
     draw.text((CARD_WIDTH - 280, 642), "JEE TRIVIA MASTERY · PAGE 4/4", font=f_foot, fill=(71, 85, 105, 255))
 
     return _export_png(img)
+
+
+# ==============================================================================
+# SHOP CARD & INVENTORY SATCHEL CARD GENERATORS
+# ==============================================================================
+SHOP_CARD_HEIGHT = 860
+INV_CARD_HEIGHT = 820
+
+SHOP_ITEMS_DATA = [
+    {
+        "id": "mystery_box",
+        "num": 1,
+        "name": "Mystery Box",
+        "type": "CONSUMABLE",
+        "price": 150,
+        "icon": "mystery_box",
+        "color": ACCENT_PURPLE,
+        "desc": "Box of random rewards: Coins, XP, or rare items. Open with .openbox.",
+    },
+    {
+        "id": "streak_freeze",
+        "num": 2,
+        "name": "Streak Freeze",
+        "type": "CONSUMABLE",
+        "price": 250,
+        "icon": "streak_freeze",
+        "color": ACCENT_CYAN,
+        "desc": "Automatically shields your study streak when you miss exactly one day.",
+    },
+    {
+        "id": "xp_boost",
+        "num": 3,
+        "name": "XP Boost",
+        "type": "60M BOOST (2X)",
+        "price": 300,
+        "icon": "xp_boost",
+        "color": ACCENT_GREEN,
+        "desc": ".use to double study XP for 60 minutes. Stacks as inventory charges.",
+    },
+    {
+        "id": "coin_boost",
+        "num": 4,
+        "name": "Chronocoin Boost",
+        "type": "60M BOOST (2X)",
+        "price": 300,
+        "icon": "coin_boost",
+        "color": ACCENT_GOLD,
+        "desc": ".use to double Chronocoins earned from studying for 60 minutes.",
+    },
+    {
+        "id": "title_scholar",
+        "num": 5,
+        "name": "Title: The Scholar",
+        "type": "PRESTIGE TITLE",
+        "price": 400,
+        "icon": "title_scroll",
+        "color": (217, 119, 6, 255),
+        "desc": "Unlocks custom title 'The Scholar' to display on your .stats profile.",
+    },
+    {
+        "id": "title_grinder",
+        "num": 6,
+        "name": "Title: The Grinder",
+        "type": "PRESTIGE TITLE",
+        "price": 400,
+        "icon": "title_scroll",
+        "color": (217, 119, 6, 255),
+        "desc": "Unlocks custom title 'The Grinder' to display on your .stats profile.",
+    },
+    {
+        "id": "title_insomniac",
+        "num": 7,
+        "name": "Title: Insomniac",
+        "type": "PRESTIGE TITLE",
+        "price": 400,
+        "icon": "title_scroll",
+        "color": (217, 119, 6, 255),
+        "desc": "Unlocks custom title 'Insomniac' to display on your .stats profile.",
+    },
+    {
+        "id": "title_legend",
+        "num": 8,
+        "name": "Title: Legend",
+        "type": "PRESTIGE TITLE",
+        "price": 1000,
+        "icon": "title_scroll",
+        "color": ACCENT_GOLD,
+        "desc": "A supreme prestige title for the most dedicated study grinders.",
+    },
+]
+
+ITEM_METADATA = {
+    "mystery_box": {
+        "name": "Mystery Box",
+        "icon": "mystery_box",
+        "type": "CONSUMABLE",
+        "action": ".openbox to open for rewards",
+        "color": ACCENT_PURPLE,
+    },
+    "streak_freeze": {
+        "name": "Streak Freeze",
+        "icon": "streak_freeze",
+        "type": "CONSUMABLE",
+        "action": "Passive protection on missed day",
+        "color": ACCENT_CYAN,
+    },
+    "xp_boost": {
+        "name": "XP Boost",
+        "icon": "xp_boost",
+        "type": "BOOST CHARGES",
+        "action": ".use xp boost to activate 2x XP (60m)",
+        "color": ACCENT_GREEN,
+    },
+    "coin_boost": {
+        "name": "Chronocoin Boost",
+        "icon": "coin_boost",
+        "type": "BOOST CHARGES",
+        "action": ".use coin boost to activate 2x coins (60m)",
+        "color": ACCENT_GOLD,
+    },
+    "sugar_rush": {
+        "name": "Sugar Rush",
+        "icon": "xp_boost",
+        "type": "BOOST CHARGES",
+        "action": ".use sugar rush to activate 2x XP (60m)",
+        "color": ACCENT_ROSE,
+    },
+    "title_scholar": {
+        "name": "Title: The Scholar",
+        "icon": "title_scroll",
+        "type": "PRESTIGE TITLE",
+        "action": ".settitle The Scholar to equip",
+        "color": (217, 119, 6, 255),
+    },
+    "title_grinder": {
+        "name": "Title: The Grinder",
+        "icon": "title_scroll",
+        "type": "PRESTIGE TITLE",
+        "action": ".settitle The Grinder to equip",
+        "color": (217, 119, 6, 255),
+    },
+    "title_insomniac": {
+        "name": "Title: Insomniac",
+        "icon": "title_scroll",
+        "type": "PRESTIGE TITLE",
+        "action": ".settitle Insomniac to equip",
+        "color": (217, 119, 6, 255),
+    },
+    "title_legend": {
+        "name": "Title: Legend",
+        "icon": "title_scroll",
+        "type": "PRESTIGE TITLE",
+        "action": ".settitle Legend to equip",
+        "color": ACCENT_GOLD,
+    },
+    "title_inorganic": {
+        "name": "Title: Inorganic Nightmare",
+        "icon": "title_scroll",
+        "type": "EVENT TITLE",
+        "action": ".settitle Inorganic Nightmare to equip",
+        "color": (217, 119, 6, 255),
+    },
+    "title_shift1": {
+        "name": "Title: Shift 1 Phantom",
+        "icon": "title_scroll",
+        "type": "EVENT TITLE",
+        "action": ".settitle The Shift 1 Phantom to equip",
+        "color": (217, 119, 6, 255),
+    },
+    "title_great_pumpkin": {
+        "name": "Title: The Great Pumpkin",
+        "icon": "title_scroll",
+        "type": "EVENT TITLE",
+        "action": ".settitle The Great Pumpkin to equip",
+        "color": ACCENT_GOLD,
+    },
+}
+
+
+def render_shop_card_sync(user_coins: int) -> bytes:
+    """Synchronously renders the high-res 1200x860 Shop catalog PNG with big pixel art icons."""
+    img = Image.new("RGBA", (CARD_WIDTH, SHOP_CARD_HEIGHT), BG_COLOR)
+    draw = ImageDraw.Draw(img)
+
+    draw.rounded_rectangle([20, 20, CARD_WIDTH - 20, SHOP_CARD_HEIGHT - 20], radius=20, fill=None, outline=(30, 41, 59, 255), width=2)
+    draw.line([(50, 20), (CARD_WIDTH - 50, 20)], fill=ACCENT_GOLD, width=4)
+
+    # Top Header
+    draw.text((50, 45), "CHRONOS COIN SHOP", font=_get_font(28, bold=True), fill=TEXT_WHITE)
+    draw.text((50, 82), "Spend Chronocoins on boosts, streak protection, and prestige titles", font=_get_font(14, bold=False), fill=TEXT_MUTED)
+
+    # Wallet Balance Pill
+    wallet_w = 320
+    wallet_h = 48
+    w_x = CARD_WIDTH - 50 - wallet_w
+    w_y = 48
+    draw.rounded_rectangle([w_x, w_y, w_x + wallet_w, w_y + wallet_h], radius=12, fill=CARD_BG, outline=ACCENT_GOLD, width=2)
+    _paste_pixel_icon(img, "chronocoin", w_x + 14, w_y + 8, 32)
+    bal_str = f"{user_coins:,} Coins Available"
+    draw.text((w_x + 56, w_y + 12), bal_str, font=_get_font(18, bold=True), fill=ACCENT_GOLD)
+
+    # 8 Tiles (2 cols x 4 rows)
+    col_w = 535
+    row_h = 135
+    c1_x = 50
+    c2_x = 615
+
+    for idx, item in enumerate(SHOP_ITEMS_DATA):
+        col = idx % 2
+        row = idx // 2
+        tx = c1_x if col == 0 else c2_x
+        ty = 145 + row * (row_h + 20)
+
+        # Tile Card
+        draw.rounded_rectangle([tx, ty, tx + col_w, ty + row_h], radius=16, fill=CARD_BG, outline=CARD_BORDER, width=1)
+        # Left Accent Line
+        draw.line([(tx + 4, ty + 16), (tx + 4, ty + row_h - 16)], fill=item["color"], width=4)
+
+        # Big 64x64 Pixel Art Icon
+        _paste_pixel_icon(img, item["icon"], tx + 20, ty + 35, 64)
+
+        # Item Info
+        info_x = tx + 98
+        name_str = f"{item['num']}. {item['name']}"
+        draw.text((info_x, ty + 18), name_str, font=_get_font(19, bold=True), fill=TEXT_WHITE)
+
+        # Type Pill
+        t_bbox = draw.textbbox((0, 0), item["type"], font=_get_font(10, bold=True))
+        t_w = t_bbox[2] - t_bbox[0]
+        name_bbox = draw.textbbox((info_x, ty + 18), name_str, font=_get_font(19, bold=True))
+        pill_x = name_bbox[2] + 12
+        draw.rounded_rectangle([pill_x, ty + 18, pill_x + t_w + 14, ty + 38], radius=5, fill=(30, 41, 59, 200))
+        draw.text((pill_x + 7, ty + 22), item["type"], font=_get_font(10, bold=True), fill=item["color"])
+
+        # Price Pill on the right
+        price_str = f"{item['price']:,}"
+        p_bbox = draw.textbbox((0, 0), price_str, font=_get_font(20, bold=True))
+        pw = p_bbox[2] - p_bbox[0]
+        px = tx + col_w - 20 - pw - 30
+        draw.text((px, ty + 18), price_str, font=_get_font(20, bold=True), fill=ACCENT_GOLD)
+        _paste_pixel_icon(img, "chronocoin", px + pw + 6, ty + 18, 22)
+
+        # Description (wrapped)
+        desc_lines = []
+        words = item["desc"].split()
+        cur_line = []
+        f_desc = _get_font(12, bold=False)
+        for w in words:
+            cur_line.append(w)
+            test_line = " ".join(cur_line)
+            bbox = draw.textbbox((0, 0), test_line, font=f_desc)
+            if (bbox[2] - bbox[0]) > (col_w - 120):
+                cur_line.pop()
+                desc_lines.append(" ".join(cur_line))
+                cur_line = [w]
+        if cur_line:
+            desc_lines.append(" ".join(cur_line))
+
+        for d_idx, d_line in enumerate(desc_lines[:2]):
+            draw.text((info_x, ty + 56 + d_idx * 20), d_line, font=f_desc, fill=TEXT_SUB)
+
+    # Footer
+    f_foot = _get_font(13, bold=True)
+    draw.text((50, SHOP_CARD_HEIGHT - 45), "COMMAND: .buy <number_or_name> [quantity]  •  Example: .buy 1 3 or .buy freeze", font=f_foot, fill=TEXT_SUB)
+    draw.text((CARD_WIDTH - 280, SHOP_CARD_HEIGHT - 45), "CHRONOS STUDY OS · SHOP CATALOG", font=_get_font(12, bold=False), fill=TEXT_MUTED)
+
+    return _export_png(img)
+
+
+def render_inventory_card_sync(
+    display_name: str,
+    username: str,
+    tier_name: str,
+    coins: int,
+    candy: int,
+    inventory: dict[str, int],
+    active_boosts: list[dict[str, Any]],
+    equipped_title: Optional[str] = None,
+    avatar_bytes: Optional[bytes] = None,
+) -> bytes:
+    """Synchronously renders the high-res 1200x820 Inventory / Bag card PNG with big pixel art icons."""
+    img = Image.new("RGBA", (CARD_WIDTH, INV_CARD_HEIGHT), BG_COLOR)
+    draw = ImageDraw.Draw(img)
+
+    clean_tier = tier_name.split()[-1].lower() if tier_name else "iron"
+    tier_rgb = TIER_COLORS.get(clean_tier, (148, 163, 184))
+    tier_rgba = (*tier_rgb, 255)
+
+    draw.rounded_rectangle([20, 20, CARD_WIDTH - 20, INV_CARD_HEIGHT - 20], radius=20, fill=None, outline=(30, 41, 59, 255), width=2)
+    draw.line([(50, 20), (CARD_WIDTH - 50, 20)], fill=ACCENT_CYAN, width=4)
+
+    # Header
+    av_size = 72
+    av_x, av_y = 50, 42
+    if avatar_bytes:
+        try:
+            with Image.open(io.BytesIO(avatar_bytes)) as raw_av:
+                circle_av = _make_circular_avatar(raw_av, av_size)
+                img.paste(circle_av, (av_x, av_y), circle_av)
+                draw.ellipse([av_x - 2, av_y - 2, av_x + av_size + 2, av_y + av_size + 2], outline=tier_rgba, width=2)
+        except Exception:
+            draw.ellipse([av_x, av_y, av_x + av_size, av_y + av_size], fill=CARD_BG, outline=tier_rgba, width=2)
+    else:
+        draw.ellipse([av_x, av_y, av_x + av_size, av_y + av_size], fill=CARD_BG, outline=tier_rgba, width=2)
+
+    clean_disp = _sanitize_text(display_name) or "Candidate"
+    draw.text((av_x + av_size + 20, av_y + 4), f"{clean_disp.upper()}'S INVENTORY & SATCHEL", font=_get_font(24, bold=True), fill=TEXT_WHITE)
+
+    sub_parts = []
+    if equipped_title:
+        sub_parts.append(f"Title: \"{_sanitize_text(equipped_title)}\"")
+    valid_items = [k for k, v in inventory.items() if v > 0]
+    sub_parts.append(f"{len(valid_items)} Unique Items Held")
+    draw.text((av_x + av_size + 20, av_y + 38), " · ".join(sub_parts), font=_get_font(13, bold=False), fill=TEXT_MUTED)
+
+    # Wallet Badges on Top Right
+    w_coin_str = f"{coins:,}"
+    draw.rounded_rectangle([CARD_WIDTH - 380, av_y + 8, CARD_WIDTH - 210, av_y + 54], radius=10, fill=CARD_BG, outline=ACCENT_GOLD, width=1)
+    _paste_pixel_icon(img, "chronocoin", CARD_WIDTH - 370, av_y + 14, 26)
+    draw.text((CARD_WIDTH - 336, av_y + 18), w_coin_str, font=_get_font(16, bold=True), fill=ACCENT_GOLD)
+
+    draw.rounded_rectangle([CARD_WIDTH - 195, av_y + 8, CARD_WIDTH - 50, av_y + 54], radius=10, fill=CARD_BG, outline=(236, 72, 153, 255), width=1)
+    draw.text((CARD_WIDTH - 185, av_y + 18), f"{candy:,} Candy", font=_get_font(16, bold=True), fill=(244, 114, 182, 255))
+
+    # Active Boosts Banner (y = 130)
+    banner_y = 130
+    banner_h = 60
+    draw.rounded_rectangle([50, banner_y, CARD_WIDTH - 50, banner_y + banner_h], radius=14, fill=CARD_BG, outline=CARD_BORDER, width=1)
+    if active_boosts:
+        draw.ellipse([70, banner_y + 24, 82, banner_y + 36], fill=ACCENT_GREEN)
+        draw.text((92, banner_y + 20), "ACTIVE BOOSTS RUNNING:", font=_get_font(13, bold=True), fill=ACCENT_GREEN)
+        bx_curr = 300
+        for b in active_boosts:
+            rem = _format_time(b["remaining"])
+            b_txt = f"{b['name']} ({b['mult']}x) — {rem} left"
+            draw.rounded_rectangle([bx_curr, banner_y + 14, bx_curr + len(b_txt) * 9 + 20, banner_y + banner_h - 14], radius=6, fill=(30, 41, 59, 200))
+            draw.text((bx_curr + 10, banner_y + 19), b_txt, font=_get_font(12, bold=True), fill=TEXT_WHITE)
+            bx_curr += len(b_txt) * 9 + 35
+    else:
+        draw.ellipse([70, banner_y + 24, 82, banner_y + 36], fill=(100, 116, 139, 255))
+        draw.text((92, banner_y + 20), "NO ACTIVE BOOSTS", font=_get_font(13, bold=True), fill=TEXT_MUTED)
+        draw.text((250, banner_y + 21), "Activate an XP or Coin boost from your inventory below with .use <item>", font=_get_font(13, bold=False), fill=TEXT_SUB)
+
+    # Main Grid (3 columns x 3 rows)
+    grid_y = 210
+    slot_w = 348
+    slot_h = 160
+    col_xs = [50, 426, 802]
+
+    display_items = []
+    for i_id, qty in inventory.items():
+        if qty > 0:
+            meta = ITEM_METADATA.get(i_id, {
+                "name": i_id.replace("_", " ").title(),
+                "icon": "mystery_box",
+                "type": "ITEM",
+                "action": "Owned Item",
+                "color": ACCENT_CYAN,
+            })
+            display_items.append((i_id, qty, meta))
+
+    for idx in range(6):
+        col = idx % 3
+        row = idx // 3
+        sx = col_xs[col]
+        sy = grid_y + row * (slot_h + 20)
+
+        if idx < len(display_items):
+            i_id, qty, meta = display_items[idx]
+            draw.rounded_rectangle([sx, sy, sx + slot_w, sy + slot_h], radius=16, fill=CARD_BG, outline=CARD_BORDER, width=1)
+            draw.line([(sx + 20, sy), (sx + slot_w - 20, sy)], fill=meta["color"], width=3)
+
+            # Icon
+            _paste_pixel_icon(img, meta["icon"], sx + 18, sy + 38, 56)
+
+            # Info
+            draw.text((sx + 88, sy + 22), meta["name"][:20], font=_get_font(18, bold=True), fill=TEXT_WHITE)
+            draw.text((sx + 88, sy + 52), meta["type"], font=_get_font(11, bold=True), fill=meta["color"])
+            draw.text((sx + 88, sy + 80), meta["action"], font=_get_font(11, bold=False), fill=TEXT_SUB)
+
+            # Quantity pill
+            qty_str = f"×{qty}"
+            q_bbox = draw.textbbox((0, 0), qty_str, font=_get_font(13, bold=True))
+            qw = q_bbox[2] - q_bbox[0]
+            draw.rounded_rectangle([sx + slot_w - qw - 24, sy + 16, sx + slot_w - 14, sy + 40], radius=6, fill=(30, 41, 59, 220))
+            draw.text((sx + slot_w - qw - 19, sy + 20), qty_str, font=_get_font(13, bold=True), fill=ACCENT_CYAN)
+        else:
+            # Empty slot
+            draw.rounded_rectangle([sx, sy, sx + slot_w, sy + slot_h], radius=16, fill=PANEL_BG, outline=PANEL_BORDER, width=1)
+            draw.text((sx + slot_w // 2 - 45, sy + slot_h // 2 - 10), "[ EMPTY SLOT ]", font=_get_font(12, bold=True), fill=(71, 85, 105, 255))
+
+    # Footer
+    f_foot = _get_font(13, bold=True)
+    draw.text((50, INV_CARD_HEIGHT - 45), "TIPS: .use <boost> to activate  •  .openbox to roll boxes  •  .settitle <title> to equip", font=f_foot, fill=TEXT_SUB)
+    draw.text((CARD_WIDTH - 280, INV_CARD_HEIGHT - 45), "CHRONOS STUDY OS · USER SATCHEL", font=_get_font(12, bold=False), fill=TEXT_MUTED)
+
+    return _export_png(img)
+

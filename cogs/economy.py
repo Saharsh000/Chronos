@@ -7,6 +7,8 @@ cog is just the spending/claiming side of the economy.
 """
 from __future__ import annotations
 
+import asyncio
+import io
 import logging
 import random
 import time
@@ -21,7 +23,9 @@ from utils import emojis
 from utils import food as food_catalog
 from utils import halloween as halloween_catalog
 from utils.beg_scenarios import roll_beg_scenario
+from utils.stats_card import render_inventory_card_sync, render_shop_card_sync
 from utils.time_format import format_duration
+from utils.xp import tier_for_level, xp_progress
 
 log = logging.getLogger("economy")
 
@@ -65,33 +69,43 @@ class Economy(commands.Cog, name="Economy"):
     @commands.command(name="shop", aliases=["store"])
     @commands.guild_only()
     async def shop_cmd(self, ctx: commands.Context) -> None:
-        """Browse the Chronocoin shop."""
+        """Browse the Chronocoin shop with high-res visual catalog card."""
         currency = await self.db.get_or_create_currency(ctx.author.id, ctx.guild.id)
         coin_e = emojis.coin(ctx.guild)
         embed = embeds.base_embed(
-            title="🛒 Chronos Shop",
+            title="🛒 Chronos Coin Shop",
             description=(
                 f"{coin_e} **{currency['coins']:,} Chronocoins available**\n"
-                "Pick an item by its number or name."
+                f"Type `{ctx.prefix}buy <number_or_name> [quantity]` to purchase!"
             ),
             color=embeds.COLOR_ECONOMY,
         )
-        for i, item_id in enumerate(economy.SHOP_ORDER, start=1):
-            item = economy.SHOP_ITEMS[item_id]
-            embed.add_field(
-                name=f"`{i}.` {item['emoji']} {item['name']} \u2014 **{item['price']:,}** \U0001FA99",
-                value=f"\u25B9 {item['description']}",
-                inline=False,
-            )
-        custom_tags = await self.db.get_custom_tags(ctx.guild.id)
-        for item_id, item in custom_tags.items():
-            embed.add_field(
-                name=f"{item['emoji']} {item['name']} \u2014 **{item['price']:,}** \U0001FA99",
-                value=f"\u25B9 {item['description']}",
-                inline=False,
-            )
-        embeds.set_footer(embed, f"{ctx.prefix}buy <item> [quantity]")
-        await ctx.send(embed=embed)
+        embeds.set_footer(embed, f"Example: {ctx.prefix}buy 1 3  •  {ctx.prefix}buy freeze  •  {ctx.prefix}inv to view your satchel")
+
+        loop = asyncio.get_running_loop()
+        try:
+            card_bytes = await loop.run_in_executor(None, render_shop_card_sync, currency["coins"])
+            file = discord.File(io.BytesIO(card_bytes), filename="shop.png")
+            embed.set_image(url="attachment://shop.png")
+            await ctx.send(file=file, embed=embed)
+        except Exception as e:
+            log.error("Failed to render visual shop card", exc_info=e)
+            for i, item_id in enumerate(economy.SHOP_ORDER, start=1):
+                item = economy.SHOP_ITEMS[item_id]
+                item_e = emojis.item(item_id, ctx.guild)
+                embed.add_field(
+                    name=f"`{i}.` {item_e} {item['name']} — **{item['price']:,}** {coin_e}",
+                    value=f"▷ {item['description']}",
+                    inline=False,
+                )
+            custom_tags = await self.db.get_custom_tags(ctx.guild.id)
+            for item_id, item in custom_tags.items():
+                embed.add_field(
+                    name=f"{item['emoji']} {item['name']} — **{item['price']:,}** {coin_e}",
+                    value=f"▷ {item['description']}",
+                    inline=False,
+                )
+            await ctx.send(embed=embed)
 
     @commands.command(name="buy")
     @commands.guild_only()
@@ -148,64 +162,80 @@ class Economy(commands.Cog, name="Economy"):
         ))
         await self._announce_achievements(ctx)
 
-    @commands.command(name="inventory", aliases=["inv"])
+    @commands.command(name="inventory", aliases=["inv", "bag", "satchel"])
     @commands.guild_only()
     async def inventory_cmd(self, ctx: commands.Context, member: Optional[discord.Member] = None) -> None:
-        """See what you (or someone else) own."""
+        """See what you (or someone else) own in your satchel with high-res visual card."""
         target = member or ctx.author
         inventory = await self.db.get_inventory(target.id, ctx.guild.id)
         stats = await self.db.get_or_create_user_stats(target.id, ctx.guild.id)
-
-        embed = embeds.base_embed(title=f"\U0001F392 {target.display_name}'s Inventory", color=embeds.COLOR_ECONOMY)
-        embed.set_thumbnail(url=target.display_avatar.url)
-
-        if not inventory:
-            embed.description = f"Nothing yet - check out `{ctx.prefix}shop`."
-        else:
-            custom_tags = await self.db.get_custom_tags(ctx.guild.id)
-            lines = []
-            for item_id, qty in inventory.items():
-                item = economy.SHOP_ITEMS.get(item_id) or custom_tags.get(item_id)
-                if item is None:
-                    continue
-                lines.append(f"{item['emoji']} **{item['name']}** \u00D7{qty}")
-            embed.description = "\n".join(lines) if lines else f"Nothing yet - check out `{ctx.prefix}shop`."
-
-        box_lines = [
-            f"{halloween_catalog.HALLO_BOXES[bid]['emoji']} **{halloween_catalog.HALLO_BOXES[bid]['name']}** \u00D7{inventory[bid]}"
-            for bid in halloween_catalog.HALLO_BOX_ORDER
-            if inventory.get(bid, 0) > 0
-        ]
-        if box_lines:
-            embed.add_field(
-                name="\U0001F383 Hallo-Boxes",
-                value="\n".join(box_lines) + f"\nOpen with `{ctx.prefix}openbox <tier>`",
-                inline=False,
-            )
-
-        food_inventory = await self.db.get_food_inventory(target.id, ctx.guild.id)
-        if food_inventory:
-            food_lines = [
-                f"{food_catalog.FOOD_TIER_INFO[food_catalog.FOODS[fid]['tier']]['emoji']} "
-                f"**{food_catalog.FOODS[fid]['name']}** \u00D7{qty}"
-                for fid, qty in food_inventory.items()
-            ]
-            embed.add_field(name="\U0001F372 Pet Food", value="\n".join(food_lines), inline=False)
-
-        if stats.get("equipped_title"):
-            embed.add_field(name="Equipped Title", value=stats["equipped_title"], inline=False)
+        currency = await self.db.get_or_create_currency(target.id, ctx.guild.id)
+        effective_tiers = await self.db.get_effective_tiers(ctx.guild.id)
+        _, _, lvl = xp_progress(stats["xp"])
+        tier = tier_for_level(lvl, effective_tiers)
 
         now = int(time.time())
-        boost_lines = []
-        for effect_id, label in (("xp_boost", "\u26A1 XP Boost"), ("coin_boost", "\U0001F4B0 Chronocoin Boost")):
+        active_boosts = []
+        for effect_id, label in (("xp_boost", "XP Boost"), ("coin_boost", "Chronocoin Boost")):
             effect = await self.db.get_active_effect(target.id, ctx.guild.id, effect_id, now)
             if effect:
                 remaining = max(0, effect["expires_at"] - now)
-                boost_lines.append(f"{label} ({effect['multiplier']}x) \u2014 {format_duration(remaining)} left")
-        if boost_lines:
-            embed.add_field(name="Active Boosts", value="\n".join(boost_lines), inline=False)
+                active_boosts.append({
+                    "name": label,
+                    "mult": effect["multiplier"],
+                    "remaining": remaining,
+                })
 
-        await ctx.send(embed=embed)
+        avatar_bytes: Optional[bytes] = None
+        try:
+            avatar_bytes = await target.display_avatar.with_format("png").with_size(128).read()
+        except Exception:
+            avatar_bytes = None
+
+        coin_e = emojis.coin(ctx.guild)
+        embed = embeds.base_embed(
+            title=f"🎒 {target.display_name}'s Satchel & Inventory",
+            description=(
+                f"{coin_e} **Wallet:** `{currency['coins']:,}` Chronocoins · 🍬 `{currency.get('candy', 0):,}` Candy\n"
+                f"🏷️ **Equipped Title:** `{stats.get('equipped_title') or 'None'}`"
+            ),
+            color=embeds.COLOR_ECONOMY,
+        )
+        embed.set_thumbnail(url=target.display_avatar.url)
+        embeds.set_footer(embed, f"Use {ctx.prefix}use <item> to activate  •  {ctx.prefix}openbox to open  •  {ctx.prefix}shop to buy")
+
+        loop = asyncio.get_running_loop()
+        try:
+            card_bytes = await loop.run_in_executor(
+                None,
+                render_inventory_card_sync,
+                target.display_name,
+                target.name,
+                tier,
+                currency["coins"],
+                currency.get("candy", 0),
+                inventory,
+                active_boosts,
+                stats.get("equipped_title"),
+                avatar_bytes,
+            )
+            file = discord.File(io.BytesIO(card_bytes), filename="inventory.png")
+            embed.set_image(url="attachment://inventory.png")
+            await ctx.send(file=file, embed=embed)
+        except Exception as e:
+            log.error("Failed to render visual inventory card", exc_info=e)
+            if not inventory:
+                embed.description += f"\n\n*Nothing in your satchel yet — check out `{ctx.prefix}shop`.*"
+            else:
+                lines = []
+                for item_id, qty in inventory.items():
+                    item = economy.SHOP_ITEMS.get(item_id)
+                    if item:
+                        item_e = emojis.item(item_id, ctx.guild)
+                        lines.append(f"{item_e} **{item['name']}** ×{qty}")
+                if lines:
+                    embed.add_field(name="📦 Items Held", value="\n".join(lines), inline=False)
+            await ctx.send(embed=embed)
 
     @commands.command(name="use")
     @commands.guild_only()
