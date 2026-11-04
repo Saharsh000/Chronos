@@ -28,6 +28,7 @@ import discord
 from discord.ext import commands
 
 import config
+from distexer.formatters.text import MODE_UNICODE_NATIVE, format_text
 from services.cja import (
     CJAError,
     cja_client,
@@ -147,15 +148,17 @@ OPT_EMOJIS: dict[str, str] = {
 }
 
 def format_academic_text(text: str) -> str:
-    """Preserve full, proper LaTeX markup ($...$, \\frac{}{}, \\sqrt{}) and clean academic formatting."""
+    """Render academic text with distexer for Discord-safe math and symbols."""
     if not text:
         return text
-    s = text
-    # Clean HTML entities
-    s = s.replace("&lt;", "<").replace("&gt;", ">").replace("&amp;", "&")
-    # Normalize double backslashes from JSON escapes if present
-    s = re.sub(r"\\\\([a-zA-Z]+)", r"\\\1", s)
-    return s.strip()
+
+    cleaned = text.replace("&lt;", "<").replace("&gt;", ">").replace("&amp;", "&")
+    try:
+        return format_text(cleaned, mode=MODE_UNICODE_NATIVE).strip()
+    except (TypeError, ValueError, RecursionError):
+        # Keep trivia usable if an unexpected upstream payload defeats the formatter.
+        return cleaned.strip()
+
 
 
 def format_question_presentation(text: str) -> str:

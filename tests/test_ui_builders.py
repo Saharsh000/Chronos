@@ -5,6 +5,7 @@ import unittest
 
 from cogs.help import _build_pages
 from cogs.pets import build_food_shop_page, build_pet_shop_page
+from cogs.trivia import format_academic_text, format_question_presentation
 from utils import embeds
 from utils import stats_card
 
@@ -43,6 +44,24 @@ class ShopBuilderTests(unittest.TestCase):
         for page in (pet_page, food_page):
             self.assertTrue(page[0].footer.text.startswith(embeds.FOOTER_TEXT))
             self.assertTrue(all(not card.footer.text for card in page[1:]))
+
+
+class TriviaFormattingTests(unittest.TestCase):
+    def test_distexer_renders_latex_and_bare_math(self) -> None:
+        rendered = format_academic_text(r"The result is $\\frac{A}{\\sqrt{2}}$ and $H_2O$.")
+
+        self.assertIn("A/(√2)", rendered)
+        self.assertIn("H₂O", rendered)
+        self.assertNotIn("\\\\frac", rendered)
+
+    def test_question_items_remain_readable_after_math_rendering(self) -> None:
+        rendered = format_question_presentation(
+            format_academic_text(r"Which statements are true? (i) $x^2$ is nonnegative; (ii) \\alpha > 0.")
+        )
+
+        self.assertIn("(i)", rendered)
+        self.assertIn("x²", rendered)
+        self.assertIn("α > 0", rendered)
 
 
 class StatsCardTests(unittest.TestCase):
