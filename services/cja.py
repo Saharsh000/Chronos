@@ -544,11 +544,21 @@ class CJAService:
     # ------------------------------------------------------------------ #
     # 2. POST /api/v1/question/:id/check
     # ------------------------------------------------------------------ #
-    async def check_answer(self, question_id: str, answer: str | int) -> dict[str, Any]:
-        """Verify the user's submitted answer with CJA."""
+    async def check_answer(self, question_id: str, answer: Optional[str | int] = None) -> dict[str, Any]:
+        """Verify the user's submitted answer with CJA, or reveal solution if answer is None."""
         # Handle offline pool answers
         if question_id in _OFFLINE_ANSWERS:
             off_ans = _OFFLINE_ANSWERS[question_id]
+            if answer is None or answer == "NONE" or answer == "":
+                return {
+                    "result": "unattempted",
+                    "correct": False,
+                    "marks": 0,
+                    "marking": off_ans["marking"],
+                    "answer": off_ans["answer"],
+                    "explanation": off_ans["explanation"],
+                    "concept": off_ans["concept"],
+                }
             is_correct = str(answer).strip().upper() in off_ans["answer"]["options"]
             return {
                 "result": "correct" if is_correct else "incorrect",
@@ -567,7 +577,9 @@ class CJAService:
         url = f"{self.base_url}/api/v1/question/{quote(str(question_id), safe='')}/check"
         headers = self._headers(require_auth=True)
         timeout = aiohttp.ClientTimeout(total=30)
-        body = {"answer": answer}
+        body: dict[str, Any] = {}
+        if answer is not None and answer != "NONE" and answer != "":
+            body["answer"] = answer
 
         try:
             session = await self._get_session()
