@@ -13,11 +13,17 @@ interactive forever.
 """
 from __future__ import annotations
 
-from typing import Awaitable, Callable, Optional, Sequence
+import asyncio
+import io
+from typing import Any, Awaitable, Callable, Optional, Sequence
 
 import discord
 
+from utils import embeds
+from utils import emojis
+from utils import stats_card
 from utils.embeds import error_embed
+from utils.time_format import format_duration
 
 # How long a menu stays clickable before its buttons grey out.
 DEFAULT_TIMEOUT = 180.0
@@ -198,3 +204,294 @@ class LeaderboardView(ChronosView):
                 active = child.period == self.period
                 child.disabled = active
                 child.style = discord.ButtonStyle.primary if active else discord.ButtonStyle.secondary
+
+
+# --------------------------------------------------------------------- #
+# Paginated Study Profile & Analytics View (.stats)
+# --------------------------------------------------------------------- #
+STATS_PAGES = [
+    ("overview", "Overview", "📊"),
+    ("weekly", "Activity", "📈"),
+    ("subjects", "Subjects", "📚"),
+    ("trivia", "Trivia", "🧠"),
+]
+
+
+class StatsTabButton(discord.ui.Button["StatsPaginationView"]):
+    def __init__(self, page_id: str, label: str, emoji: str, active: bool = False):
+        super().__init__(
+            label=label,
+            emoji=emoji,
+            style=discord.ButtonStyle.primary if active else discord.ButtonStyle.secondary,
+            disabled=active,
+            row=0,
+        )
+        self.page_id = page_id
+
+    async def callback(self, interaction: discord.Interaction) -> None:
+        if self.view is not None:
+            await self.view.switch_page(interaction, self.page_id)
+
+
+class StatsPaginationView(ChronosView):
+    """Interactive 4-tab paginator for `.stats` with custom visual cards:
+    1. Overview (Profile dashboard, XP, coins, streak, achievements)
+    2. Activity (7-day bar chart, weekly total, daily avg, peak day)
+    3. Subjects (PCM distribution bar, subject cards, balance index)
+    4. Trivia (AIR rank, net marks, solve accuracy, streak, rewards)
+    """
+
+    def __init__(
+        self,
+        author_id: int,
+        context: dict[str, Any],
+        initial_image_bytes: Optional[bytes] = None,
+        timeout: float = DEFAULT_TIMEOUT,
+    ):
+        super().__init__(author_id, timeout=timeout)
+        self.ctx_data = context
+        self.current_page = "overview"
+        self._image_cache: dict[str, bytes] = {}
+        if initial_image_bytes:
+            self._image_cache["overview"] = initial_image_bytes
+
+        for p_id, label, emoji in STATS_PAGES:
+            self.add_item(StatsTabButton(p_id, label, emoji, active=(p_id == "overview")))
+
+    def _sync_buttons(self) -> None:
+        for child in self.children:
+            if isinstance(child, StatsTabButton):
+                active = (child.page_id == self.current_page)
+                child.disabled = active
+                child.style = discord.ButtonStyle.primary if active else discord.ButtonStyle.secondary
+
+    def _render_page_image(self, page_id: str) -> bytes:
+        d = self.ctx_data
+        target = d["target"]
+        if page_id == "overview":
+            return stats_card.render_overview_card_sync(
+                display_name=target.display_name,
+                username=target.name,
+                tier_name=d["tier"],
+                level=d["level"],
+                xp_into=d["current_into"],
+                xp_needed=d["needed_for_next"],
+                total_xp=d["stats"]["xp"],
+                coins=d["currency"]["coins"],
+                candy=d["candy"],
+                total_seconds=d["total_seconds"],
+                today_seconds=d["today_seconds"],
+                week_seconds=d["week_seconds"],
+                streak_days=d["stats"]["current_streak"],
+                longest_streak=d["stats"]["longest_streak"],
+                sessions_count=d["stats"]["sessions_count"],
+                unlocked_achievements=d["unlocked_count"],
+                total_achievements=d["total_achievements"],
+                rank_position=d["rank_position"],
+                equipped_title=d["equipped_title"],
+                equipped_pet=d["equipped_pet"],
+                subject_seconds=d["subject_seconds"],
+                in_session_seconds=d["in_session_seconds"],
+                avatar_bytes=d["avatar_bytes"],
+            )
+        elif page_id == "weekly":
+            return stats_card.render_weekly_card_sync(
+                display_name=target.display_name,
+                username=target.name,
+                tier_name=d["tier"],
+                weekly_breakdown=d["weekly_breakdown"],
+                avatar_bytes=d["avatar_bytes"],
+            )
+        elif page_id == "subjects":
+            return stats_card.render_subjects_card_sync(
+                display_name=target.display_name,
+                username=target.name,
+                tier_name=d["tier"],
+                subject_details=d["subject_details"],
+                avatar_bytes=d["avatar_bytes"],
+            )
+        elif page_id == "trivia":
+            return stats_card.render_trivia_card_sync(
+                display_name=target.display_name,
+                username=target.name,
+                tier_name=d["tier"],
+                trivia_stats=d["trivia_stats"],
+                rank_info=d["trivia_rank"],
+                tier_info=d["trivia_tier"],
+                avatar_bytes=d["avatar_bytes"],
+            )
+        return b""
+
+    def build_page_embed(self, page_id: str) -> discord.Embed:
+        d = self.ctx_data
+        target: discord.Member = d["target"]
+        guild: discord.Guild = d["guild"]
+        coin_e = emojis.coin(guild)
+        xp_e = emojis.xp(guild)
+        streak_e = emojis.streak(guild)
+
+        if page_id == "overview":
+            rank_str = f"#{d['rank_position']}" if d['rank_position'] else "—"
+            embed = embeds.base_embed(
+                title="📊 Study Profile · Overview",
+                description=(
+                    f"**{target.display_name}** (`@{target.name}`)\n"
+                    f"🏆 **{d['tier']}** · Level **{d['level']}** · Server Rank **{rank_str}**\n\n"
+                    f"{xp_e} **Total XP:** `{d['stats']['xp']:,}`\n"
+                    f"{coin_e} **Chronocoins:** `{d['currency']['coins']:,}`\n"
+                    f"🎖️ **Achievements:** `{d['unlocked_count']}/{d['total_achievements']}`"
+                ),
+                color=embeds.COLOR_SOCIAL,
+            )
+            embed.set_thumbnail(url=target.display_avatar.url)
+            embed.add_field(
+                name="⏱️ Study Time",
+                value=(
+                    f"Today: **{format_duration(d['today_seconds'])}**\n"
+                    f"This Week: **{format_duration(d['week_seconds'])}**\n"
+                    f"All Time: **{format_duration(d['total_seconds'])}**"
+                ),
+                inline=True,
+            )
+            embed.add_field(
+                name=f"{streak_e} Activity",
+                value=(
+                    f"Streak: **{d['stats']['current_streak']}d** (Peak: {d['stats']['longest_streak']}d)\n"
+                    f"Sessions: **{d['stats']['sessions_count']}** completed\n"
+                    f"Avg: **{format_duration(d['analytics']['avg_session_seconds'])}**"
+                ),
+                inline=True,
+            )
+            embeds.set_footer(embed, "Page 1 of 4 · Study Overview · Click tabs below to navigate")
+            return embed
+
+        elif page_id == "weekly":
+            wb = d["weekly_breakdown"]
+            embed = embeds.base_embed(
+                title="📈 Weekly Performance & Activity Graphs",
+                description=(
+                    f"7-day focus distribution for **{target.display_name}** in India Standard Time (IST).\n"
+                    f"Review your consistency rate, daily average, and peak focus day below."
+                ),
+                color=embeds.COLOR_INFO,
+            )
+            embed.set_thumbnail(url=target.display_avatar.url)
+            embed.add_field(
+                name="📅 Weekly Total",
+                value=f"**{format_duration(wb.get('total_week_seconds', 0))}** logged",
+                inline=True,
+            )
+            embed.add_field(
+                name="⚡ Daily Average",
+                value=f"**{format_duration(wb.get('daily_avg_seconds', 0))} / day**",
+                inline=True,
+            )
+            embed.add_field(
+                name="🏆 Peak Study Day",
+                value=f"**{wb.get('peak_day_name', 'None')}** ({format_duration(wb.get('peak_day_seconds', 0))})",
+                inline=True,
+            )
+            embed.add_field(
+                name="🔥 Consistency Rating",
+                value=f"**{wb.get('active_days_count', 0)} / 7 Days Active** this week",
+                inline=True,
+            )
+            embeds.set_footer(embed, "Page 2 of 4 · Weekly Activity Graphs · Click tabs below to navigate")
+            return embed
+
+        elif page_id == "subjects":
+            sd = d["subject_details"]
+            phy_sec = sd.get("physics", {}).get("total_seconds", 0)
+            chem_sec = sd.get("chemistry", {}).get("total_seconds", 0)
+            mat_sec = sd.get("maths", {}).get("total_seconds", 0)
+            total_sec = max(1, phy_sec + chem_sec + mat_sec)
+
+            embed = embeds.base_embed(
+                title="📚 Subject Mastery & PCM Split",
+                description=(
+                    f"Academic time allocation for **{target.display_name}** across the core JEE subjects.\n"
+                    f"A balanced tripartite focus maintains cutoff stability across Physics, Chemistry & Maths."
+                ),
+                color=embeds.COLOR_PRIMARY,
+            )
+            embed.set_thumbnail(url=target.display_avatar.url)
+            embed.add_field(
+                name="🔬 Physics",
+                value=f"**{format_duration(phy_sec)}** ({int(phy_sec / total_sec * 100)}%)\n`{sd.get('physics', {}).get('session_count', 0)}` sessions",
+                inline=True,
+            )
+            embed.add_field(
+                name="🧪 Chemistry",
+                value=f"**{format_duration(chem_sec)}** ({int(chem_sec / total_sec * 100)}%)\n`{sd.get('chemistry', {}).get('session_count', 0)}` sessions",
+                inline=True,
+            )
+            embed.add_field(
+                name="📐 Mathematics",
+                value=f"**{format_duration(mat_sec)}** ({int(mat_sec / total_sec * 100)}%)\n`{sd.get('maths', {}).get('session_count', 0)}` sessions",
+                inline=True,
+            )
+            embeds.set_footer(embed, "Page 3 of 4 · Subject Breakdown · Click tabs below to navigate")
+            return embed
+
+        elif page_id == "trivia":
+            ts = d["trivia_stats"]
+            r_pos, r_total = d["trivia_rank"]
+            tier_info = d["trivia_tier"]
+            att = ts.get("questions_attempted", 0)
+            cor = ts.get("questions_correct", 0)
+            acc = (cor / att * 100) if att > 0 else 0.0
+
+            embed = embeds.base_embed(
+                title="🧠 JEE Trivia & Knowledge Mastery",
+                description=(
+                    f"Competitive JEE candidate evaluation for **{target.display_name}**.\n"
+                    f"AIR Standing: **{tier_info.get('emoji', '🎖️')} {tier_info.get('title', 'Aspirant')}**"
+                ),
+                color=embeds.COLOR_WARNING,
+            )
+            embed.set_thumbnail(url=target.display_avatar.url)
+            embed.add_field(
+                name="🎖️ Ladder Standing",
+                value=f"Rank **#{r_pos}** of {r_total} Candidates\nNet Marks: **{ts.get('total_marks', 0):+,} Marks**",
+                inline=True,
+            )
+            embed.add_field(
+                name="🎯 Accuracy Rate",
+                value=f"**{acc:.1f}%** ({cor}/{att} Solved)",
+                inline=True,
+            )
+            embed.add_field(
+                name=f"{streak_e} Trivia Streak",
+                value=f"**{ts.get('current_streak', 0)}** (Peak: **{ts.get('best_streak', 0)}**)",
+                inline=True,
+            )
+            embed.add_field(
+                name=f"{coin_e} Theory Haul",
+                value=f"**+{ts.get('total_coins_won', 0):,}** {coin_e} earned",
+                inline=True,
+            )
+            embeds.set_footer(embed, "Page 4 of 4 · JEE Trivia Mastery · Click tabs below to navigate")
+            return embed
+
+        return embeds.base_embed(title="Stats Profile", description="Study Profile")
+
+    async def switch_page(self, interaction: discord.Interaction, page_id: str) -> None:
+        if page_id == self.current_page:
+            return
+        await interaction.response.defer()
+        self.current_page = page_id
+        self._sync_buttons()
+
+        loop = asyncio.get_running_loop()
+        img_bytes = self._image_cache.get(page_id)
+        if not img_bytes:
+            img_bytes = await loop.run_in_executor(None, self._render_page_image, page_id)
+            self._image_cache[page_id] = img_bytes
+
+        embed = self.build_page_embed(page_id)
+        filename = f"stats_{page_id}.png"
+        file = discord.File(io.BytesIO(img_bytes), filename=filename)
+        embed.set_image(url=f"attachment://{filename}")
+
+        if interaction.message:
+            await interaction.message.edit(embed=embed, attachments=[file], view=self)

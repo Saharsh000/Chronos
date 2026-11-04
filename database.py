@@ -2220,6 +2220,79 @@ class Database:
             "favorite_subject": top_subject_row["subject"] if top_subject_row else None,
         }
 
+    async def get_weekly_daily_breakdown(self, user_id: int, guild_id: int) -> dict[str, Any]:
+        """Fetch daily study breakdown for the 7 days of the current calendar week (Monday to Sunday)
+        in IST, with totals, averages, and peak day."""
+        import datetime as dt
+        now = dt.datetime.now(config.IST)
+        monday = (now - dt.timedelta(days=now.weekday())).replace(hour=0, minute=0, second=0, microsecond=0)
+        monday_ts = int(monday.timestamp())
+
+        cur = await self.conn.execute(
+            """
+            SELECT strftime('%Y-%m-%d', start_time, 'unixepoch', ?) AS day_str,
+                   SUM(duration_seconds) AS total_seconds
+            FROM session_log
+            WHERE user_id = ? AND guild_id = ? AND start_time >= ?
+            GROUP BY day_str
+            """,
+            (config.IST_SQL_MODIFIER, user_id, guild_id, monday_ts),
+        )
+        rows = await cur.fetchall()
+        day_map = {r["day_str"]: r["total_seconds"] for r in rows}
+
+        days = []
+        for i in range(7):
+            d = monday + dt.timedelta(days=i)
+            d_str = d.strftime("%Y-%m-%d")
+            sec = day_map.get(d_str, 0)
+            is_today = (d.date() == now.date())
+            days.append({
+                "day_name": d.strftime("%a").upper(),
+                "date_str": d_str,
+                "seconds": sec,
+                "is_today": is_today,
+            })
+
+        total_week_sec = sum(d["seconds"] for d in days)
+        active_days = sum(1 for d in days if d["seconds"] > 0)
+        days_passed = now.weekday() + 1
+        daily_avg = total_week_sec // max(1, days_passed)
+        peak_day = max(days, key=lambda d: d["seconds"])
+
+        return {
+            "days": days,
+            "total_week_seconds": total_week_sec,
+            "daily_avg_seconds": daily_avg,
+            "active_days_count": active_days,
+            "peak_day_name": peak_day["day_name"],
+            "peak_day_seconds": peak_day["seconds"],
+        }
+
+    async def get_detailed_subject_breakdown(self, user_id: int, guild_id: int) -> dict[str, dict[str, Any]]:
+        """Fetch total seconds, session count, and average duration for each subject."""
+        cur = await self.conn.execute(
+            """
+            SELECT subject,
+                   COUNT(*) AS session_count,
+                   AVG(duration_seconds) AS avg_seconds,
+                   SUM(duration_seconds) AS total_seconds
+            FROM session_log
+            WHERE user_id = ? AND guild_id = ? AND subject IS NOT NULL
+            GROUP BY subject
+            """,
+            (user_id, guild_id),
+        )
+        rows = await cur.fetchall()
+        return {
+            r["subject"].lower(): {
+                "session_count": r["session_count"] or 0,
+                "avg_seconds": int(r["avg_seconds"] or 0),
+                "total_seconds": int(r["total_seconds"] or 0),
+            }
+            for r in rows
+        }
+
     # ------------------------------------------------------------------ #
     # Leaderboards (period-filtered; alltime uses get_alltime_totals above)
     # ------------------------------------------------------------------ #
