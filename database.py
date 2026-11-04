@@ -2707,3 +2707,29 @@ class Database:
             (guild_id, limit),
         )
         return [dict(r) for r in await cur.fetchall()]
+
+    async def get_user_trivia_rank(self, user_id: int, guild_id: int) -> tuple[int, int]:
+        """Return (rank, total_players) for a user in the trivia leaderboard."""
+        cur = await self.conn.execute(
+            """
+            SELECT COUNT(*) + 1
+            FROM user_trivia_stats
+            WHERE guild_id = ? AND questions_attempted > 0 AND (
+                total_marks > (SELECT COALESCE(total_marks, -999999) FROM user_trivia_stats WHERE user_id = ? AND guild_id = ?)
+                OR (
+                    total_marks = (SELECT COALESCE(total_marks, -999999) FROM user_trivia_stats WHERE user_id = ? AND guild_id = ?)
+                    AND questions_correct > (SELECT COALESCE(questions_correct, 0) FROM user_trivia_stats WHERE user_id = ? AND guild_id = ?)
+                )
+            )
+            """,
+            (guild_id, user_id, guild_id, user_id, guild_id, user_id, guild_id),
+        )
+        row = await cur.fetchone()
+        rank = row[0] if row else 1
+
+        cur = await self.conn.execute(
+            "SELECT COUNT(*) FROM user_trivia_stats WHERE guild_id = ? AND questions_attempted > 0",
+            (guild_id,),
+        )
+        total_players = (await cur.fetchone())[0]
+        return rank, max(1, total_players)
