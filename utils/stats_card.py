@@ -19,6 +19,8 @@ from PIL import Image, ImageDraw, ImageFont
 
 CARD_WIDTH = 1200
 CARD_HEIGHT = 680
+# Discord shows embed images sharper (and bigger when opened) at ~1080p.
+EXPORT_SCALE = 1.6
 
 # Dark obsidian theme palette
 BG_COLOR = (11, 14, 20, 255)           # Deep slate / obsidian
@@ -149,6 +151,18 @@ def _draw_progress_bar(
     if pct > 0:
         fill_w = max(h, int(w * pct))
         draw.rounded_rectangle([x, y, x + fill_w, y + h], radius=radius, fill=fill_color)
+
+
+def _export_png(img: Image.Image) -> bytes:
+    """Upscale the card so Discord renders a large, crisp profile image."""
+    if EXPORT_SCALE != 1:
+        img = img.resize(
+            (int(img.width * EXPORT_SCALE), int(img.height * EXPORT_SCALE)),
+            Image.Resampling.LANCZOS,
+        )
+    buf = io.BytesIO()
+    img.save(buf, format="PNG", optimize=True)
+    return buf.getvalue()
 
 
 def _paste_pixel_icon(img: Image.Image, icon_name: str, x: int, y: int, size: int) -> bool:
@@ -401,9 +415,7 @@ def render_overview_card_sync(
     draw.text((50, 642), "CHRONOS STUDY OS · IST TIMEZONE", font=f_foot, fill=(71, 85, 105, 255))
     draw.text((CARD_WIDTH - 280, 642), "OFFICIAL STUDY PROFILE · PAGE 1/4", font=f_foot, fill=(71, 85, 105, 255))
 
-    buf = io.BytesIO()
-    img.save(buf, format="PNG", optimize=True)
-    return buf.getvalue()
+    return _export_png(img)
 
 
 # Alias for backwards compatibility
@@ -560,9 +572,7 @@ def render_weekly_card_sync(
     draw.text((50, 642), "CHRONOS STUDY OS · IST TIMEZONE", font=f_foot, fill=(71, 85, 105, 255))
     draw.text((CARD_WIDTH - 280, 642), "WEEKLY ACTIVITY LOG · PAGE 2/4", font=f_foot, fill=(71, 85, 105, 255))
 
-    buf = io.BytesIO()
-    img.save(buf, format="PNG", optimize=True)
-    return buf.getvalue()
+    return _export_png(img)
 
 
 # ==============================================================================
@@ -717,9 +727,7 @@ def render_subjects_card_sync(
     draw.text((50, 642), "CHRONOS STUDY OS · IST TIMEZONE", font=f_foot, fill=(71, 85, 105, 255))
     draw.text((CARD_WIDTH - 280, 642), "PCM SYLLABUS SPLIT · PAGE 3/4", font=f_foot, fill=(71, 85, 105, 255))
 
-    buf = io.BytesIO()
-    img.save(buf, format="PNG", optimize=True)
-    return buf.getvalue()
+    return _export_png(img)
 
 
 # ==============================================================================
@@ -793,7 +801,7 @@ def render_trivia_card_sync(
     next_m = tier_info.get("next_marks")
     draw.text((showcase_x + 24, showcase_y + 230), "LADDER CLIMB TO NEXT TIER", font=_get_font(12, bold=True), fill=TEXT_MUTED)
     if next_m is not None:
-        curr_min = tier_info.get("min_marks", 0)
+        curr_min = tier_info.get("min_marks", tier_info.get("cur_min", 0))
         needed = next_m - curr_min
         into = max(0, marks - curr_min)
         climb_pct = min(1.0, max(0.0, into / needed)) if needed > 0 else 1.0
@@ -869,6 +877,4 @@ def render_trivia_card_sync(
     draw.text((50, 642), "CHRONOS STUDY OS · IST TIMEZONE", font=f_foot, fill=(71, 85, 105, 255))
     draw.text((CARD_WIDTH - 280, 642), "JEE TRIVIA MASTERY · PAGE 4/4", font=f_foot, fill=(71, 85, 105, 255))
 
-    buf = io.BytesIO()
-    img.save(buf, format="PNG", optimize=True)
-    return buf.getvalue()
+    return _export_png(img)

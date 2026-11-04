@@ -110,7 +110,7 @@ def _build_pages(prefix: str) -> list[discord.Embed]:
     pages.append(_page("\U0001F4C8 Stats & Leaderboards", (
         "\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\n"
         "Track your progress and compete with others.\n\n"
-        f"`{prefix}stats [@user]` \u2014 full study profile: time, level, streak, Chronocoins\n"
+        f"`{prefix}stats [@user]` \u2014 paginated profile cards with graphs (time, week, PCM, trivia)\n"
         f"`{prefix}rank [@user]` \u2014 level, XP, tier, and server rank\n"
         f"`{prefix}subjects [@user]` \u2014 Physics / Chemistry / Maths breakdown\n"
         f"`{prefix}leaderboard [period] [subject]` \u2014 server leaderboard\n"

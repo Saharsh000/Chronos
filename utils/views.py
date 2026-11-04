@@ -20,10 +20,8 @@ from typing import Any, Awaitable, Callable, Optional, Sequence
 import discord
 
 from utils import embeds
-from utils import emojis
 from utils import stats_card
 from utils.embeds import error_embed
-from utils.time_format import format_duration
 
 # How long a menu stays clickable before its buttons grey out.
 DEFAULT_TIMEOUT = 180.0
@@ -257,13 +255,22 @@ class StatsPaginationView(ChronosView):
 
         for p_id, label, emoji in STATS_PAGES:
             self.add_item(StatsTabButton(p_id, label, emoji, active=(p_id == "overview")))
+        self._sync_buttons()
+
+    def _page_index(self) -> int:
+        return next((i for i, (p_id, _, _) in enumerate(STATS_PAGES) if p_id == self.current_page), 0)
 
     def _sync_buttons(self) -> None:
+        idx = self._page_index()
+        total = len(STATS_PAGES)
         for child in self.children:
             if isinstance(child, StatsTabButton):
                 active = (child.page_id == self.current_page)
                 child.disabled = active
                 child.style = discord.ButtonStyle.primary if active else discord.ButtonStyle.secondary
+        self.prev_page.disabled = idx <= 0
+        self.next_page.disabled = idx >= total - 1
+        self.page_label.label = f"Page {idx + 1}/{total}"
 
     def _render_page_image(self, page_id: str) -> bytes:
         d = self.ctx_data
@@ -325,173 +332,73 @@ class StatsPaginationView(ChronosView):
     def build_page_embed(self, page_id: str) -> discord.Embed:
         d = self.ctx_data
         target: discord.Member = d["target"]
-        guild: discord.Guild = d["guild"]
-        coin_e = emojis.coin(guild)
-        xp_e = emojis.xp(guild)
-        streak_e = emojis.streak(guild)
+        idx = self._page_index()
+        total = len(STATS_PAGES)
+        titles = {
+            "overview": "Study Profile · Overview",
+            "weekly": "Weekly Activity · Graphs",
+            "subjects": "Subjects · PCM Split",
+            "trivia": "Trivia · AIR Scorecard",
+        }
+        colors = {
+            "overview": embeds.COLOR_SOCIAL,
+            "weekly": embeds.COLOR_INFO,
+            "subjects": embeds.COLOR_PRIMARY,
+            "trivia": embeds.COLOR_WARNING,
+        }
+        live = " · in session" if d.get("in_session_seconds") else ""
+        embed = embeds.base_embed(
+            title=titles.get(page_id, "Study Profile"),
+            description=f"**{target.display_name}** · {d['tier']} · Lv {d['level']}{live}",
+            color=colors.get(page_id, embeds.COLOR_SOCIAL),
+        )
+        embed.set_author(name=str(target), icon_url=target.display_avatar.url)
+        embeds.set_footer(embed, f"Page {idx + 1}/{total} · tap tabs or arrows for graphs")
+        return embed
 
-        if page_id == "overview":
-            rank_str = f"#{d['rank_position']}" if d['rank_position'] else "—"
-            embed = embeds.base_embed(
-                title="📊 Study Profile · Overview",
-                description=(
-                    f"**{target.display_name}** (`@{target.name}`)\n"
-                    f"🏆 **{d['tier']}** · Level **{d['level']}** · Server Rank **{rank_str}**\n\n"
-                    f"{xp_e} **Total XP:** `{d['stats']['xp']:,}`\n"
-                    f"{coin_e} **Chronocoins:** `{d['currency']['coins']:,}`\n"
-                    f"🎖️ **Achievements:** `{d['unlocked_count']}/{d['total_achievements']}`"
-                ),
-                color=embeds.COLOR_SOCIAL,
-            )
-            embed.set_thumbnail(url=target.display_avatar.url)
-            embed.add_field(
-                name="⏱️ Study Time",
-                value=(
-                    f"Today: **{format_duration(d['today_seconds'])}**\n"
-                    f"This Week: **{format_duration(d['week_seconds'])}**\n"
-                    f"All Time: **{format_duration(d['total_seconds'])}**"
-                ),
-                inline=True,
-            )
-            embed.add_field(
-                name=f"{streak_e} Activity",
-                value=(
-                    f"Streak: **{d['stats']['current_streak']}d** (Peak: {d['stats']['longest_streak']}d)\n"
-                    f"Sessions: **{d['stats']['sessions_count']}** completed\n"
-                    f"Avg: **{format_duration(d['analytics']['avg_session_seconds'])}**"
-                ),
-                inline=True,
-            )
-            embeds.set_footer(embed, "Page 1 of 4 · Study Overview · Click tabs below to navigate")
-            return embed
-
-        elif page_id == "weekly":
-            wb = d["weekly_breakdown"]
-            embed = embeds.base_embed(
-                title="📈 Weekly Performance & Activity Graphs",
-                description=(
-                    f"7-day focus distribution for **{target.display_name}** in India Standard Time (IST).\n"
-                    f"Review your consistency rate, daily average, and peak focus day below."
-                ),
-                color=embeds.COLOR_INFO,
-            )
-            embed.set_thumbnail(url=target.display_avatar.url)
-            embed.add_field(
-                name="📅 Weekly Total",
-                value=f"**{format_duration(wb.get('total_week_seconds', 0))}** logged",
-                inline=True,
-            )
-            embed.add_field(
-                name="⚡ Daily Average",
-                value=f"**{format_duration(wb.get('daily_avg_seconds', 0))} / day**",
-                inline=True,
-            )
-            embed.add_field(
-                name="🏆 Peak Study Day",
-                value=f"**{wb.get('peak_day_name', 'None')}** ({format_duration(wb.get('peak_day_seconds', 0))})",
-                inline=True,
-            )
-            embed.add_field(
-                name="🔥 Consistency Rating",
-                value=f"**{wb.get('active_days_count', 0)} / 7 Days Active** this week",
-                inline=True,
-            )
-            embeds.set_footer(embed, "Page 2 of 4 · Weekly Activity Graphs · Click tabs below to navigate")
-            return embed
-
-        elif page_id == "subjects":
-            sd = d["subject_details"]
-            phy_sec = sd.get("physics", {}).get("total_seconds", 0)
-            chem_sec = sd.get("chemistry", {}).get("total_seconds", 0)
-            mat_sec = sd.get("maths", {}).get("total_seconds", 0)
-            total_sec = max(1, phy_sec + chem_sec + mat_sec)
-
-            embed = embeds.base_embed(
-                title="📚 Subject Mastery & PCM Split",
-                description=(
-                    f"Academic time allocation for **{target.display_name}** across the core JEE subjects.\n"
-                    f"A balanced tripartite focus maintains cutoff stability across Physics, Chemistry & Maths."
-                ),
-                color=embeds.COLOR_PRIMARY,
-            )
-            embed.set_thumbnail(url=target.display_avatar.url)
-            embed.add_field(
-                name="🔬 Physics",
-                value=f"**{format_duration(phy_sec)}** ({int(phy_sec / total_sec * 100)}%)\n`{sd.get('physics', {}).get('session_count', 0)}` sessions",
-                inline=True,
-            )
-            embed.add_field(
-                name="🧪 Chemistry",
-                value=f"**{format_duration(chem_sec)}** ({int(chem_sec / total_sec * 100)}%)\n`{sd.get('chemistry', {}).get('session_count', 0)}` sessions",
-                inline=True,
-            )
-            embed.add_field(
-                name="📐 Mathematics",
-                value=f"**{format_duration(mat_sec)}** ({int(mat_sec / total_sec * 100)}%)\n`{sd.get('maths', {}).get('session_count', 0)}` sessions",
-                inline=True,
-            )
-            embeds.set_footer(embed, "Page 3 of 4 · Subject Breakdown · Click tabs below to navigate")
-            return embed
-
-        elif page_id == "trivia":
-            ts = d["trivia_stats"]
-            r_pos, r_total = d["trivia_rank"]
-            tier_info = d["trivia_tier"]
-            att = ts.get("questions_attempted", 0)
-            cor = ts.get("questions_correct", 0)
-            acc = (cor / att * 100) if att > 0 else 0.0
-
-            embed = embeds.base_embed(
-                title="🧠 JEE Trivia & Knowledge Mastery",
-                description=(
-                    f"Competitive JEE candidate evaluation for **{target.display_name}**.\n"
-                    f"AIR Standing: **{tier_info.get('emoji', '🎖️')} {tier_info.get('title', 'Aspirant')}**"
-                ),
-                color=embeds.COLOR_WARNING,
-            )
-            embed.set_thumbnail(url=target.display_avatar.url)
-            embed.add_field(
-                name="🎖️ Ladder Standing",
-                value=f"Rank **#{r_pos}** of {r_total} Candidates\nNet Marks: **{ts.get('total_marks', 0):+,} Marks**",
-                inline=True,
-            )
-            embed.add_field(
-                name="🎯 Accuracy Rate",
-                value=f"**{acc:.1f}%** ({cor}/{att} Solved)",
-                inline=True,
-            )
-            embed.add_field(
-                name=f"{streak_e} Trivia Streak",
-                value=f"**{ts.get('current_streak', 0)}** (Peak: **{ts.get('best_streak', 0)}**)",
-                inline=True,
-            )
-            embed.add_field(
-                name=f"{coin_e} Theory Haul",
-                value=f"**+{ts.get('total_coins_won', 0):,}** {coin_e} earned",
-                inline=True,
-            )
-            embeds.set_footer(embed, "Page 4 of 4 · JEE Trivia Mastery · Click tabs below to navigate")
-            return embed
-
-        return embeds.base_embed(title="Stats Profile", description="Study Profile")
-
-    async def switch_page(self, interaction: discord.Interaction, page_id: str) -> None:
-        if page_id == self.current_page:
-            return
-        await interaction.response.defer()
-        self.current_page = page_id
-        self._sync_buttons()
-
-        loop = asyncio.get_running_loop()
-        img_bytes = self._image_cache.get(page_id)
-        if not img_bytes:
-            img_bytes = await loop.run_in_executor(None, self._render_page_image, page_id)
-            self._image_cache[page_id] = img_bytes
-
+    def _page_payload(self, page_id: str, img_bytes: bytes) -> tuple[discord.Embed, discord.File]:
         embed = self.build_page_embed(page_id)
         filename = f"stats_{page_id}.png"
         file = discord.File(io.BytesIO(img_bytes), filename=filename)
         embed.set_image(url=f"attachment://{filename}")
+        return embed, file
 
+    async def _image_for(self, page_id: str) -> bytes:
+        cached = self._image_cache.get(page_id)
+        if cached:
+            return cached
+        loop = asyncio.get_running_loop()
+        img_bytes = await loop.run_in_executor(None, self._render_page_image, page_id)
+        self._image_cache[page_id] = img_bytes
+        return img_bytes
+
+    async def send_initial(self, destination: Any) -> None:
+        img_bytes = await self._image_for("overview")
+        embed, file = self._page_payload("overview", img_bytes)
+        self.message = await destination.send(file=file, embed=embed, view=self)
+
+    async def switch_page(self, interaction: discord.Interaction, page_id: str) -> None:
+        if not interaction.response.is_done():
+            await interaction.response.defer()
+        if page_id != self.current_page:
+            self.current_page = page_id
+            self._sync_buttons()
+
+        img_bytes = await self._image_for(self.current_page)
+        embed, file = self._page_payload(self.current_page, img_bytes)
         if interaction.message:
             await interaction.message.edit(embed=embed, attachments=[file], view=self)
+
+    @discord.ui.button(emoji="\u25C0\uFE0F", style=discord.ButtonStyle.secondary, row=1)
+    async def prev_page(self, interaction: discord.Interaction, button: discord.ui.Button) -> None:
+        idx = max(0, self._page_index() - 1)
+        await self.switch_page(interaction, STATS_PAGES[idx][0])
+
+    @discord.ui.button(label="Page 1/4", style=discord.ButtonStyle.secondary, disabled=True, row=1)
+    async def page_label(self, interaction: discord.Interaction, button: discord.ui.Button) -> None:
+        return
+
+    @discord.ui.button(emoji="\u25B6\uFE0F", style=discord.ButtonStyle.secondary, row=1)
+    async def next_page(self, interaction: discord.Interaction, button: discord.ui.Button) -> None:
+        idx = min(len(STATS_PAGES) - 1, self._page_index() + 1)
+        await self.switch_page(interaction, STATS_PAGES[idx][0])

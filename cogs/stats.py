@@ -13,9 +13,7 @@ math against stored timestamps.
 """
 from __future__ import annotations
 
-import asyncio
 import datetime as dt
-import io
 import logging
 import time
 from typing import Optional
@@ -25,8 +23,8 @@ from discord.ext import commands
 
 import config
 from utils import embeds
-from utils.stats_card import render_stats_card_sync
-from utils.views import LeaderboardView
+from utils.views import LeaderboardView, StatsPaginationView
+from cogs.trivia import get_trivia_tier
 from utils import xp as xp_utils
 from utils.achievements import ACHIEVEMENTS
 from utils.subjects import SUBJECT_ALIASES, SUBJECT_INFO, SUBJECTS
@@ -179,25 +177,56 @@ class Stats(commands.Cog, name="Stats"):
 
     @commands.command(name="stats", aliases=["profile", "me"])
     async def stats_cmd(self, ctx: commands.Context, member: Optional[discord.Member] = None) -> None:
-        """View in-depth personal study statistics: time, XP, level,
-        streaks, Chronocoins, achievements, and behavioral analytics."""
+        """Paginated study profile with large graph cards: overview,
+        weekly activity, subject split, and trivia."""
         target = member or ctx.author
         stats = await self.db.get_or_create_user_stats(target.id, ctx.guild.id)
         active_session = await self.db.get_active_session(target.id, ctx.guild.id)
         currency = await self.db.get_or_create_currency(target.id, ctx.guild.id)
         unlocked_ids = await self.db.get_unlocked_achievement_ids(target.id, ctx.guild.id)
         analytics = await self.db.get_session_analytics(target.id, ctx.guild.id)
+        weekly_breakdown = await self.db.get_weekly_daily_breakdown(target.id, ctx.guild.id)
+        subject_details = await self.db.get_detailed_subject_breakdown(target.id, ctx.guild.id)
+        subject_seconds = await self.db.get_subject_stats(target.id, ctx.guild.id)
+        trivia_stats = await self.db.get_or_create_trivia_stats(target.id, ctx.guild.id)
+        trivia_rank = await self.db.get_user_trivia_rank(target.id, ctx.guild.id)
+        equipped_pet = await self.db.get_equipped_pet(target.id, ctx.guild.id)
 
         now = int(time.time())
         live_uncredited = 0
+        in_session_seconds = None
         if active_session:
             elapsed = now - active_session["start_time"]
             live_uncredited = max(0, elapsed - active_session["credited_seconds"])
+            in_session_seconds = elapsed
+            if active_session.get("subject"):
+                subj = active_session["subject"]
+                subject_seconds[subj] = subject_seconds.get(subj, 0) + live_uncredited
+                details = subject_details.setdefault(subj, {
+                    "session_count": 0, "avg_seconds": 0, "total_seconds": 0,
+                })
+                details["total_seconds"] = details.get("total_seconds", 0) + live_uncredited
+            for day in weekly_breakdown.get("days", []):
+                if day.get("is_today"):
+                    was_empty = day.get("seconds", 0) <= 0
+                    day["seconds"] = day.get("seconds", 0) + live_uncredited
+                    weekly_breakdown["total_week_seconds"] = weekly_breakdown.get("total_week_seconds", 0) + live_uncredited
+                    if was_empty and day["seconds"] > 0:
+                        weekly_breakdown["active_days_count"] = weekly_breakdown.get("active_days_count", 0) + 1
+                    if day["seconds"] > weekly_breakdown.get("peak_day_seconds", 0):
+                        weekly_breakdown["peak_day_seconds"] = day["seconds"]
+                        weekly_breakdown["peak_day_name"] = day["day_name"]
+                    break
+
+        for key, seconds in subject_seconds.items():
+            details = subject_details.setdefault(key, {
+                "session_count": 0, "avg_seconds": 0, "total_seconds": 0,
+            })
+            details["total_seconds"] = max(details.get("total_seconds", 0), seconds)
 
         current_into, needed_for_next, level = xp_utils.xp_progress(stats["xp"])
         effective_tiers = await self.db.get_effective_tiers(ctx.guild.id)
         tier = xp_utils.tier_for_level(level, effective_tiers)
-        progress_bar = xp_utils.progress_bar(current_into, needed_for_next)
 
         today_totals = await self._period_totals(ctx.guild.id, "today")
         week_totals = await self._period_totals(ctx.guild.id, "week")
@@ -205,137 +234,56 @@ class Stats(commands.Cog, name="Stats"):
         ranking = sorted(alltime_totals.items(), key=lambda kv: kv[1], reverse=True)
         rank_position = next((i + 1 for i, (uid, _) in enumerate(ranking) if uid == target.id), None)
 
-        # Keep the profile identity in the author line and reserve the
-        # description for progress, rather than repeating decorative rules.
-        header = ""
-        if stats.get("equipped_title"):
-            header = f"\u201C{stats['equipped_title']}\u201D"
+        trivia_tier = get_trivia_tier(trivia_stats.get("total_marks", 0))
+        trivia_tier["min_marks"] = trivia_tier.get("cur_min", 0)
 
-        # Active session indicator
-        active_line = ""
-        if active_session:
-            live_total = now - active_session["start_time"]
-            active_line = f"\n\U0001F7E2 **In session** \u2014 {format_duration(live_total)} and counting\n"
-
-        desc_lines = [
-            f"{header}",
-            f"\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501",
-            f"{active_line}",
-            f"\U0001F3C5 {tier} \u00B7 **Level {level}** \u00B7 #{rank_position or '—'}",
-            f"`{progress_bar}` {current_into:,}/{needed_for_next:,} XP",
-            f"",
-            f"\u25B8 **Total XP** \u2014 {stats['xp']:,}",
-            f"\u25B8 **Chronocoins** \u2014 {currency['coins']:,} \U0001FA99",
-            f"\u25B8 **Achievements** \u2014 {len(unlocked_ids)}/{len(ACHIEVEMENTS)} \U0001F3C5",
-        ]
-
-        embed = embeds.base_embed(
-            title="\U0001F4CA Study Profile",
-            description="\n".join(desc_lines).replace(embeds.DIVIDER_THIN, "").strip(),
-            color=embeds.COLOR_SOCIAL,
-        )
-        embed.set_author(name=target.display_name, icon_url=target.display_avatar.url)
-        embed.set_thumbnail(url=target.display_avatar.url)
-
-        # --- Time breakdown --- #
-        embed.add_field(
-            name="\u23F1\uFE0F Study Time",
-            value=(
-                f"Today \u00B7\u00B7\u00B7 **{format_duration(today_totals.get(target.id, 0))}**\n"
-                f"This Week \u00B7\u00B7\u00B7 **{format_duration(week_totals.get(target.id, 0))}**\n"
-                f"All Time \u00B7\u00B7\u00B7 **{format_duration(stats['total_seconds'] + live_uncredited)}**"
-            ),
-            inline=True,
-        )
-
-        # --- Streaks & sessions --- #
-        avg_session = format_duration(analytics["avg_session_seconds"]) if analytics["sessions_logged"] else "\u2014"
-        longest_session = format_duration(analytics["longest_session_seconds"]) if analytics["sessions_logged"] else "\u2014"
-        embed.add_field(
-            name="\U0001F525 Activity",
-            value=(
-                f"Streak \u00B7\u00B7\u00B7 **{stats['current_streak']}d** (best: {stats['longest_streak']})\n"
-                f"Sessions \u00B7\u00B7\u00B7 **{stats['sessions_count']}** completed\n"
-                f"Avg \u00B7\u00B7\u00B7 {avg_session} \u00B7 Best \u00B7\u00B7\u00B7 {longest_session}"
-            ),
-            inline=True,
-        )
-
-        # --- Analytics insights --- #
-        insights = []
-        if analytics["weekday_seconds"]:
-            best_weekday, best_seconds = max(analytics["weekday_seconds"].items(), key=lambda kv: kv[1])
-            insights.append(f"\U0001F4C5 Most active: **{WEEKDAY_NAMES[best_weekday]}** ({format_duration(best_seconds)})")
-        if analytics["favorite_subject"]:
-            info = SUBJECT_INFO[analytics["favorite_subject"]]
-            insights.append(f"{info['emoji']} Favorite: **{info['label']}**")
-        if insights:
-            embed.add_field(name="\U0001F4CA Insights", value="\n".join(insights), inline=False)
-
-        # --- Subject breakdown (if configured) --- #
-        cfg = await self.db.get_guild_config(ctx.guild.id)
-        if any(cfg.get(f"{s}_channel_id") for s in SUBJECTS):
-            subj_totals = await self.db.get_subject_stats(target.id, ctx.guild.id)
-            if active_session and active_session.get("subject"):
-                subj_totals[active_session["subject"]] = subj_totals.get(active_session["subject"], 0) + live_uncredited
-            subj_text = " \u00A0|\u00A0 ".join(
-                f"{SUBJECT_INFO[s]['emoji']} {format_duration(subj_totals.get(s, 0), always_show_seconds=False)}"
-                for s in SUBJECTS
-            )
-            embed.add_field(name="\U0001F4DA Subjects", value=subj_text, inline=False)
-
-        embeds.set_footer(
-            embed,
-            f"{ctx.prefix}achievements",
-            f"{ctx.prefix}compare",
-            f"{ctx.prefix}halloffame",
-        )
-
-        # Generate high-resolution visual stats image card
         avatar_bytes: Optional[bytes] = None
         try:
-            avatar_bytes = await target.display_avatar.with_format("png").with_size(128).read()
+            avatar_bytes = await target.display_avatar.with_format("png").with_size(256).read()
         except Exception:
             avatar_bytes = None
 
-        equipped_pet = await self.db.get_equipped_pet(target.id, ctx.guild.id)
-        subj_stats = await self.db.get_subject_stats(target.id, ctx.guild.id)
-
-        loop = asyncio.get_running_loop()
+        view = StatsPaginationView(
+            author_id=ctx.author.id,
+            context={
+                "target": target,
+                "guild": ctx.guild,
+                "stats": stats,
+                "currency": currency,
+                "candy": currency.get("candy", 0),
+                "analytics": analytics,
+                "weekly_breakdown": weekly_breakdown,
+                "subject_details": subject_details,
+                "subject_seconds": subject_seconds,
+                "trivia_stats": trivia_stats,
+                "trivia_rank": trivia_rank,
+                "trivia_tier": trivia_tier,
+                "tier": tier,
+                "level": level,
+                "current_into": current_into,
+                "needed_for_next": needed_for_next,
+                "total_seconds": stats["total_seconds"] + live_uncredited,
+                "today_seconds": today_totals.get(target.id, 0),
+                "week_seconds": week_totals.get(target.id, 0),
+                "unlocked_count": len(unlocked_ids),
+                "total_achievements": len(ACHIEVEMENTS),
+                "rank_position": rank_position,
+                "equipped_title": stats.get("equipped_title"),
+                "equipped_pet": equipped_pet,
+                "in_session_seconds": in_session_seconds,
+                "avatar_bytes": avatar_bytes,
+            },
+        )
         try:
-            card_bytes = await loop.run_in_executor(
-                None,
-                render_stats_card_sync,
-                target.display_name,
-                target.name,
-                tier,
-                level,
-                current_into,
-                needed_for_next,
-                stats["xp"],
-                currency["coins"],
-                currency.get("candy", 0),
-                stats["total_seconds"] + live_uncredited,
-                today_totals.get(target.id, 0),
-                week_totals.get(target.id, 0),
-                stats["current_streak"],
-                stats["longest_streak"],
-                stats["sessions_count"],
-                len(unlocked_ids),
-                len(ACHIEVEMENTS),
-                rank_position,
-                stats.get("equipped_title"),
-                equipped_pet,
-                subj_stats,
-                now - active_session["start_time"] if active_session else None,
-                avatar_bytes,
-            )
-            file = discord.File(io.BytesIO(card_bytes), filename="stats.png")
-            embed.set_image(url="attachment://stats.png")
-            await ctx.send(file=file, embed=embed)
+            await view.send_initial(ctx)
         except Exception as e:
-            log.error("Failed to render visual stats card", exc_info=e)
-            await ctx.send(embed=embed)
+            log.error("Failed to render paginated stats cards", exc_info=e)
+            await ctx.send(embed=embeds.info_embed(
+                "Study Profile",
+                f"**{target.display_name}** · {tier} · Level {level}\n"
+                f"Could not render the visual cards, but your stats are still here: "
+                f"{format_duration(stats['total_seconds'] + live_uncredited)} all-time.",
+            ))
 
     @commands.command(name="subjects", aliases=["subjectstats"])
     async def subjects_cmd(self, ctx: commands.Context, member: Optional[discord.Member] = None) -> None:

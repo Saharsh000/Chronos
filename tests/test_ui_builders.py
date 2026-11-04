@@ -6,6 +6,7 @@ import unittest
 from cogs.help import _build_pages
 from cogs.pets import build_food_shop_page, build_pet_shop_page
 from utils import embeds
+from utils import stats_card
 
 
 class EmbedSystemTests(unittest.TestCase):
@@ -42,6 +43,74 @@ class ShopBuilderTests(unittest.TestCase):
         for page in (pet_page, food_page):
             self.assertTrue(page[0].footer.text.startswith(embeds.FOOTER_TEXT))
             self.assertTrue(all(not card.footer.text for card in page[1:]))
+
+
+class StatsCardTests(unittest.TestCase):
+    def test_paginated_cards_render_large_pngs(self) -> None:
+        weekly = {
+            "days": [
+                {"day_name": "MON", "seconds": 3600, "is_today": False},
+                {"day_name": "TUE", "seconds": 7200, "is_today": True},
+                {"day_name": "WED", "seconds": 0, "is_today": False},
+                {"day_name": "THU", "seconds": 1800, "is_today": False},
+                {"day_name": "FRI", "seconds": 5400, "is_today": False},
+                {"day_name": "SAT", "seconds": 0, "is_today": False},
+                {"day_name": "SUN", "seconds": 900, "is_today": False},
+            ],
+            "total_week_seconds": 18900,
+            "daily_avg_seconds": 2700,
+            "active_days_count": 5,
+            "peak_day_name": "TUE",
+            "peak_day_seconds": 7200,
+        }
+        subjects = {
+            "physics": {"total_seconds": 10000, "session_count": 4, "avg_seconds": 2500},
+            "chemistry": {"total_seconds": 8000, "session_count": 3, "avg_seconds": 2600},
+            "maths": {"total_seconds": 12000, "session_count": 5, "avg_seconds": 2400},
+        }
+        trivia = {
+            "total_marks": 42,
+            "questions_attempted": 20,
+            "questions_correct": 14,
+            "current_streak": 3,
+            "best_streak": 6,
+            "total_coins_won": 120,
+        }
+        cards = [
+            stats_card.render_overview_card_sync(
+                display_name="Tester",
+                username="tester",
+                tier_name="Gold",
+                level=12,
+                xp_into=400,
+                xp_needed=1000,
+                total_xp=5400,
+                coins=250,
+                candy=3,
+                total_seconds=36000,
+                today_seconds=1800,
+                week_seconds=18900,
+                streak_days=4,
+                longest_streak=11,
+                sessions_count=9,
+                unlocked_achievements=5,
+                total_achievements=20,
+                rank_position=2,
+            ),
+            stats_card.render_weekly_card_sync("Tester", "tester", "Gold", weekly),
+            stats_card.render_subjects_card_sync("Tester", "tester", "Gold", subjects),
+            stats_card.render_trivia_card_sync(
+                "Tester",
+                "tester",
+                "Gold",
+                trivia,
+                (3, 12),
+                {"title": "NIT TPG Star", "next_marks": 70, "cur_min": 40, "next_title": "Old IIT Topper"},
+            ),
+        ]
+        for png in cards:
+            self.assertTrue(png.startswith(b"\x89PNG"))
+            self.assertGreater(len(png), 20_000)
 
 
 if __name__ == "__main__":
