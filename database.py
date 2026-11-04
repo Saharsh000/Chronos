@@ -2011,6 +2011,28 @@ class Database:
         cur = await self.conn.execute(query, params)
         return [dict(r) for r in await cur.fetchall()]
 
+    async def get_completed_milestones(
+        self, user_id: int, guild_id: int, type_: Optional[str] = None, subject: Optional[str] = None
+    ) -> list[dict[str, Any]]:
+        query = "SELECT * FROM user_milestones WHERE user_id = ? AND guild_id = ?"
+        params: list[Any] = [user_id, guild_id]
+        if type_:
+            query += " AND type = ?"
+            params.append(type_)
+        if subject:
+            query += " AND LOWER(subject) = ?"
+            params.append(subject.lower())
+        query += " ORDER BY logged_at DESC"
+        cur = await self.conn.execute(query, tuple(params))
+        rows = await cur.fetchall()
+        return [dict(r) for r in rows]
+
+    async def get_completed_chapter_names(
+        self, user_id: int, guild_id: int, subject: Optional[str] = None
+    ) -> set[str]:
+        rows = await self.get_completed_milestones(user_id, guild_id, type_="chapter", subject=subject)
+        return {r["label"].strip().lower() for r in rows}
+
     # ------------------------------------------------------------------ #
     # Achievements
     # ------------------------------------------------------------------ #

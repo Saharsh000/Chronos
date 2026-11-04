@@ -130,3 +130,27 @@ def find_subtopic(chapter: dict[str, Any], query: str) -> Optional[str]:
         if query_lower in t.lower():
             return t
     return None
+
+
+def search_chapter_across_subjects(query: str) -> list[tuple[str, dict[str, Any]]]:
+    """Search for a chapter by name or substring across all 3 subjects.
+    Returns list of (subject_key, chapter_dict)."""
+    results: list[tuple[str, dict[str, Any]]] = []
+    for subject in ("physics", "chemistry", "maths"):
+        match = find_chapter(subject, query)
+        if match:
+            results.append((subject, match))
+    return results
+
+
+def search_subtopic_across_subjects(query: str) -> list[tuple[str, dict[str, Any], str]]:
+    """Search for a subtopic by name or substring across all subjects and chapters.
+    Returns list of (subject_key, chapter_dict, subtopic_name)."""
+    results: list[tuple[str, dict[str, Any], str]] = []
+    for subject, chapters in SYLLABUS.items():
+        for i, ch in enumerate(chapters, start=1):
+            ch_with_num = {**ch, "number": i}
+            sub_match = find_subtopic(ch_with_num, query)
+            if sub_match:
+                results.append((subject, ch_with_num, sub_match))
+    return results
