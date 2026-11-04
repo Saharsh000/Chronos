@@ -157,6 +157,84 @@ def format_academic_text(text: str) -> str:
     return s.strip()
 
 
+def format_question_presentation(text: str) -> str:
+    """Format run-on questions containing sub-items (reactions, statements, properties) into a neat list."""
+    if not text:
+        return text
+    s = text.strip()
+
+    # 1. Statement-I / Statement-II formatting
+    stmt_pattern = re.compile(r'\b(Statement\s*[-–—]?(?:I{1,3}|[123])):?\s*', re.IGNORECASE)
+    matches = list(stmt_pattern.finditer(s))
+    if len(matches) >= 2:
+        parts: list[str] = []
+        intro = s[:matches[0].start()].strip()
+        if intro:
+            parts.append(intro)
+        for i, m in enumerate(matches):
+            label = m.group(1).title()
+            start = m.end()
+            if i + 1 < len(matches):
+                content = s[start:matches[i+1].start()].strip(' ,;')
+                parts.append(f"📋 **{label}:** {content}")
+            else:
+                rest = s[start:]
+                tail_m = re.split(r'\.\s+(?=[A-Z][a-z]+(?:\s+of|\s+is|\s+are))', rest, maxsplit=1)
+                content = tail_m[0].strip(' ,;')
+                parts.append(f"📋 **{label}:** {content}")
+                if len(tail_m) > 1 and tail_m[1].strip():
+                    parts.append('\n' + tail_m[1].strip())
+        return '\n'.join(parts)
+
+    # 2. Roman numeral sub-items: (i), (ii), (iii), (iv)
+    roman_pattern = re.compile(r'[,;]?\s*\(((?:i{1,3}|iv|v|vi{0,3}|ix|x))\)\s*', re.IGNORECASE)
+    r_matches = list(roman_pattern.finditer(s))
+    if len(r_matches) >= 2:
+        parts: list[str] = []
+        intro = s[:r_matches[0].start()].strip()
+        if intro:
+            parts.append(intro)
+        for i, m in enumerate(r_matches):
+            label = m.group(1).lower()
+            start = m.end()
+            if i + 1 < len(r_matches):
+                item_content = s[start:r_matches[i+1].start()].rstrip(' ,;')
+                parts.append(f" ▸ `({label})` {item_content}")
+            else:
+                rest = s[start:]
+                split_rest = re.split(r'\.\s+(?=[A-Z])', rest, maxsplit=1)
+                item_content = split_rest[0].rstrip(' ,;')
+                parts.append(f" ▸ `({label})` {item_content}")
+                if len(split_rest) > 1 and split_rest[1].strip():
+                    parts.append('\n' + split_rest[1].strip())
+        return '\n'.join(parts)
+
+    # 3. Alphabetic sub-items: (a), (b), (c)
+    alpha_pattern = re.compile(r'[,;]?\s*\(([a-d])\)\s*', re.IGNORECASE)
+    a_matches = list(alpha_pattern.finditer(s))
+    if len(a_matches) >= 2:
+        parts: list[str] = []
+        intro = s[:a_matches[0].start()].strip()
+        if intro:
+            parts.append(intro)
+        for i, m in enumerate(a_matches):
+            label = m.group(1).lower()
+            start = m.end()
+            if i + 1 < len(a_matches):
+                item_content = s[start:a_matches[i+1].start()].rstrip(' ,;')
+                parts.append(f" ▸ `({label})` {item_content}")
+            else:
+                rest = s[start:]
+                split_rest = re.split(r'\.\s+(?=[A-Z])', rest, maxsplit=1)
+                item_content = split_rest[0].rstrip(' ,;')
+                parts.append(f" ▸ `({label})` {item_content}")
+                if len(split_rest) > 1 and split_rest[1].strip():
+                    parts.append('\n' + split_rest[1].strip())
+        return '\n'.join(parts)
+
+    return s
+
+
 def format_matching_text(text: str) -> str:
     """Format Match the Following List-I and List-II into clean structured sections."""
     lines = [line.strip() for line in text.strip().split("\n") if line.strip()]
@@ -711,7 +789,8 @@ class TriviaQuestionView(discord.ui.View):
         if q_type == "match":
             formatted_q = format_matching_text(self.q.get("question", ""))
         else:
-            formatted_q = format_academic_text(self.q.get("question", ""))
+            raw_q = format_academic_text(self.q.get("question", ""))
+            formatted_q = format_question_presentation(raw_q)
 
         desc_parts = [
             f"{status_banner}\n",
@@ -1506,7 +1585,8 @@ class Trivia(commands.Cog, name="Trivia"):
         if q_type_id == "match":
             formatted_question = format_matching_text(q_data.get("question", ""))
         else:
-            formatted_question = format_academic_text(q_data.get("question", ""))
+            raw_question = format_academic_text(q_data.get("question", ""))
+            formatted_question = format_question_presentation(raw_question)
 
         options_text = []
         for opt in q_data.get("options", []):
@@ -1543,7 +1623,7 @@ class Trivia(commands.Cog, name="Trivia"):
 
         embed.add_field(
             name="📚 Syllabus Path",
-            value=f"**{subj_name}** ▸ `{chapter_name}`\n*{topic_name}*",
+            value=f"**{subj_name}** ▸ `{chapter_name}`\n└ *{topic_name}*",
             inline=True,
         )
         embed.add_field(
