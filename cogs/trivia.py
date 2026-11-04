@@ -145,56 +145,15 @@ OPT_EMOJIS: dict[str, str] = {
     "D": "🇩",
 }
 
-MATH_REPLACEMENTS = [
-    (r"\alpha", "α"), (r"\beta", "β"), (r"\gamma", "γ"), (r"\Gamma", "Γ"),
-    (r"\delta", "δ"), (r"\Delta", "Δ"), (r"\epsilon", "ε"), (r"\varepsilon", "ε"),
-    (r"\zeta", "ζ"), (r"\eta", "η"), (r"\theta", "θ"), (r"\Theta", "Θ"),
-    (r"\iota", "ι"), (r"\kappa", "κ"), (r"\lambda", "λ"), (r"\Lambda", "Λ"),
-    (r"\mu", "μ"), (r"\nu", "ν"), (r"\xi", "ξ"), (r"\Xi", "Ξ"),
-    (r"\pi", "π"), (r"\Pi", "Π"), (r"\rho", "ρ"), (r"\sigma", "σ"),
-    (r"\Sigma", "Σ"), (r"\tau", "τ"), (r"\upsilon", "υ"), (r"\phi", "φ"),
-    (r"\Phi", "Φ"), (r"\chi", "χ"), (r"\psi", "ψ"), (r"\Psi", "Ψ"),
-    (r"\omega", "ω"), (r"\Omega", "Ω"),
-    (r"\times", "×"), (r"\cdot", "·"), (r"\pm", "±"), (r"\mp", "∓"),
-    (r"\div", "÷"), (r"\approx", "≈"), (r"\neq", "≠"), (r"\ne", "≠"),
-    (r"\leq", "≤"), (r"\le", "≤"), (r"\geq", "≥"), (r"\ge", "≥"),
-    (r"\propto", "∝"), (r"\infty", "∞"), (r"\partial", "∂"),
-    (r"\nabla", "∇"), (r"\hbar", "ℏ"), (r"\int", "∫"), (r"\oint", "∮"),
-    (r"\sum", "∑"), (r"\prod", "∏"),
-    (r"\rightarrow", "→"), (r"\to", "→"), (r"\leftarrow", "←"),
-    (r"\leftrightarrow", "↔"), (r"\rightleftharpoons", "⇌"),
-    (r"^{\circ}", "°"), (r"^\circ", "°"), (r"\circ", "°"),
-    (r"&lt;", "<"), (r"&gt;", ">"), (r"&amp;", "&"),
-]
-
-SUB_MAP = str.maketrans("0123456789+-=()aeoxijklnmpst", "₀₁₂₃₄₅₆₇₈₉₊₋₌₍₎ₐₑₒₓᵢⱼₖₗₘₙₚₛₜ")
-SUP_MAP = str.maketrans("0123456789+-=()nix", "⁰¹²³⁴⁵⁶⁷⁸⁹⁺⁻⁼⁽⁾ⁿⁱˣ")
-
-
 def format_academic_text(text: str) -> str:
-    """Format academic text, equations, and chemical symbols for crisp Discord rendering."""
+    """Preserve full, proper LaTeX markup ($...$, \\frac{}{}, \\sqrt{}) and clean academic formatting."""
     if not text:
         return text
     s = text
-    for tex, sym in MATH_REPLACEMENTS:
-        s = s.replace(tex, sym)
-    # Fractions: \frac{a}{b} -> (a / b)
-    s = re.sub(r"\\frac\{([^{}]+)\}\{([^{}]+)\}", r"(\1 / \2)", s)
-    # Sqrt: \sqrt{x} -> √(x)
-    s = re.sub(r"\\sqrt\{([^{}]+)\}", r"√(\1)", s)
-    # Superscripts: ^{...} or ^...
-    s = re.sub(r"\^\{([0-9+\-=()nix]+)\}", lambda m: m.group(1).translate(SUP_MAP), s)
-    s = re.sub(r"\^([0-9+\-])", lambda m: m.group(1).translate(SUP_MAP), s)
-    # Subscripts: _{...} or _...
-    s = re.sub(r"_\{([0-9+\-=()aeoxijklnmpst]+)\}", lambda m: m.group(1).translate(SUB_MAP), s)
-    s = re.sub(r"_([0-9])", lambda m: m.group(1).translate(SUB_MAP), s)
-    # Clean text styles
-    s = re.sub(r"\\text\{([^{}]+)\}", r"\1", s)
-    s = re.sub(r"\\mathrm\{([^{}]+)\}", r"\1", s)
-    s = re.sub(r"\\mathbf\{([^{}]+)\}", r"**\1**", s)
-    s = re.sub(r"\\mathit\{([^{}]+)\}", r"*\1*", s)
-    # Strip stray math delimiters $ ... $
-    s = re.sub(r"\$\$?", "", s)
+    # Clean HTML entities
+    s = s.replace("&lt;", "<").replace("&gt;", ">").replace("&amp;", "&")
+    # Normalize double backslashes from JSON escapes if present
+    s = re.sub(r"\\\\([a-zA-Z]+)", r"\\\1", s)
     return s.strip()
 
 
