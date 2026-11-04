@@ -1600,7 +1600,7 @@ class Trivia(commands.Cog, name="Trivia"):
                 options_text.append(f"{opt_emoji} **({k})**  {opt_str}")
 
         if options_text:
-            options_block = "\n".join(options_text)
+            options_block = "\n\n".join(options_text)
         elif q_type_id == "integer":
             options_block = "*🔢 Numerical integer type (range 0–99). Use the button below to submit your answer.*"
         else:
