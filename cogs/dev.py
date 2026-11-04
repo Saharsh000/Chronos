@@ -16,6 +16,7 @@ from utils.checks import is_dev
 from utils.subjects import SUBJECT_ALIASES, SUBJECT_HINT, SUBJECT_INFO, normalize_subject_key
 from utils.time_format import format_duration, parse_duration
 from utils.xp import tier_for_level
+from cogs.trivia import format_academic_text, format_matching_text, format_question_presentation
 
 log = logging.getLogger("dev")
 
@@ -24,6 +25,54 @@ class Dev(commands.Cog, name="Dev"):
     def __init__(self, bot: commands.Bot):
         self.bot = bot
         self.db = bot.db
+
+    @commands.command(name="formatdemo", aliases=["distexer"])
+    @is_dev()
+    @commands.guild_only()
+    async def format_demo_cmd(self, ctx: commands.Context) -> None:
+        """[Dev only] Show distexer's academic formatting in separate embed messages.
+
+        Usage: .formatdemo
+        """
+        examples = [
+            (
+                "Inline equations",
+                r"Quadratic roots: $x = \\frac{-b \\pm \\sqrt{b^2 - 4ac}}{2a}$. "
+                r"Water is $H_2O$ and acceleration is $9.8\\,m/s^2$.",
+            ),
+            (
+                "Greek letters and operators",
+                r"For $\\theta \\in [0, \\pi]$, $\\sin^2\\theta + \\cos^2\\theta = 1$. "
+                r"Limits use $\\lim_{x \\to 0} \\frac{\\sin x}{x} = 1$.",
+            ),
+            (
+                "Question layout",
+                r"Which statements are true? (i) $x^2 \\ge 0$; (ii) \\alpha > 0; "
+                r"(iii) $E = mc^2$.",
+            ),
+            (
+                "Matching layout",
+                "Match the following:\nList-I:\nP. $NaCl$\nQ. $H_2SO_4$\n"
+                "List-II:\n1. Salt\n2. Acid",
+            ),
+            (
+                "Bare text safety",
+                "Unicode stays readable: x² + y² = r², aₙ = a₁ + (n − 1)d, and ½mv². "
+                "Markdown **bold** remains intact.",
+            ),
+        ]
+
+        await ctx.send(embed=embeds.success_embed(
+            "Distexer formatting test",
+            "Use these messages to verify equations, subscripts, Greek letters, lists, and Markdown in Discord.",
+        ))
+        for title, source in examples:
+            formatted = format_academic_text(source)
+            if title == "Question layout":
+                formatted = format_question_presentation(formatted)
+            elif title == "Matching layout":
+                formatted = format_matching_text(source)
+            await ctx.send(embed=embeds.base_embed(title=title, description=formatted))
 
     @commands.command(name="addtime")
     @is_dev()
