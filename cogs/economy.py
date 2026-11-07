@@ -45,7 +45,7 @@ class InventoryView(discord.ui.View):
         active_boosts: list[dict[str, Any]],
         avatar_bytes: Optional[bytes],
         page: int = 0,
-        per_page: int = 7,
+        per_page: int = 6,
     ) -> None:
         super().__init__(timeout=120)
         self.bot = bot
@@ -208,7 +208,7 @@ class ShopView(discord.ui.View):
         user_coins: int,
         owned_titles: set[str],
         page: int = 0,
-        per_page: int = 7,
+        per_page: int = 6,
     ) -> None:
         super().__init__(timeout=180)
         self.bot = bot
@@ -558,7 +558,7 @@ class Economy(commands.Cog, name="Economy"):
             user_coins=user_coins,
             owned_titles=owned_titles,
             page=page,
-            per_page=7,
+            per_page=6,
         )
 
         coin_e = emojis.coin(ctx.guild)
@@ -738,7 +738,7 @@ class Economy(commands.Cog, name="Economy"):
             active_boosts=active_boosts,
             avatar_bytes=avatar_bytes,
             page=page,
-            per_page=7,
+            per_page=6,
         )
 
         total_items = len(valid_items)

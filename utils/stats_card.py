@@ -891,27 +891,28 @@ def render_trivia_card_sync(
 # ==============================================================================
 # SHOP CARD & INVENTORY SATCHEL CARD GENERATORS — PokeOne-style Parchment
 # ==============================================================================
-# Canvas is 800x500 (no EXPORT_SCALE).  Discord shows attachments at max ~520px
-# wide, giving a ~0.65x scale where 16px text renders at ~10 screen-px = readable.
-POKE_W = 800
-POKE_H = 500
+# Canvas is 920x580 (crisp 16:10 format, no EXPORT_SCALE downscaling penalty).
+# Extra-large typography (24px names, 32px headers) guarantees instant readability
+# on Discord mobile & desktop at 1:1 natural zoom.
+POKE_W = 920
+POKE_H = 580
 
-# Warm cream parchment palette (inspired by PokeOne /bag card)
+# Warm cream parchment palette (authentic PokeOne satchel aesthetic)
 _P_BG        = (246, 243, 231, 255)   # Cream parchment base
 _P_SIDEBAR   = (236, 231, 213, 255)   # Left sidebar panel
-_P_ROW       = (240, 235, 220, 255)   # Item row alternate fill
+_P_ROW       = (240, 235, 218, 255)   # Item row alternate fill
 _P_ROW_ALT   = (246, 243, 231, 255)   # Item row base (matches BG)
-_P_BORDER    = (214, 207, 187, 255)   # Borders and dividers
-_P_DARK      = (38, 42, 48, 255)      # Primary dark text
+_P_BORDER    = (214, 207, 187, 255)   # Crisp parchment dividers
+_P_DARK      = (38, 42, 48, 255)      # Primary dark charcoal text
 _P_MUTED     = (120, 125, 135, 255)   # Muted secondary text
-_P_ACCENT    = (193, 80, 72, 255)     # Active/selected pill (warm red)
-_P_GOLD_PILL = (185, 155, 80, 255)    # Gold coin text on parchment
+_P_ACCENT    = (204, 75, 62, 255)     # Active/selected category capsule (warm crimson)
+_P_GOLD_PILL = (185, 130, 20, 255)    # Rich amber gold price text
 _P_CANDY     = (190, 60, 120, 255)    # Candy pink accent
-_P_GREEN     = (60, 140, 90, 255)     # Green accent
-_P_SIDEBAR_W = 200                    # Sidebar width
-_P_CONTENT_X = 220                    # Content area left edge
-_P_MARGIN    = 20                     # Outer margin
-_P_ITEMS_PER_PAGE = 7                 # 7 readable rows per page
+_P_GREEN     = (60, 140, 90, 255)     # Forest green accent
+_P_SIDEBAR_W = 240                    # Wide spacious sidebar
+_P_CONTENT_X = 280                    # Content area left edge
+_P_MARGIN    = 16                     # Outer margin
+_P_ITEMS_PER_PAGE = 6                 # Exactly 6 massive, comfortable rows per page
 
 SHOP_ITEMS_DATA = [
     {
@@ -1091,7 +1092,7 @@ INV_CARD_HEIGHT = 1100
 
 # ── PokeOne-style helpers ────────────────────────────────────────────────────
 def _poke_export(img: Image.Image) -> bytes:
-    """Export a PokeOne-style 800x500 card directly — no upscale."""
+    """Export a PokeOne-style 920x580 card directly — no upscale penalty."""
     buf = io.BytesIO()
     img.save(buf, format="PNG", optimize=True)
     return buf.getvalue()
@@ -1105,74 +1106,68 @@ def _poke_draw_sidebar(
     title: str,
     subtitle: str,
     categories: list[tuple[str, int, bool]],
-    wallet_lines: list[tuple[str, tuple[int, int, int, int]]],
+    wallet_lines: list[tuple[str, str, tuple[int, int, int, int]]],
 ) -> None:
-    """Draw the left PokeOne parchment sidebar: hero icon, title, category pills, wallet."""
+    """Draw the left PokeOne parchment sidebar: large hero icon, bold title, category pills, wallet."""
     sw = _P_SIDEBAR_W
     m = _P_MARGIN
-    # Sidebar background
+    # Sidebar container
     draw.rounded_rectangle(
-        [m, m, m + sw, POKE_H - m],
-        radius=14, fill=_P_SIDEBAR,
+        [m + 4, m + 4, m + sw, POKE_H - m - 4],
+        radius=18, fill=_P_SIDEBAR,
     )
-    draw.line([(m + sw, m + 12), (m + sw, POKE_H - m - 12)], fill=_P_BORDER, width=1)
+    draw.line([(m + sw, m + 14), (m + sw, POKE_H - m - 14)], fill=_P_BORDER, width=2)
 
-    # Hero icon (centered, 56x56)
-    icon_x = m + (sw - 56) // 2
-    icon_y = m + 18
+    # Hero icon (centered 72x72 container with 60x60 icon)
+    icon_box = 72
+    icon_x = m + 4 + (sw - icon_box) // 2
+    icon_y = m + 16
     draw.rounded_rectangle(
-        [icon_x - 4, icon_y - 4, icon_x + 60, icon_y + 60],
-        radius=12, fill=_P_BG, outline=_P_BORDER, width=1,
+        [icon_x, icon_y, icon_x + icon_box, icon_y + icon_box],
+        radius=14, fill=_P_BG, outline=_P_BORDER, width=1,
     )
-    _paste_pixel_icon(img, hero_icon, icon_x, icon_y, 56)
+    _paste_pixel_icon(img, hero_icon, icon_x + 6, icon_y + 6, 60)
 
-    # Title & subtitle
-    ty = icon_y + 68
-    f_title = _get_font(14, bold=True)
-    t_bbox = draw.textbbox((0, 0), title, font=f_title)
-    tw = t_bbox[2] - t_bbox[0]
-    draw.text((m + (sw - tw) // 2, ty), title, font=f_title, fill=_P_DARK)
-    ty += 20
-    f_sub = _get_font(10, bold=False)
-    s_bbox = draw.textbbox((0, 0), subtitle, font=f_sub)
-    stw = s_bbox[2] - s_bbox[0]
-    draw.text((m + (sw - stw) // 2, ty), subtitle, font=f_sub, fill=_P_MUTED)
-    ty += 22
+    # Title & Subtitle (Big & punchy)
+    ty = icon_y + icon_box + 12
+    f_title = _get_font(23, bold=True)
+    draw.text((m + 4 + sw // 2, ty), title, font=f_title, fill=_P_DARK, anchor="mt")
+    ty += 30
+    f_sub = _get_font(15, bold=False)
+    draw.text((m + 4 + sw // 2, ty), subtitle, font=f_sub, fill=_P_MUTED, anchor="mt")
+    ty += 30
 
-    # Category pills
-    pill_x = m + 14
+    # Category pills (Big 42px height, 16px bold text)
+    pill_x = m + 18
     pill_w = sw - 28
     for cat_name, count, is_active in categories:
-        pill_h = 26
+        pill_h = 42
         if is_active:
             draw.rounded_rectangle(
                 [pill_x, ty, pill_x + pill_w, ty + pill_h],
-                radius=6, fill=_P_ACCENT,
+                radius=10, fill=_P_ACCENT,
             )
-            draw.text((pill_x + 10, ty + 5), cat_name.upper(), font=_get_font(10, bold=True), fill=(255, 255, 255, 255))
+            draw.text((pill_x + 14, ty + 10), cat_name.upper(), font=_get_font(16, bold=True), fill=(255, 255, 255, 255))
+            draw.text((pill_x + pill_w - 14, ty + 10), str(count), font=_get_font(16, bold=True), fill=(255, 255, 255, 255), anchor="rt")
         else:
             draw.rounded_rectangle(
                 [pill_x, ty, pill_x + pill_w, ty + pill_h],
-                radius=6, fill=_P_BG, outline=_P_BORDER, width=1,
+                radius=10, fill=_P_BG, outline=_P_BORDER, width=1,
             )
-            draw.text((pill_x + 10, ty + 5), cat_name.upper(), font=_get_font(10, bold=True), fill=_P_DARK)
-        # Count badge (right-aligned)
-        cnt_str = str(count)
-        f_cnt = _get_font(10, bold=True)
-        cb = draw.textbbox((0, 0), cnt_str, font=f_cnt)
-        cw = cb[2] - cb[0]
-        draw.text((pill_x + pill_w - cw - 10, ty + 5), cnt_str, font=f_cnt,
-                   fill=(255, 255, 255, 255) if is_active else _P_MUTED)
-        ty += pill_h + 6
+            draw.text((pill_x + 14, ty + 10), cat_name.upper(), font=_get_font(16, bold=True), fill=_P_DARK)
+            draw.text((pill_x + pill_w - 14, ty + 10), str(count), font=_get_font(16, bold=True), fill=_P_MUTED, anchor="rt")
+        ty += pill_h + 8
 
-    # Wallet at bottom of sidebar
-    wy = POKE_H - m - 18 - len(wallet_lines) * 18
-    for wtxt, wcolor in wallet_lines:
-        f_w = _get_font(11, bold=True)
-        wb = draw.textbbox((0, 0), wtxt, font=f_w)
-        ww = wb[2] - wb[0]
-        draw.text((m + (sw - ww) // 2, wy), wtxt, font=f_w, fill=wcolor)
-        wy += 18
+    # Wallet pills at bottom of sidebar (40px tall, big 17px text + icon)
+    wy = POKE_H - m - 16 - len(wallet_lines) * 48
+    for wicon, wtxt, wcolor in wallet_lines:
+        draw.rounded_rectangle(
+            [pill_x, wy, pill_x + pill_w, wy + 40],
+            radius=10, fill=_P_BG, outline=_P_BORDER, width=1,
+        )
+        _paste_pixel_icon(img, wicon, pill_x + 10, wy + 8, 24)
+        draw.text((pill_x + 40, wy + 9), wtxt, font=_get_font(17, bold=True), fill=wcolor)
+        wy += 48
 
 
 def _poke_draw_item_rows(
@@ -1184,78 +1179,81 @@ def _poke_draw_item_rows(
     page_str: str,
     items_count_str: str,
     rows: list[dict[str, Any]],
-    show_price: bool = False,
-    price_color: tuple[int, int, int, int] = _P_GOLD_PILL,
 ) -> None:
-    """Draw the right-side item table: header + up to 7 spacious item rows."""
+    """Draw the right-side item table: header + up to 6 spacious, high-readability item rows."""
     cx = _P_CONTENT_X
     m = _P_MARGIN
-    rw = POKE_W - m - cx  # content width
 
-    # Header row
-    hy = m + 14
-    draw.text((cx + 8, hy), header_title, font=_get_font(18, bold=True), fill=_P_DARK)
-    draw.text((cx + 8, hy + 24), header_sub, font=_get_font(10, bold=False), fill=_P_MUTED)
-    # Page indicator (right-aligned)
-    f_page = _get_font(11, bold=True)
-    pb = draw.textbbox((0, 0), page_str, font=f_page)
-    pw = pb[2] - pb[0]
-    draw.text((POKE_W - m - pw - 10, hy), page_str, font=f_page, fill=_P_MUTED)
-    # Items count
-    f_cnt = _get_font(10, bold=False)
-    cb = draw.textbbox((0, 0), items_count_str, font=f_cnt)
-    cw = cb[2] - cb[0]
-    draw.text((POKE_W - m - cw - 10, hy + 18), items_count_str, font=f_cnt, fill=_P_MUTED)
+    # Header row (Big 32px title)
+    hy = m + 10
+    draw.text((cx, hy), header_title, font=_get_font(32, bold=True), fill=_P_DARK)
+    draw.text((cx, hy + 38), header_sub, font=_get_font(15, bold=False), fill=_P_MUTED)
+    # Page indicator & entries count
+    f_page = _get_font(18, bold=True)
+    draw.text((POKE_W - m - 14, hy + 4), page_str, font=f_page, fill=_P_MUTED, anchor="rt")
+    draw.text((POKE_W - m - 14, hy + 34), items_count_str, font=_get_font(14, bold=False), fill=_P_MUTED, anchor="rt")
 
     # Horizontal divider
-    div_y = hy + 46
-    draw.line([(cx, div_y), (POKE_W - m, div_y)], fill=_P_BORDER, width=1)
+    div_y = hy + 64
+    draw.line([(cx, div_y), (POKE_W - m - 10, div_y)], fill=_P_BORDER, width=2)
 
-    # Item rows
-    row_h = 50
-    row_gap = 4
+    # 6 Spacious Item rows (height=68px each, gap=6px)
+    row_h = 68
+    row_gap = 6
     ry = div_y + 8
 
     for i, row in enumerate(rows):
-        # Alternating row background
         bg = _P_ROW if i % 2 == 0 else _P_ROW_ALT
         draw.rounded_rectangle(
-            [cx + 4, ry, POKE_W - m - 4, ry + row_h],
-            radius=8, fill=bg,
+            [cx, ry, POKE_W - m - 10, ry + row_h],
+            radius=12, fill=bg,
         )
 
-        # Bullet / icon (32x32 with 24x24 sprite)
-        icon_x = cx + 14
-        icon_y = ry + 9
+        # 52x52 icon frame with 44x44 pixel art icon
+        icon_x = cx + 10
+        icon_y = ry + 8
         draw.rounded_rectangle(
-            [icon_x, icon_y, icon_x + 32, icon_y + 32],
-            radius=6, fill=_P_SIDEBAR, outline=_P_BORDER, width=1,
+            [icon_x, icon_y, icon_x + 52, icon_y + 52],
+            radius=10, fill=_P_SIDEBAR, outline=_P_BORDER, width=1,
         )
-        _paste_pixel_icon(img, row.get("icon", "mystery_box"), icon_x + 4, icon_y + 4, 24)
+        _paste_pixel_icon(img, row.get("icon", "mystery_box"), icon_x + 4, icon_y + 4, 44)
 
-        # Item name
+        # Item name (23px bold)
         name = row.get("name", "Unknown")
-        if len(name) > 28:
-            name = name[:26] + ".."
-        draw.text((icon_x + 42, ry + 8), name, font=_get_font(14, bold=True), fill=_P_DARK)
+        if len(name) > 36:
+            name = name[:34] + ".."
+        draw.text((cx + 72, ry + 10), name, font=_get_font(23, bold=True), fill=_P_DARK)
 
-        # Subtitle / description
+        # Subtitle / description (15px)
         sub = row.get("subtitle", "")
-        if len(sub) > 42:
-            sub = sub[:40] + ".."
+        if len(sub) > 62:
+            sub = sub[:60] + ".."
         if sub:
-            draw.text((icon_x + 42, ry + 27), sub, font=_get_font(10, bold=False), fill=_P_MUTED)
+            draw.text((cx + 72, ry + 39), sub, font=_get_font(15, bold=False), fill=(110, 115, 125, 255))
 
-        # Right-aligned value (quantity or price)
+        # Right-aligned value & optional currency icon
         val = row.get("right_text", "")
-        if val:
-            f_val = _get_font(13, bold=True)
-            vb = draw.textbbox((0, 0), val, font=f_val)
-            vw = vb[2] - vb[0]
-            val_color = row.get("right_color", _P_DARK)
-            draw.text((POKE_W - m - vw - 16, ry + 16), val, font=f_val, fill=val_color)
+        curr_icon = row.get("curr_icon")
+        val_color = row.get("right_color", _P_DARK)
+        f_val = _get_font(24, bold=True)
+        if curr_icon:
+            draw.text((POKE_W - m - 46, ry + 20), val, font=f_val, fill=val_color, anchor="rt")
+            _paste_pixel_icon(img, curr_icon, POKE_W - m - 40, ry + 22, 24)
+        else:
+            draw.text((POKE_W - m - 20, ry + 20), val, font=f_val, fill=val_color, anchor="rt")
 
         ry += row_h + row_gap
+
+    # Footer line
+    draw.line(
+        [(cx, POKE_H - m - 18), (POKE_W - m - 10, POKE_H - m - 18)],
+        fill=_P_BORDER, width=1,
+    )
+    draw.text(
+        (cx + 6, POKE_H - m - 15),
+        "Chronos · Study smarter, one session at a time",
+        font=_get_font(11, bold=False), fill=_P_MUTED,
+    )
 
 
 # ── PokeOne-style Shop Card ─────────────────────────────────────────────────
@@ -1263,10 +1261,9 @@ def render_shop_card_sync(
     user_coins: int,
     items: Optional[list[dict[str, Any]]] = None,
     page: int = 0,
-    per_page: int = 7,
+    per_page: int = 6,
 ) -> bytes:
-    """800x500 PokeOne-style parchment shop card — ultra-readable on Discord."""
-    # Prepare items
+    """920x580 PokeOne-style parchment shop card — massive typography & pixel icons."""
     if items is None:
         from utils.economy import SHOP_ITEMS, SHOP_ORDER
         items = []
@@ -1300,14 +1297,12 @@ def render_shop_card_sync(
     # Canvas
     img = Image.new("RGBA", (POKE_W, POKE_H), _P_BG)
     draw = ImageDraw.Draw(img)
-    # Outer card border
     draw.rounded_rectangle(
         [_P_MARGIN, _P_MARGIN, POKE_W - _P_MARGIN, POKE_H - _P_MARGIN],
-        radius=16, fill=None, outline=_P_BORDER, width=2,
+        radius=20, fill=None, outline=_P_BORDER, width=2,
     )
 
-    # Sidebar
-    # Category breakdown
+    # Sidebar categories
     from utils.economy import SHOP_ITEMS, SHOP_ORDER
     cat_counts: dict[str, int] = {}
     for sid in SHOP_ORDER:
@@ -1322,9 +1317,9 @@ def render_shop_card_sync(
         img, draw,
         hero_icon="chronocoin",
         title="CHRONOS SHOP",
-        subtitle=f"{total_items} items available",
+        subtitle=f"{total_items} items catalog",
         categories=cats,
-        wallet_lines=[(f"{user_coins:,} Coins", _P_GOLD_PILL)],
+        wallet_lines=[("chronocoin", f"{user_coins:,} Coins", _P_GOLD_PILL)],
     )
 
     # Item rows
@@ -1333,29 +1328,19 @@ def render_shop_card_sync(
         rows.append({
             "icon": item["icon"],
             "name": f"{item['num']}. {item['name']}",
-            "subtitle": item["desc"][:42],
+            "subtitle": item["desc"],
             "right_text": f"{item['price']:,}",
+            "curr_icon": "chronocoin",
             "right_color": _P_GOLD_PILL,
         })
 
     _poke_draw_item_rows(
         img, draw,
         header_title="Coin Shop",
-        header_sub=f"Type .buy <number_or_name> [qty] to purchase",
+        header_sub="Use .buy <item> [qty] to purchase",
         page_str=f"PAGE {curr_page + 1}/{total_pages}",
         items_count_str=f"{total_items} entries",
         rows=rows,
-    )
-
-    # Footer accent line
-    draw.line(
-        [(_P_CONTENT_X, POKE_H - _P_MARGIN - 18), (POKE_W - _P_MARGIN, POKE_H - _P_MARGIN - 18)],
-        fill=_P_BORDER, width=1,
-    )
-    draw.text(
-        (_P_CONTENT_X + 8, POKE_H - _P_MARGIN - 16),
-        "Chronos · Study smarter, one session at a time",
-        font=_get_font(9, bold=False), fill=_P_MUTED,
     )
 
     return _poke_export(img)
@@ -1367,9 +1352,9 @@ def render_food_shop_card_sync(
     user_coins: int,
     owned_food: Optional[dict[str, int]] = None,
     page: int = 0,
-    per_page: int = 7,
+    per_page: int = 6,
 ) -> bytes:
-    """800x500 PokeOne-style parchment food shop card — ultra-readable on Discord."""
+    """920x580 PokeOne-style parchment food shop card — massive typography & food sprites."""
     from utils.food import FOODS, FOODS_BY_TIER, FOOD_TIER_INFO
 
     clean_tier = tier.lower().strip()
@@ -1393,7 +1378,7 @@ def render_food_shop_card_sync(
     draw = ImageDraw.Draw(img)
     draw.rounded_rectangle(
         [_P_MARGIN, _P_MARGIN, POKE_W - _P_MARGIN, POKE_H - _P_MARGIN],
-        radius=16, fill=None, outline=_P_BORDER, width=2,
+        radius=20, fill=None, outline=_P_BORDER, width=2,
     )
 
     # Sidebar — tier categories
@@ -1410,7 +1395,7 @@ def render_food_shop_card_sync(
         title="PET BAKERY",
         subtitle=f"{tier_info['label']} tier · {total_items} foods",
         categories=tier_cats,
-        wallet_lines=[(f"{user_coins:,} Coins", _P_GOLD_PILL)],
+        wallet_lines=[("chronocoin", f"{user_coins:,} Coins", _P_GOLD_PILL)],
     )
 
     # Item rows
@@ -1418,32 +1403,23 @@ def render_food_shop_card_sync(
     for fid in page_ids:
         food = FOODS[fid]
         have = owned_food.get(fid, 0)
-        own_str = f" (x{have})" if have > 0 else ""
+        own_str = f" (Owned: x{have})" if have > 0 else ""
         rows.append({
             "icon": f"food/{fid}",
             "name": food["name"],
             "subtitle": f"+{food['xp']:,} Pet XP{own_str}",
             "right_text": f"{food['cost']:,}",
+            "curr_icon": "chronocoin",
             "right_color": _P_GOLD_PILL,
         })
 
     _poke_draw_item_rows(
         img, draw,
         header_title=f"{tier_info['label']} Foods",
-        header_sub=f".buyfood <name> [qty] · .feed <name>",
+        header_sub=".buyfood <item> [qty] · .feed <item>",
         page_str=f"PAGE {curr_page + 1}/{total_pages}",
         items_count_str=f"{total_items} entries",
         rows=rows,
-    )
-
-    draw.line(
-        [(_P_CONTENT_X, POKE_H - _P_MARGIN - 18), (POKE_W - _P_MARGIN, POKE_H - _P_MARGIN - 18)],
-        fill=_P_BORDER, width=1,
-    )
-    draw.text(
-        (_P_CONTENT_X + 8, POKE_H - _P_MARGIN - 16),
-        "Chronos · Study smarter, one session at a time",
-        font=_get_font(9, bold=False), fill=_P_MUTED,
     )
 
     return _poke_export(img)
@@ -1456,7 +1432,7 @@ def render_candy_shop_card_sync(
     owned_pets: Optional[set[str]] = None,
     sugar_rush_qty: int = 0,
 ) -> bytes:
-    """800x500 PokeOne-style parchment candy shop card — ultra-readable on Discord."""
+    """920x580 PokeOne-style parchment candy shop card — massive typography & event rewards."""
     from utils.halloween import CANDY_SHOP_ITEMS, CANDY_SHOP_ORDER
 
     if owned_titles is None:
@@ -1469,7 +1445,7 @@ def render_candy_shop_card_sync(
     draw = ImageDraw.Draw(img)
     draw.rounded_rectangle(
         [_P_MARGIN, _P_MARGIN, POKE_W - _P_MARGIN, POKE_H - _P_MARGIN],
-        radius=16, fill=None, outline=_P_BORDER, width=2,
+        radius=20, fill=None, outline=_P_BORDER, width=2,
     )
 
     # Build items list
@@ -1487,7 +1463,7 @@ def render_candy_shop_card_sync(
         else:
             icon = "title_scroll"
             t_title = item.get("title_text", key)
-            sub = f'Title: "{t_title}"'
+            sub = f'Prestige Title: "{t_title}"'
             owned = key in owned_titles or t_title in owned_titles
 
         own_tag = " [OWNED]" if owned else ""
@@ -1496,6 +1472,7 @@ def render_candy_shop_card_sync(
             "name": item["name"] + own_tag,
             "subtitle": sub,
             "right_text": f"{item['candy_price']:,}",
+            "curr_icon": "mystery_box",
             "right_color": _P_CANDY,
         })
 
@@ -1506,26 +1483,16 @@ def render_candy_shop_card_sync(
         title="CANDY BAZAAR",
         subtitle=f"Halloween 2026 · {len(shop_rows)} items",
         categories=[("ALL REWARDS", len(shop_rows), True)],
-        wallet_lines=[(f"{user_candy:,} Candy", _P_CANDY)],
+        wallet_lines=[("mystery_box", f"{user_candy:,} Candy", _P_CANDY)],
     )
 
     _poke_draw_item_rows(
         img, draw,
         header_title="Halloween Rewards",
-        header_sub=f".buycandy <item> [qty] to purchase",
-        page_str=f"PAGE 1/1",
+        header_sub=".buycandy <item> [qty] to purchase",
+        page_str="PAGE 1/1",
         items_count_str=f"{len(shop_rows)} entries",
         rows=shop_rows,
-    )
-
-    draw.line(
-        [(_P_CONTENT_X, POKE_H - _P_MARGIN - 18), (POKE_W - _P_MARGIN, POKE_H - _P_MARGIN - 18)],
-        fill=_P_BORDER, width=1,
-    )
-    draw.text(
-        (_P_CONTENT_X + 8, POKE_H - _P_MARGIN - 16),
-        "Chronos · Study smarter, one session at a time",
-        font=_get_font(9, bold=False), fill=_P_MUTED,
     )
 
     return _poke_export(img)
@@ -1699,9 +1666,9 @@ def render_inventory_card_sync(
     equipped_title: Optional[str] = None,
     avatar_bytes: Optional[bytes] = None,
     page: int = 0,
-    per_page: int = 7,
+    per_page: int = 6,
 ) -> bytes:
-    """800x500 PokeOne-style parchment inventory card — ultra-readable on Discord."""
+    """920x580 PokeOne-style parchment inventory card — massive typography & satchel items."""
     # Collect valid items
     valid_items = [(k, v) for k, v in inventory.items() if v > 0]
     total_items = len(valid_items)
@@ -1716,7 +1683,6 @@ def render_inventory_card_sync(
     for item_id, qty in valid_items:
         meta = get_item_display_meta(item_id)
         t = meta.get("type", "ITEM")
-        # Simplify type names
         if "BOOST" in t:
             cat_key = "BOOSTS"
         elif "FOOD" in t:
@@ -1740,12 +1706,11 @@ def render_inventory_card_sync(
     draw = ImageDraw.Draw(img)
     draw.rounded_rectangle(
         [_P_MARGIN, _P_MARGIN, POKE_W - _P_MARGIN, POKE_H - _P_MARGIN],
-        radius=16, fill=None, outline=_P_BORDER, width=2,
+        radius=20, fill=None, outline=_P_BORDER, width=2,
     )
 
-    # Try to paste avatar into sidebar hero area
     clean_disp = _sanitize_text(display_name) or "Bag"
-    hero_icon = "chronocoin"  # fallback
+    hero_icon = "chronocoin"
 
     _poke_draw_sidebar(
         img, draw,
@@ -1754,8 +1719,8 @@ def render_inventory_card_sync(
         subtitle=f"{total_items} unique · {total_qty:,} total",
         categories=cats,
         wallet_lines=[
-            (f"{coins:,} Coins", _P_GOLD_PILL),
-            (f"{candy:,} Candy", _P_CANDY),
+            ("chronocoin", f"{coins:,} Coins", _P_GOLD_PILL),
+            ("mystery_box", f"{candy:,} Candy", _P_CANDY),
         ],
     )
 
@@ -1763,9 +1728,10 @@ def render_inventory_card_sync(
     if avatar_bytes:
         try:
             with Image.open(io.BytesIO(avatar_bytes)) as raw_av:
-                circle_av = _make_circular_avatar(raw_av, 56)
-                ax = _P_MARGIN + (_P_SIDEBAR_W - 56) // 2
-                ay = _P_MARGIN + 18
+                circle_av = _make_circular_avatar(raw_av, 60)
+                icon_box = 72
+                ax = _P_MARGIN + 4 + (_P_SIDEBAR_W - icon_box) // 2 + 6
+                ay = _P_MARGIN + 16 + 6
                 img.paste(circle_av, (ax, ay), circle_av)
         except Exception:
             pass
@@ -1794,16 +1760,6 @@ def render_inventory_card_sync(
         page_str=f"PAGE {curr_page + 1}/{total_pages}",
         items_count_str=f"{total_items} entries",
         rows=rows,
-    )
-
-    draw.line(
-        [(_P_CONTENT_X, POKE_H - _P_MARGIN - 18), (POKE_W - _P_MARGIN, POKE_H - _P_MARGIN - 18)],
-        fill=_P_BORDER, width=1,
-    )
-    draw.text(
-        (_P_CONTENT_X + 8, POKE_H - _P_MARGIN - 16),
-        "Chronos · Study smarter, one session at a time",
-        font=_get_font(9, bold=False), fill=_P_MUTED,
     )
 
     return _poke_export(img)
