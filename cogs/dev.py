@@ -17,6 +17,8 @@ from utils.subjects import SUBJECT_ALIASES, SUBJECT_HINT, SUBJECT_INFO, normaliz
 from utils.time_format import format_duration, parse_duration
 from utils.xp import tier_for_level
 from cogs.trivia import format_academic_text, format_matching_text, format_question_presentation
+import distexer
+from distexer.formatters.text import format_fraction_bar
 
 log = logging.getLogger("dev")
 
@@ -26,53 +28,149 @@ class Dev(commands.Cog, name="Dev"):
         self.bot = bot
         self.db = bot.db
 
-    @commands.command(name="formatdemo", aliases=["distexer"])
+    @commands.command(name="testsymbols", aliases=["formatdemo", "distexer", "mathtest", "symboldemo"])
     @is_dev()
     @commands.guild_only()
-    async def format_demo_cmd(self, ctx: commands.Context) -> None:
-        """[Dev only] Show distexer's academic formatting in separate embed messages.
+    async def test_symbols_cmd(self, ctx: commands.Context, category: Optional[str] = None) -> None:
+        """[Dev only] Comprehensive debug test suite for distexer math formatting, symbols, and LaTeX rendering.
 
-        Usage: .formatdemo
+        Usage:
+            .testsymbols         (runs complete test suite)
+            .testsymbols [cat]   (cat: fractions, greek, calc, vectors, chem, logic, layout, image)
         """
-        examples = [
-            (
-                "Inline equations",
-                r"Quadratic roots: $x = \\frac{-b \\pm \\sqrt{b^2 - 4ac}}{2a}$. "
-                r"Water is $H_2O$ and acceleration is $9.8\\,m/s^2$.",
-            ),
-            (
-                "Greek letters and operators",
-                r"For $\\theta \\in [0, \\pi]$, $\\sin^2\\theta + \\cos^2\\theta = 1$. "
-                r"Limits use $\\lim_{x \\to 0} \\frac{\\sin x}{x} = 1$.",
-            ),
-            (
-                "Question layout",
-                r"Which statements are true? (i) $x^2 \\ge 0$; (ii) \\alpha > 0; "
-                r"(iii) $E = mc^2$.",
-            ),
-            (
-                "Matching layout",
-                "Match the following:\nList-I:\nP. $NaCl$\nQ. $H_2SO_4$\n"
-                "List-II:\n1. Salt\n2. Acid",
-            ),
-            (
-                "Bare text safety",
-                "Unicode stays readable: x² + y² = r², aₙ = a₁ + (n − 1)d, and ½mv². "
-                "Markdown **bold** remains intact.",
-            ),
-        ]
+        cat = category.lower().strip() if category else "all"
 
-        await ctx.send(embed=embeds.success_embed(
-            "Distexer formatting test",
-            "Use these messages to verify equations, subscripts, Greek letters, lists, and Markdown in Discord.",
-        ))
-        for title, source in examples:
-            formatted = format_academic_text(source)
-            if title == "Question layout":
-                formatted = format_question_presentation(formatted)
-            elif title == "Matching layout":
-                formatted = format_matching_text(source)
-            await ctx.send(embed=embeds.base_embed(title=title, description=formatted))
+        # 1. Fractions & Horizontal Bars
+        frac_desc = (
+            "### 1. Multiline Horizontal Fraction Bar (`format_fraction_bar`)\n"
+            f"```\n{format_fraction_bar('-b ± √(b² − 4ac)', '2a', prefix='x =')}\n```\n\n"
+            "### 2. Limit with Horizontal Bar\n"
+            f"```\n{format_fraction_bar('sin x', 'x', prefix='lim (x → 0)', suffix='= 1')}\n```\n\n"
+            "### 3. Display Math Fraction (`$$...$$` with Horizontal Bar)\n"
+            f"{format_academic_text(r'Solve: $$x = \frac{-b \pm \sqrt{b^2 - 4ac}}{2a}$$')}\n\n"
+            "### 4. Vulgar & Script Fractions (Inline, No `/`)\n"
+            f"• Standard: {format_academic_text(r'$\frac{1}{2}, \frac{1}{3}, \frac{2}{3}, \frac{1}{4}, \frac{3}{4}, \frac{5}{8}, \frac{7}{8}$')}\n"
+            f"• Inline variables: {format_academic_text(r'$\frac{a}{b}, \frac{x+1}{x-1}$')}"
+        )
+
+        # 2. Greek Letters & Typography
+        greek_desc = (
+            "### 1. Lowercase Greek Alphabet\n"
+            f"{format_academic_text(r'$\alpha, \beta, \gamma, \delta, \epsilon, \zeta, \eta, \theta, \iota, \kappa, \lambda, \mu, \nu, \xi, \pi, \rho, \sigma, \tau, \upsilon, \phi, \chi, \psi, \omega$')}\n\n"
+            "### 2. Uppercase Greek Alphabet\n"
+            f"{format_academic_text(r'$\Gamma, \Delta, \Theta, \Lambda, \Xi, \Pi, \Sigma, \Upsilon, \Phi, \Psi, \Omega$')}\n\n"
+            "### 3. Word Spacing & Degree Symbols (No Eaten Spaces)\n"
+            f"• Identity: {format_academic_text(r'For $\theta \in [0, \pi]$, $\sin^2\theta + \cos^2\theta = 1$.')}\n"
+            f"• Degrees: {format_academic_text(r'Angle $\theta$ is $45^\circ\text{C}$ and $\beta$ is $5$.')}\n"
+            f"• Enthalpy: {format_academic_text(r'Reaction enthalpy is $\Delta H = -393.5\text{ kJ/mol}$.')}"
+        )
+
+        # 3. Calculus & Analysis
+        calc_desc = (
+            "### 1. Integrals & Contour Integrals\n"
+            f"• Indefinite: {format_academic_text(r'$\int x^2\,dx = \frac{x^3}{3} + C$')}\n"
+            f"• Definite: {format_academic_text(r'$\int_{0}^{\pi} \sin x\,dx = 2$')}\n"
+            f"• Multiple: {format_academic_text(r'$\iint_D f(x,y)\,dA$ and $\oint_C \vec{F} \cdot d\vec{r}$')}\n\n"
+            "### 2. Differentials & Derivatives\n"
+            f"• Total: {format_academic_text(r'$\frac{dy}{dx}$ and $\frac{d^2y}{dx^2}$')}\n"
+            f"• Partial: {format_academic_text(r'$\frac{\partial u}{\partial x} + \frac{\partial u}{\partial y} = 0$')}\n\n"
+            "### 3. Limits, Sums & Products\n"
+            f"• Limit: {format_academic_text(r'$\lim_{x \to 0} \frac{\sin x}{x} = 1$')}\n"
+            f"• Summation: {format_academic_text(r'$\sum_{k=1}^n k^2 = \frac{n(n+1)(2n+1)}{6}$')}\n"
+            f"• Product: {format_academic_text(r'$\prod_{i=1}^n i = n!$')}"
+        )
+
+        # 4. Vectors & Physics
+        vectors_desc = (
+            "### 1. Unit Vectors (Precomposed Hat Glyphs)\n"
+            f"• Position vector: {format_academic_text(r'$\vec{r} = 3\hat{i} - 4\hat{j} + 5\hat{k}$')}\n"
+            f"• Unit normal: {format_academic_text(r'$\hat{n} = \frac{\vec{A} \times \vec{B}}{|\vec{A} \times \vec{B}|}$')}\n\n"
+            "### 2. Physics Laws & Mechanics\n"
+            f"• Newton's Second Law: {format_academic_text(r'$\vec{F} = m\vec{a} = \frac{d\vec{p}}{dt}$')}\n"
+            f"• Torque: {format_academic_text(r'$\vec{\tau} = \vec{r} \times \vec{F}$')}\n\n"
+            "### 3. Physical Constants & Units\n"
+            f"• Speed of light: {format_academic_text(r'$c = 3 \times 10^8\,\text{m/s}$')}\n"
+            f"• Gravity: {format_academic_text(r'$g = 9.8\,\text{m/s}^2}$')}\n"
+            f"• Planck constant: {format_academic_text(r'$h = 6.626 \times 10^{-34}\,\text{J}\cdot\text{s}$')}"
+        )
+
+        # 5. Chemistry & Equilibrium
+        chem_desc = (
+            "### 1. Hydrated Salts & Hydration Dot (`·`)\n"
+            f"• Copper sulfate: {format_academic_text(r'$\ce{CuSO4 . 5H2O}$')}\n"
+            f"• Mohr salt: {format_academic_text(r'$\ce{FeSO4 . (NH4)2SO4 . 6H2O}$')}\n\n"
+            "### 2. Chemical Equilibrium & Reaction Arrows\n"
+            f"• Combustion: {format_academic_text(r'$\ce{2H2 + O2 -> 2H2O}$')}\n"
+            f"• Haber process: {format_academic_text(r'$\ce{N2 + 3H2 <=> 2NH3}$')}\n"
+            f"• Dissociation: {format_academic_text(r'$\ce{PCl5 <=> PCl3 + Cl2}$')}\n\n"
+            "### 3. Redox Ions & Heat Catalysts\n"
+            f"• Oxidation: {format_academic_text(r'$\ce{Fe^{2+} + e- -> Fe^{3+}}$')}\n"
+            f"• Thermal decomposition: {format_academic_text(r'$\ce{CaCO3 ->[\Delta] CaO + CO2}$')}"
+        )
+
+        # 6. Set Theory, Logic & Relations
+        logic_desc = (
+            "### 1. Set Theory & Membership\n"
+            f"• Sets: {format_academic_text(r'$x \in \mathbb{R}$, $A \subset B$, $A \cap B = \emptyset$, $A \cup B = S$')}\n\n"
+            "### 2. Logic Quantifiers & Implications\n"
+            f"• Logic: {format_academic_text(r'$\forall x \in \mathbb{R}, \; \exists y \text{ such that } x + y = 0$')}\n"
+            f"• Implication: {format_academic_text(r'$P \implies Q$ and $P \iff Q$')}\n\n"
+            "### 3. Inequalities & Relations\n"
+            f"• Relations: {format_academic_text(r'$a \le b$, $x \ge y$, $p \ne q$, $f(x) \approx g(x)$, $x \pm \sigma$')}"
+        )
+
+        # 7. Structured Question Layouts
+        layout_desc = (
+            "### 1. Assertion-Reason Format\n"
+            f"{format_academic_text(r'Assertion (A): Ice floats on water. Reason (R): Density of ice is less than liquid water.')}\n\n"
+            "### 2. Statement I & II Format\n"
+            f"{format_question_presentation(format_academic_text(r'Statement I: Acceleration is rate of change of velocity. Statement II: Velocity is a scalar quantity.'))}\n\n"
+            "### 3. Matching Layout (List-I and List-II)\n"
+            f"{format_matching_text('Match the following:\nList-I:\nP. $NaCl$\nQ. $H_2SO_4$\nList-II:\n1. Common Salt\n2. Battery Acid')}"
+        )
+
+        categories_map = {
+            "fractions": ("📊 Fractions & Horizontal Bars", frac_desc),
+            "greek": ("🏛️ Greek Alphabet & Typography Spacing", greek_desc),
+            "calc": ("📐 Calculus, Derivatives & Integrals", calc_desc),
+            "vectors": ("⚡ Vectors, Physics & Coordinates", vectors_desc),
+            "chem": ("🧪 Chemistry & Chemical Equilibrium", chem_desc),
+            "logic": ("🔣 Set Theory, Logic & Relations", logic_desc),
+            "layout": ("📋 Structured Question Layouts", layout_desc),
+        }
+
+        if cat in ("all", "overview"):
+            await ctx.send(embed=embeds.success_embed(
+                "Distexer Mathematical & Academic Symbol Test Suite",
+                "Testing textbook equation rendering across Unicode text, multiline fraction bars, and LaTeX formula images.\n"
+                "Use `.testsymbols [fractions|greek|calc|vectors|chem|logic|layout|image]` to test a specific section.",
+            ))
+
+        # Send matched category or all
+        to_send = categories_map.items() if cat == "all" else [(k, v) for k, v in categories_map.items() if cat in k]
+
+        for title, desc in to_send:
+            await ctx.send(embed=embeds.base_embed(title=title, description=desc))
+
+        # 8. LaTeX Formula Image (via distexer MathRenderer)
+        if cat in ("all", "image", "img", "render"):
+            try:
+                renderer = distexer.MathRenderer()
+                png_buf = renderer.render(r"x = \frac{-b \pm \sqrt{b^2 - 4ac}}{2a}")
+                file = discord.File(png_buf, filename="formula.png")
+                img_embed = embeds.base_embed(
+                    title="🖼️ Real LaTeX Formula Image (MathRenderer PNG)",
+                    description=(
+                        "**True textbook LaTeX rendering for complex equations:**\n"
+                        "Rendered on-the-fly via `distexer.MathRenderer` without headless browsers.\n"
+                        "Notice the authentic horizontal fraction bar separating numerator and denominator!"
+                    ),
+                    color=embeds.COLOR_SUCCESS,
+                )
+                img_embed.set_image(url="attachment://formula.png")
+                await ctx.send(embed=img_embed, file=file)
+            except Exception as e:
+                await ctx.send(embed=embeds.error_embed(f"Formula image rendering fallback: {e}"))
 
     @commands.command(name="addtime")
     @is_dev()
