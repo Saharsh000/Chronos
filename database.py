@@ -357,6 +357,11 @@ CREATE INDEX IF NOT EXISTS idx_trivia_cache_subject ON trivia_question_cache (su
 CREATE INDEX IF NOT EXISTS idx_trivia_cache_chapter ON trivia_question_cache (chapter_id);
 CREATE INDEX IF NOT EXISTS idx_trivia_cache_topic ON trivia_question_cache (topic_id);
 CREATE INDEX IF NOT EXISTS idx_trivia_cache_lookup ON trivia_question_cache (subject_id, chapter_id, topic_id);
+
+CREATE TABLE IF NOT EXISTS bot_kv_store (
+    key   TEXT PRIMARY KEY,
+    value TEXT NOT NULL
+);
 """
 
 # Columns added to `user_stats` after its original release. Applied by
@@ -617,6 +622,12 @@ class Database:
         """)
         await self._conn.execute("""
         CREATE INDEX IF NOT EXISTS idx_trivia_cache_lookup ON trivia_question_cache (subject_id, chapter_id, topic_id);
+        """)
+        await self._conn.execute("""
+        CREATE TABLE IF NOT EXISTS bot_kv_store (
+            key   TEXT PRIMARY KEY,
+            value TEXT NOT NULL
+        );
         """)
 
     async def _migrate_table(self, table: str, migrations: dict[str, str]) -> None:
@@ -3239,5 +3250,21 @@ class Database:
         cur = await self.conn.execute("DELETE FROM trivia_question_cache")
         await self.conn.commit()
         return cur.rowcount
+
+    # ------------------------------------------------------------------ #
+    # Key-Value Persistence (e.g. Wave Generator State)
+    # ------------------------------------------------------------------ #
+    async def get_kv(self, key: str, default: Optional[str] = None) -> Optional[str]:
+        cur = await self.conn.execute("SELECT value FROM bot_kv_store WHERE key = ?", (key,))
+        row = await cur.fetchone()
+        return row[0] if row else default
+
+    async def set_kv(self, key: str, value: str) -> None:
+        await self.conn.execute(
+            "INSERT INTO bot_kv_store (key, value) VALUES (?, ?) ON CONFLICT(key) DO UPDATE SET value = excluded.value",
+            (key, str(value)),
+        )
+        await self.conn.commit()
+
 
 

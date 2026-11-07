@@ -30,138 +30,6 @@ from utils.xp import tier_for_level, xp_progress
 log = logging.getLogger("economy")
 
 
-class Economy(commands.Cog, name="Economy"):
-    def __init__(self, bot: commands.Bot):
-        self.bot = bot
-        self.db = bot.db
-
-    async def _announce_achievements(self, ctx: commands.Context) -> None:
-        newly = await self.db.check_achievements(ctx.author.id, ctx.guild.id)
-        if newly:
-            await ctx.send(embed=embeds.achievement_unlock_embed(ctx.author, newly))
-
-    # ------------------------------------------------------------------ #
-    # Balance
-    # ------------------------------------------------------------------ #
-    @commands.command(name="balance", aliases=["coins", "chronocoins", "chronocoin", "bal"])
-    @commands.guild_only()
-    async def balance_cmd(self, ctx: commands.Context, member: Optional[discord.Member] = None) -> None:
-        """Check your (or someone else's) Chronocoin balance."""
-        target = member or ctx.author
-        currency = await self.db.get_or_create_currency(target.id, ctx.guild.id)
-        candy = currency.get("candy", 0)
-        coin_e = emojis.coin(ctx.guild)
-        embed = embeds.base_embed(
-            title=f"{coin_e} {target.display_name}'s Wallet",
-            description=(
-                f"💰 **Balance**\n{currency['coins']:,} {coin_e} Chronocoins\n\n"
-                f"🍬 **Candy**\n{candy:,} candy\n\n"
-                f"📈 **Lifetime earned**\n{currency['lifetime_earned']:,} {coin_e} Chronocoins"
-            ),
-            color=embeds.COLOR_ECONOMY,
-        )
-        embed.set_thumbnail(url=target.display_avatar.url)
-        await ctx.send(embed=embed)
-
-    # ------------------------------------------------------------------ #
-    # Shop
-    # ------------------------------------------------------------------ #
-    @commands.command(name="shop", aliases=["store"])
-    @commands.guild_only()
-    async def shop_cmd(self, ctx: commands.Context) -> None:
-        """Browse the Chronocoin shop with high-res visual catalog card."""
-        currency = await self.db.get_or_create_currency(ctx.author.id, ctx.guild.id)
-        coin_e = emojis.coin(ctx.guild)
-        embed = embeds.base_embed(
-            title="🛒 Chronos Coin Shop",
-            description=(
-                f"{coin_e} **{currency['coins']:,} Chronocoins available**\n"
-                f"Type `{ctx.prefix}buy <number_or_name> [quantity]` to purchase!"
-            ),
-            color=embeds.COLOR_ECONOMY,
-        )
-        embeds.set_footer(embed, f"Example: {ctx.prefix}buy 1 3  •  {ctx.prefix}buy freeze  •  {ctx.prefix}inv to view your satchel")
-
-        loop = asyncio.get_running_loop()
-        try:
-            card_bytes = await loop.run_in_executor(None, render_shop_card_sync, currency["coins"])
-            file = discord.File(io.BytesIO(card_bytes), filename="shop.png")
-            embed.set_image(url="attachment://shop.png")
-            await ctx.send(file=file, embed=embed)
-        except Exception as e:
-            log.error("Failed to render visual shop card", exc_info=e)
-            for i, item_id in enumerate(economy.SHOP_ORDER, start=1):
-                item = economy.SHOP_ITEMS[item_id]
-                item_e = emojis.item(item_id, ctx.guild)
-                embed.add_field(
-                    name=f"`{i}.` {item_e} {item['name']} — **{item['price']:,}** {coin_e}",
-                    value=f"▷ {item['description']}",
-                    inline=False,
-                )
-            custom_tags = await self.db.get_custom_tags(ctx.guild.id)
-            for item_id, item in custom_tags.items():
-                embed.add_field(
-                    name=f"{item['emoji']} {item['name']} — **{item['price']:,}** {coin_e}",
-                    value=f"▷ {item['description']}",
-                    inline=False,
-                )
-            await ctx.send(embed=embed)
-
-    @commands.command(name="buy")
-    @commands.guild_only()
-    async def buy_cmd(self, ctx: commands.Context, *, item: str) -> None:
-        """Buy an item from the shop, by name or shop number. Add a
-        trailing quantity to buy several at once: `.buy mystery box 5`
-        (titles are always just 1 - they're a one-time unlock)."""
-        text = item.strip()
-        quantity = 1
-        tokens = text.split()
-        if len(tokens) > 1 and tokens[-1].isdigit():
-            candidate_qty = int(tokens[-1])
-            candidate_text = " ".join(tokens[:-1])
-            if candidate_qty > 0 and await self._resolve_item_or_tag(ctx, candidate_text) is not None:
-                text = candidate_text
-                quantity = candidate_qty
-
-        item_id = await self._resolve_item_or_tag(ctx, text)
-        if item_id is None:
-            await ctx.send(embed=embeds.error_embed(
-                f"Couldn't find that item. Check `{ctx.prefix}shop` for the list."
-            ))
-            return
-
-        result = await self.db.buy_item(ctx.author.id, ctx.guild.id, item_id, quantity)
-        if not result["success"]:
-            reasons = {
-                "insufficient_funds": "You don't have enough Chronocoins for that.",
-                "already_owned": "You already own that title.",
-                "not_found": "That item doesn't exist.",
-                "title_quantity": "You can only buy 1 of a title at a time - it's a one-time unlock.",
-                "event_item": f"That's a Halloween event item - get it from `{ctx.prefix}candyshop` or `{ctx.prefix}pumpkin` rewards.",
-            }
-            await ctx.send(embed=embeds.error_embed(reasons.get(result["reason"], "Purchase failed.")))
-            return
-
-        purchased = result["item"]
-        qty_text = f" \u00D7{result['quantity']}" if result["quantity"] > 1 else ""
-        note = ""
-        if purchased["type"] == "boost":
-            note = f"\nUse it with `{ctx.prefix}use {item_id}` when you're ready to study."
-        elif purchased["type"] == "title":
-            note = f"\nEquip it with `{ctx.prefix}settitle {purchased['title_text']}`."
-        elif item_id == "mystery_box":
-            note = f"\nOpen it with `{ctx.prefix}openbox`."
-
-        log.info(
-            f"SHOP BUY      | {ctx.author} ({ctx.author.id}) bought '{item_id}' x{result['quantity']} "
-            f"in guild {ctx.guild.id}"
-        )
-        await ctx.send(embed=embeds.success_embed(
-            "Purchased!",
-            f"{purchased['emoji']} **{purchased['name']}**{qty_text} for **{result['total_price']:,} Chronocoins**.{note}",
-        ))
-        await self._announce_achievements(ctx)
-
 class InventoryView(discord.ui.View):
     """Interactive pagination view for browsing player inventory & satchel."""
 
@@ -328,6 +196,138 @@ class InventoryView(discord.ui.View):
             except Exception:
                 pass
 
+
+class Economy(commands.Cog, name="Economy"):
+    def __init__(self, bot: commands.Bot):
+        self.bot = bot
+        self.db = bot.db
+
+    async def _announce_achievements(self, ctx: commands.Context) -> None:
+        newly = await self.db.check_achievements(ctx.author.id, ctx.guild.id)
+        if newly:
+            await ctx.send(embed=embeds.achievement_unlock_embed(ctx.author, newly))
+
+    # ------------------------------------------------------------------ #
+    # Balance
+    # ------------------------------------------------------------------ #
+    @commands.command(name="balance", aliases=["coins", "chronocoins", "chronocoin", "bal"])
+    @commands.guild_only()
+    async def balance_cmd(self, ctx: commands.Context, member: Optional[discord.Member] = None) -> None:
+        """Check your (or someone else's) Chronocoin balance."""
+        target = member or ctx.author
+        currency = await self.db.get_or_create_currency(target.id, ctx.guild.id)
+        candy = currency.get("candy", 0)
+        coin_e = emojis.coin(ctx.guild)
+        embed = embeds.base_embed(
+            title=f"{coin_e} {target.display_name}'s Wallet",
+            description=(
+                f"💰 **Balance**\n{currency['coins']:,} {coin_e} Chronocoins\n\n"
+                f"🍬 **Candy**\n{candy:,} candy\n\n"
+                f"📈 **Lifetime earned**\n{currency['lifetime_earned']:,} {coin_e} Chronocoins"
+            ),
+            color=embeds.COLOR_ECONOMY,
+        )
+        embed.set_thumbnail(url=target.display_avatar.url)
+        await ctx.send(embed=embed)
+
+    # ------------------------------------------------------------------ #
+    # Shop
+    # ------------------------------------------------------------------ #
+    @commands.command(name="shop", aliases=["store"])
+    @commands.guild_only()
+    async def shop_cmd(self, ctx: commands.Context) -> None:
+        """Browse the Chronocoin shop with high-res visual catalog card."""
+        currency = await self.db.get_or_create_currency(ctx.author.id, ctx.guild.id)
+        coin_e = emojis.coin(ctx.guild)
+        embed = embeds.base_embed(
+            title="🛒 Chronos Coin Shop",
+            description=(
+                f"{coin_e} **{currency['coins']:,} Chronocoins available**\n"
+                f"Type `{ctx.prefix}buy <number_or_name> [quantity]` to purchase!"
+            ),
+            color=embeds.COLOR_ECONOMY,
+        )
+        embeds.set_footer(embed, f"Example: {ctx.prefix}buy 1 3  •  {ctx.prefix}buy freeze  •  {ctx.prefix}inv to view your satchel")
+
+        loop = asyncio.get_running_loop()
+        try:
+            card_bytes = await loop.run_in_executor(None, render_shop_card_sync, currency["coins"])
+            file = discord.File(io.BytesIO(card_bytes), filename="shop.png")
+            embed.set_image(url="attachment://shop.png")
+            await ctx.send(file=file, embed=embed)
+        except Exception as e:
+            log.error("Failed to render visual shop card", exc_info=e)
+            for i, item_id in enumerate(economy.SHOP_ORDER, start=1):
+                item = economy.SHOP_ITEMS[item_id]
+                item_e = emojis.item(item_id, ctx.guild)
+                embed.add_field(
+                    name=f"`{i}.` {item_e} {item['name']} — **{item['price']:,}** {coin_e}",
+                    value=f"▷ {item['description']}",
+                    inline=False,
+                )
+            custom_tags = await self.db.get_custom_tags(ctx.guild.id)
+            for item_id, item in custom_tags.items():
+                embed.add_field(
+                    name=f"{item['emoji']} {item['name']} — **{item['price']:,}** {coin_e}",
+                    value=f"▷ {item['description']}",
+                    inline=False,
+                )
+            await ctx.send(embed=embed)
+
+    @commands.command(name="buy")
+    @commands.guild_only()
+    async def buy_cmd(self, ctx: commands.Context, *, item: str) -> None:
+        """Buy an item from the shop, by name or shop number. Add a
+        trailing quantity to buy several at once: `.buy mystery box 5`
+        (titles are always just 1 - they're a one-time unlock)."""
+        text = item.strip()
+        quantity = 1
+        tokens = text.split()
+        if len(tokens) > 1 and tokens[-1].isdigit():
+            candidate_qty = int(tokens[-1])
+            candidate_text = " ".join(tokens[:-1])
+            if candidate_qty > 0 and await self._resolve_item_or_tag(ctx, candidate_text) is not None:
+                text = candidate_text
+                quantity = candidate_qty
+
+        item_id = await self._resolve_item_or_tag(ctx, text)
+        if item_id is None:
+            await ctx.send(embed=embeds.error_embed(
+                f"Couldn't find that item. Check `{ctx.prefix}shop` for the list."
+            ))
+            return
+
+        result = await self.db.buy_item(ctx.author.id, ctx.guild.id, item_id, quantity)
+        if not result["success"]:
+            reasons = {
+                "insufficient_funds": "You don't have enough Chronocoins for that.",
+                "already_owned": "You already own that title.",
+                "not_found": "That item doesn't exist.",
+                "title_quantity": "You can only buy 1 of a title at a time - it's a one-time unlock.",
+                "event_item": f"That's a Halloween event item - get it from `{ctx.prefix}candyshop` or `{ctx.prefix}pumpkin` rewards.",
+            }
+            await ctx.send(embed=embeds.error_embed(reasons.get(result["reason"], "Purchase failed.")))
+            return
+
+        purchased = result["item"]
+        qty_text = f" \u00D7{result['quantity']}" if result["quantity"] > 1 else ""
+        note = ""
+        if purchased["type"] == "boost":
+            note = f"\nUse it with `{ctx.prefix}use {item_id}` when you're ready to study."
+        elif purchased["type"] == "title":
+            note = f"\nEquip it with `{ctx.prefix}settitle {purchased['title_text']}`."
+        elif item_id == "mystery_box":
+            note = f"\nOpen it with `{ctx.prefix}openbox`."
+
+        log.info(
+            f"SHOP BUY      | {ctx.author} ({ctx.author.id}) bought '{item_id}' x{result['quantity']} "
+            f"in guild {ctx.guild.id}"
+        )
+        await ctx.send(embed=embeds.success_embed(
+            "Purchased!",
+            f"{purchased['emoji']} **{purchased['name']}**{qty_text} for **{result['total_price']:,} Chronocoins**.{note}",
+        ))
+        await self._announce_achievements(ctx)
 
     @commands.command(name="inventory", aliases=["inv", "bag", "satchel"])
     @commands.guild_only()

@@ -81,7 +81,7 @@ class QuestionCache(commands.Cog, name="QuestionCache"):
         self.topics = flattened
         log.info(f"Loaded {len(self.topics)} syllabus topics into wave pre-generator.")
 
-    def _advance_topic(self) -> None:
+    async def _advance_topic(self) -> None:
         """Advance index to the next topic, looping into next wave if end reached."""
         self.topic_index += 1
         if self.topic_index >= len(self.topics):
@@ -91,6 +91,11 @@ class QuestionCache(commands.Cog, name="QuestionCache"):
             log.info(
                 f"Wave {self.current_wave - 1} completed! Starting Wave {self.current_wave} across {len(self.topics)} topics."
             )
+        try:
+            await self.db.set_kv("trivia_current_wave", str(self.current_wave))
+            await self.db.set_kv("trivia_topic_index", str(self.topic_index))
+        except Exception as e:
+            log.warning(f"Failed to persist wave state: {e}")
 
     @tasks.loop(seconds=8.0)
     async def wave_worker(self) -> None:
@@ -122,7 +127,7 @@ class QuestionCache(commands.Cog, name="QuestionCache"):
 
         if cached_count >= 5:
             self.total_skipped += 1
-            self._advance_topic()
+            await self._advance_topic()
             return
 
         # 5. Fetch question from CJA
@@ -153,26 +158,38 @@ class QuestionCache(commands.Cog, name="QuestionCache"):
                         f"{topic['chapter_name']} > {topic['name']} (ID: {q_data['id']})"
                     )
 
-            self._advance_topic()
+            await self._advance_topic()
 
         except CJAError as e:
             self.total_errors += 1
             self.consecutive_errors += 1
             log.warning(f"CJA error in wave pre-generator ({e.code}): {e.message}")
-            self._advance_topic()
+            await self._advance_topic()
             if self.consecutive_errors >= 3:
                 await asyncio.sleep(25)
         except Exception as e:
             self.total_errors += 1
             self.consecutive_errors += 1
             log.warning(f"Unexpected error in wave pre-generator: {e}")
-            self._advance_topic()
+            await self._advance_topic()
             if self.consecutive_errors >= 3:
                 await asyncio.sleep(25)
 
     @wave_worker.before_loop
     async def before_wave_worker(self) -> None:
         await self.bot.wait_until_ready()
+        try:
+            saved_wave = await self.db.get_kv("trivia_current_wave", "1")
+            saved_idx = await self.db.get_kv("trivia_topic_index", "0")
+            self.current_wave = max(1, int(saved_wave))
+            self.topic_index = max(0, int(saved_idx))
+            if self.topics and self.topic_index >= len(self.topics):
+                self.topic_index = 0
+            log.info(
+                f"Resumed trivia wave generator at Wave {self.current_wave}, Topic {self.topic_index + 1}/{len(self.topics)}"
+            )
+        except Exception as e:
+            log.warning(f"Could not restore saved wave state: {e}")
 
     # ------------------------------------------------------------------ #
     # Commands
@@ -282,7 +299,11 @@ class QuestionCache(commands.Cog, name="QuestionCache"):
     async def cache_clear_cmd(self, ctx: commands.Context) -> None:
         """[Dev only] Wipe all cached trivia questions in the database."""
         deleted = await self.db.clear_cache()
-        await ctx.send(embed=embeds.success_embed(f"🗑️ Cleared **{deleted}** cached trivia questions."))
+        self.current_wave = 1
+        self.topic_index = 0
+        await self.db.set_kv("trivia_current_wave", "1")
+        await self.db.set_kv("trivia_topic_index", "0")
+        await ctx.send(embed=embeds.success_embed(f"🗑️ Cleared **{deleted}** cached questions and reset wave loop to Wave 1, Topic 1."))
 
 
 async def setup(bot: commands.Bot) -> None:
