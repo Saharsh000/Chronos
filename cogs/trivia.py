@@ -29,6 +29,13 @@ from discord.ext import commands
 
 import config
 from distexer.formatters.text import MODE_UNICODE_NATIVE, format_text
+try:
+    from distexer import arender_question_card
+except ImportError:
+    try:
+        from distexer.renderer.engine import arender_question_card
+    except ImportError:
+        arender_question_card = None
 from services.cja import (
     CJAError,
     cja_client,
@@ -796,27 +803,46 @@ class TriviaQuestionView(discord.ui.View):
         else:
             status_banner = "⏰ **TIME'S UP — SOLUTION REVEALED!**"
 
-        if q_type == "match":
-            formatted_q = format_matching_text(self.q.get("question", ""))
-        else:
-            raw_q = format_academic_text(self.q.get("question", ""))
-            formatted_q = format_question_presentation(raw_q)
+        has_card = bool(
+            self.message
+            and any(
+                getattr(a, "filename", "") == "question.png"
+                for a in getattr(self.message, "attachments", [])
+            )
+        )
 
-        desc_parts = [
-            f"{status_banner}\n",
-            f"### 📋 Question\n{formatted_q}\n",
-            f"━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━",
-            f"🏆 **OFFICIAL ANSWER KEY:**  `[ {official_ans_fmt} ]`",
-            f"💡 **CORE CONCEPT:** *{concept_fmt}*",
-            f"━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━\n",
-            f"📖 **Detailed Theory Breakdown:**\n{explanation_fmt}\n",
-        ]
+        if has_card:
+            desc_parts = [
+                f"{status_banner}\n",
+                f"🏆 **OFFICIAL ANSWER KEY:**  `[ {official_ans_fmt} ]`",
+                f"💡 **CORE CONCEPT:** *{concept_fmt}*",
+                f"━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━\n",
+                f"📖 **Detailed Theory Breakdown:**\n{explanation_fmt}\n",
+            ]
+        else:
+            if q_type == "match":
+                formatted_q = format_matching_text(self.q.get("question", ""))
+            else:
+                raw_q = format_academic_text(self.q.get("question", ""))
+                formatted_q = format_question_presentation(raw_q)
+
+            desc_parts = [
+                f"{status_banner}\n",
+                f"### 📋 Question\n{formatted_q}\n",
+                f"━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━",
+                f"🏆 **OFFICIAL ANSWER KEY:**  `[ {official_ans_fmt} ]`",
+                f"💡 **CORE CONCEPT:** *{concept_fmt}*",
+                f"━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━\n",
+                f"📖 **Detailed Theory Breakdown:**\n{explanation_fmt}\n",
+            ]
 
         embed = embeds.base_embed(
             title=f"{emoji} {subj_name} Trivia  •  {exam_name} Solution",
             description="\n".join(desc_parts),
             color=color,
         )
+        if has_card:
+            embed.set_image(url="attachment://question.png")
 
         if self.results_summary:
             summary_lines = []
@@ -1616,9 +1642,29 @@ class Trivia(commands.Cog, name="Trivia"):
         else:
             options_block = "*Choose from the components below.*"
 
-        embed = embeds.base_embed(
-            title=f"{emoji} {subj_name.upper()} TRIVIA  •  {exam_info.upper()}",
-            description=(
+        # Render high-res textbook question card image
+        card_file: Optional[discord.File] = None
+        if arender_question_card is not None:
+            try:
+                card_buf = await arender_question_card(
+                    question=q_data.get("question", ""),
+                    options=q_data.get("options", []),
+                    subject=subj_name,
+                    chapter=chapter_name,
+                    fontsize=22,
+                    dpi=200,
+                )
+                card_file = discord.File(card_buf, filename="question.png")
+            except Exception as e:
+                log.info(f"Could not render question card image: {e}")
+
+        if card_file is not None:
+            embed_desc = (
+                f"📌 *{instructions}*\n"
+                f"⚖️ **Scoring:** `+{pos_mark}` for correct  •  `{neg_mark}` for incorrect"
+            )
+        else:
+            embed_desc = (
                 f"### 📋 Question\n"
                 f"{formatted_question}\n\n"
                 f"━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━\n"
@@ -1627,9 +1673,15 @@ class Trivia(commands.Cog, name="Trivia"):
                 f"━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━\n"
                 f"📌 *{instructions}*\n"
                 f"⚖️ **Scoring:** `+{pos_mark}` for correct  •  `{neg_mark}` for incorrect"
-            ),
+            )
+
+        embed = embeds.base_embed(
+            title=f"{emoji} {subj_name.upper()} TRIVIA  •  {exam_info.upper()}",
+            description=embed_desc,
             color=color,
         )
+        if card_file is not None:
+            embed.set_image(url="attachment://question.png")
 
         embed.add_field(
             name="📚 Syllabus Path",
@@ -1665,7 +1717,18 @@ class Trivia(commands.Cog, name="Trivia"):
             session_stats=session_stats,
         )
 
-        await msg.edit(embed=embed, view=view)
+        if card_file is not None:
+            try:
+                await msg.edit(embed=embed, view=view, attachments=[card_file])
+            except Exception as edit_err:
+                log.warning(f"Failed to edit msg with attachments ({edit_err}), re-sending fresh: {edit_err}")
+                try:
+                    await msg.delete()
+                except Exception:
+                    pass
+                msg = await ctx.send(embed=embed, file=card_file, view=view)
+        else:
+            await msg.edit(embed=embed, view=view)
         view.message = msg
 
     async def _send_leaderboard(self, ctx: commands.Context) -> None:

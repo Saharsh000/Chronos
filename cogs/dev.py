@@ -204,10 +204,10 @@ class Dev(commands.Cog, name="Dev"):
             ))
 
         # Send matched category or all
-        to_send = categories_map.items() if cat == "all" else [(k, v) for k, v in categories_map.items() if cat in k]
+        to_send = list(categories_map.items()) if cat == "all" else [(k, v) for k, v in categories_map.items() if cat in k]
 
-        for title, desc in to_send:
-            await ctx.send(embed=embeds.base_embed(title=title, description=desc))
+        for key, (heading, body) in to_send:
+            await ctx.send(embed=embeds.base_embed(title=heading, description=body))
 
         # 8. LaTeX Formula Image (via distexer MathRenderer)
         if cat in ("all", "image", "img", "render"):
@@ -228,6 +228,36 @@ class Dev(commands.Cog, name="Dev"):
                 await ctx.send(embed=img_embed, file=file)
             except Exception as e:
                 await ctx.send(embed=embeds.error_embed(f"Formula image rendering fallback: {e}"))
+
+        # 9. Full-Size Textbook Question Card Image (render_question_card)
+        if cat in ("all", "card", "cardimage", "question", "textbook"):
+            try:
+                card_buf = distexer.render_question_card(
+                    question=r"A body executes simple harmonic motion according to the equation $x(t) = A \cos\left(\omega t + \frac{\pi}{4}\right)$. At time $t = 0$, the ratio of its potential energy to total mechanical energy is:",
+                    options=[
+                        {"key": "A", "text": r"$\frac{1}{2}$"},
+                        {"key": "B", "text": r"$\frac{1}{4}$"},
+                        {"key": "C", "text": r"$\frac{1}{\sqrt{2}}$"},
+                        {"key": "D", "text": r"$1$"},
+                    ],
+                    subject="Physics",
+                    chapter="Oscillations & Simple Harmonic Motion",
+                    fontsize=22,
+                    dpi=200,
+                )
+                card_file = discord.File(card_buf, filename="question_card.png")
+                card_embed = embeds.base_embed(
+                    title="📖 Full Textbook Question Card (Large Image)",
+                    description=(
+                        "**Big, high-resolution textbook styling with authentic horizontal fraction bars.**\n"
+                        "Rendered at full embed width — crystal clear on mobile and desktop without zooming!"
+                    ),
+                    color=embeds.COLOR_SUCCESS,
+                )
+                card_embed.set_image(url="attachment://question_card.png")
+                await ctx.send(embed=card_embed, file=card_file)
+            except Exception as e:
+                await ctx.send(embed=embeds.error_embed(f"Question card rendering error: {e}"))
 
     @commands.command(name="addtime")
     @is_dev()
