@@ -1387,6 +1387,166 @@ def render_food_shop_card_sync(
     return _export_png(img)
 
 
+def render_candy_shop_card_sync(
+    user_candy: int,
+    owned_titles: Optional[set[str]] = None,
+    owned_pets: Optional[set[str]] = None,
+    sugar_rush_qty: int = 0,
+) -> bytes:
+    """Synchronously renders the high-res 1200x1100 Halloween Candy Shop catalog PNG."""
+    from utils.halloween import CANDY_SHOP_ITEMS, CANDY_SHOP_ORDER
+
+    img = Image.new("RGBA", (CARD_WIDTH, SHOP_CARD_HEIGHT), BG_COLOR)
+    draw = ImageDraw.Draw(img)
+
+    accent_orange = (255, 117, 24, 255)
+    accent_purple = (168, 85, 247, 255)
+
+    # Outer border & canvas
+    draw.rounded_rectangle([20, 20, CARD_WIDTH - 20, SHOP_CARD_HEIGHT - 20], radius=24, fill=None, outline=(35, 43, 56, 255), width=2)
+    draw.line([(50, 20), (CARD_WIDTH - 50, 20)], fill=accent_orange, width=4)
+
+    if owned_titles is None:
+        owned_titles = set()
+    if owned_pets is None:
+        owned_pets = set()
+
+    # Top Header
+    draw.ellipse([50, 42, 130, 122], fill=CARD_BG, outline=accent_orange, width=2)
+    _paste_pixel_icon(img, "mystery_box", 60, 52, 60)
+
+    draw.text((148, 44), "THE HALLOWEEN CANDY BAZAAR", font=_get_font(28, bold=True), fill=TEXT_WHITE)
+    draw.text((148, 84), "Limited Event Catalog · Spend collected treats on exclusive unlocks, pets & boosts", font=_get_font(16, bold=False), fill=TEXT_MUTED)
+
+    # Wallet Balance Pill
+    wallet_w = 320
+    wallet_h = 52
+    w_x = CARD_WIDTH - 50 - wallet_w
+    w_y = 52
+    draw.rounded_rectangle([w_x, w_y, w_x + wallet_w, w_y + wallet_h], radius=12, fill=CARD_BG, outline=(244, 114, 182, 255), width=2)
+    bal_str = f"{user_candy:,} 🍬 Candy"
+    draw.text((w_x + 36, w_y + 12), bal_str, font=_get_font(20, bold=True), fill=(244, 114, 182, 255))
+
+    # Pro-tip banner
+    banner_y = 138
+    banner_h = 56
+    draw.rounded_rectangle([50, banner_y, CARD_WIDTH - 50, banner_y + banner_h], radius=12, fill=CARD_BG, outline=CARD_BORDER, width=1)
+    draw.ellipse([70, banner_y + 22, 82, banner_y + 34], fill=accent_orange)
+    draw.text((92, banner_y + 18), "HALLOWEEN REWARDS PRO-TIP:", font=_get_font(14, bold=True), fill=accent_orange)
+    draw.text((320, banner_y + 19), "Earn Candy by studying (.start), opening Hallo-Boxes (.openbox), and pass levels!", font=_get_font(15, bold=False), fill=TEXT_SUB)
+
+    # 4 Big Tiles (2 cols x 2 rows)
+    grid_y = 216
+    slot_w = 525
+    slot_h = 360
+    col_xs = [50, 625]
+
+    for idx, item_key in enumerate(CANDY_SHOP_ORDER):
+        if idx >= 4:
+            break
+        item = CANDY_SHOP_ITEMS[item_key]
+        col = idx % 2
+        row = idx // 2
+        sx = col_xs[col]
+        sy = grid_y + row * (slot_h + 30)
+
+        # Determine theme color & icon
+        if item_key == "pumpkaboo":
+            t_color = accent_orange
+            icon_name = "mystery_box"
+            tag_label = "EVENT-EXCLUSIVE PET"
+            is_owned = "pumpkaboo" in owned_pets
+            own_badge = "🐾 UNLOCKED" if is_owned else None
+        elif item_key == "sugar_rush":
+            t_color = (251, 191, 36, 255)
+            icon_name = "xp_boost"
+            tag_label = "EVENT CONSUMABLE"
+            own_badge = f"OWNED: ×{sugar_rush_qty:,}" if sugar_rush_qty > 0 else None
+        else:
+            t_color = accent_purple if "inorganic" in item_key else (56, 189, 248, 255)
+            icon_name = "title_scroll"
+            tag_label = "PRESTIGE TITLE"
+            t_title = item.get("title_text", item_key)
+            is_owned = item_key in owned_titles or t_title in owned_titles
+            own_badge = "✅ OWNED" if is_owned else None
+
+        # Tile Card
+        draw.rounded_rectangle([sx, sy, sx + slot_w, sy + slot_h], radius=20, fill=CARD_BG, outline=CARD_BORDER, width=1)
+        # Glowing accent strip & top accent line
+        draw.rounded_rectangle([sx, sy, sx + 6, sy + slot_h], radius=3, fill=t_color)
+        draw.line([(sx + 24, sy), (sx + slot_w - 24, sy)], fill=t_color, width=2)
+
+        # Big 104x104 Icon Frame with 82x82 Pixel Art Icon
+        ix = sx + 26
+        iy = sy + 44
+        frame_size = 104
+        draw.rounded_rectangle(
+            [ix, iy, ix + frame_size, iy + frame_size],
+            radius=18,
+            fill=(15, 23, 42, 255),
+            outline=(t_color[0], t_color[1], t_color[2], 140),
+            width=2,
+        )
+        _paste_pixel_icon(img, icon_name, ix + 11, iy + 11, 82)
+
+        # Owned Pill (Top Right)
+        if own_badge:
+            o_font = _get_font(14, bold=True)
+            o_bbox = draw.textbbox((0, 0), own_badge, font=o_font)
+            ow = o_bbox[2] - o_bbox[0]
+            draw.rounded_rectangle(
+                [sx + slot_w - ow - 28, sy + 20, sx + slot_w - 16, sy + 50],
+                radius=8,
+                fill=(30, 41, 59, 240),
+                outline=(t_color[0], t_color[1], t_color[2], 160),
+                width=1,
+            )
+            draw.text((sx + slot_w - ow - 22, sy + 24), own_badge, font=o_font, fill=t_color)
+
+        # Price Badge (Bottom Right)
+        price_str = f"{item['candy_price']:,} Candy"
+        p_font = _get_font(21, bold=True)
+        p_bbox = draw.textbbox((0, 0), price_str, font=p_font)
+        pw = p_bbox[2] - p_bbox[0]
+        draw.rounded_rectangle(
+            [sx + slot_w - pw - 48, sy + slot_h - 56, sx + slot_w - 18, sy + slot_h - 16],
+            radius=12,
+            fill=(30, 41, 59, 240),
+            outline=(244, 114, 182, 255),
+            width=1,
+        )
+        draw.text((sx + slot_w - pw - 38, sy + slot_h - 48), price_str, font=p_font, fill=(244, 114, 182, 255))
+
+        # Info text block
+        tx = sx + 148
+        item_name = item["name"]
+        draw.text((tx, sy + 28), item_name, font=_get_font(26, bold=True), fill=TEXT_WHITE)
+
+        # Type Pill
+        f_tag = _get_font(13, bold=True)
+        t_bbox = draw.textbbox((0, 0), tag_label, font=f_tag)
+        tw = t_bbox[2] - t_bbox[0]
+        draw.rounded_rectangle([tx, sy + 68, tx + tw + 18, sy + 94], radius=6, fill=(t_color[0], t_color[1], t_color[2], 40))
+        draw.text((tx + 9, sy + 71), tag_label, font=f_tag, fill=t_color)
+
+        # Description (wrapped)
+        desc_lines = _wrap_text_lines(item["description"], max_chars=34, max_lines=4)
+        ay = sy + 112
+        for line in desc_lines:
+            draw.text((tx, ay), line, font=_get_font(16, bold=False), fill=TEXT_SUB)
+            ay += 26
+
+        # Command hint
+        draw.text((26 + sx, sy + slot_h - 44), f"Command: .buycandy {item_key}", font=_get_font(14, bold=False), fill=TEXT_MUTED)
+
+    # Footer
+    fy = SHOP_CARD_HEIGHT - 55
+    draw.text((50, fy), "COMMAND: .buycandy <item> [qty]  •  Example: .buycandy pumpkaboo or .buycandy sugar 3", font=_get_font(15, bold=True), fill=TEXT_SUB)
+    draw.text((CARD_WIDTH - 290, fy), "HALLOWEEN 2026 · CHRONOS", font=_get_font(14, bold=True), fill=TEXT_MUTED)
+
+    return _export_png(img)
+
+
 def _wrap_text_lines(text: str, max_chars: int = 36, max_lines: int = 2) -> list[str]:
     """Wrap text neatly across up to `max_lines` with ellipsis if overflow."""
     words = text.split()

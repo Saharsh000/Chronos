@@ -7,6 +7,8 @@ Features:
 """
 from __future__ import annotations
 
+import asyncio
+import io
 import logging
 from typing import Any, Optional
 
@@ -19,6 +21,7 @@ from utils import embeds
 from utils import food as food_catalog
 from utils import halloween as halloween_catalog
 from utils import pets as pet_catalog
+from utils.stats_card import render_candy_shop_card_sync
 from utils.time_format import format_duration
 
 log = logging.getLogger("halloween")
@@ -162,34 +165,139 @@ class HalloBoxQuickOpenView(discord.ui.View):
 class CandyShopView(discord.ui.View):
     """Interactive view for the Candy Shop with quick-buy buttons."""
 
-    def __init__(self, author_id: int, cog: Halloween, candy_balance: int):
+    def __init__(
+        self,
+        ctx: commands.Context,
+        cog: Halloween,
+        candy_balance: int,
+        owned_titles: set[str],
+        owned_pets: set[str],
+        sugar_rush_qty: int = 0,
+    ):
         super().__init__(timeout=180)
-        self.author_id = author_id
+        self.ctx = ctx
         self.cog = cog
         self.candy_balance = candy_balance
+        self.owned_titles = owned_titles
+        self.owned_pets = owned_pets
+        self.sugar_rush_qty = sugar_rush_qty
+        self.message: Optional[discord.Message] = None
+        self._update_components()
 
+    def _update_components(self) -> None:
+        self.clear_items()
         for item_key in halloween_catalog.CANDY_SHOP_ORDER:
             item = halloween_catalog.CANDY_SHOP_ITEMS[item_key]
             cost = item["candy_price"]
-            btn = discord.ui.Button(
-                label=f"{item['name']} ({cost} 🍬)",
-                style=discord.ButtonStyle.success if candy_balance >= cost else discord.ButtonStyle.secondary,
-                emoji=item["emoji"],
-                custom_id=f"buy_{item_key}",
+
+            is_title = item.get("type") == "title"
+            is_pet = item.get("type") == "pet"
+            already_owned = (
+                (is_title and (item_key in self.owned_titles or item.get("title_text") in self.owned_titles)) or
+                (is_pet and item_key in self.owned_pets)
             )
-            btn.callback = self._make_callback(item_key)
+
+            raw_name = item["name"].replace("Title: ", "")
+            if len(raw_name) > 13:
+                raw_name = raw_name[:11] + ".."
+
+            if already_owned:
+                btn = discord.ui.Button(
+                    label=f"{raw_name} (Owned)",
+                    style=discord.ButtonStyle.secondary,
+                    emoji="✅",
+                    disabled=True,
+                )
+            else:
+                btn = discord.ui.Button(
+                    label=f"Buy {raw_name} ({cost} 🍬)",
+                    style=discord.ButtonStyle.success if self.candy_balance >= cost else discord.ButtonStyle.secondary,
+                    emoji=item["emoji"],
+                )
+                btn.callback = self._make_callback(item_key)
             self.add_item(btn)
 
     def _make_callback(self, item_key: str):
         async def callback(interaction: discord.Interaction):
-            if interaction.user.id != self.author_id:
+            if interaction.user.id != self.ctx.author.id:
                 await interaction.response.send_message(
-                    "This isn't your shop view! Open yours with `.candyshop`.", ephemeral=True
+                    f"This isn't your shop view! Open yours with `{self.ctx.prefix}candyshop`.", ephemeral=True
                 )
                 return
             await interaction.response.defer()
-            await self.cog._do_buy_candy(interaction, item_key, 1)
+            result = await self.cog.db.buy_candy_item(interaction.user.id, self.ctx.guild.id, item_key, 1)
+            if not result["success"]:
+                reason = result.get("reason")
+                if reason == "insufficient_candy":
+                    req = result.get("required", 0)
+                    cur = result.get("current", 0)
+                    msg = f"❌ You don't have enough Candy! Need **{req:,} 🍬**, you have **{cur:,} 🍬**."
+                elif reason == "already_owned":
+                    msg = "⚠️ You already own this event-exclusive item!"
+                else:
+                    msg = "❌ Purchase failed."
+                await interaction.followup.send(embed=embeds.error_embed(msg), ephemeral=True)
+                return
+
+            item = result["item"]
+            price = result["price"]
+            self.candy_balance = max(0, self.candy_balance - price)
+            if item.get("type") == "title":
+                self.owned_titles.add(item_key)
+                if item.get("title_text"):
+                    self.owned_titles.add(item["title_text"])
+            elif item.get("type") == "pet":
+                self.owned_pets.add(item_key)
+            elif item_key == "sugar_rush":
+                self.sugar_rush_qty += 1
+
+            await self._render_card()
+
+            await interaction.followup.send(
+                embed=embeds.success_embed(
+                    "🎃 Purchased!",
+                    f"Bought **{item['name']}** for **{price:,} 🍬 Candy**!\n"
+                    f"🍬 **New Balance:** `{self.candy_balance:,}` Candy"
+                ),
+                ephemeral=True
+            )
+            await self.cog._announce_achievements(self.ctx)
+
         return callback
+
+    async def _render_card(self) -> None:
+        self._update_components()
+        loop = asyncio.get_running_loop()
+        card_bytes = await loop.run_in_executor(
+            None,
+            render_candy_shop_card_sync,
+            self.candy_balance,
+            self.owned_titles,
+            self.owned_pets,
+            self.sugar_rush_qty,
+        )
+        embed = embeds.base_embed(
+            title="🎃 The Halloween Candy Bazaar",
+            description=(
+                f"🍬 **{self.candy_balance:,} Candy available**\n"
+                f"Tap the buttons below to claim exclusive event rewards!"
+            ),
+            color=0xFF7518,
+        )
+        embeds.set_footer(embed, "Limited Event Rewards", f"{self.ctx.prefix}buycandy <item>")
+        file = discord.File(io.BytesIO(card_bytes), filename="candyshop.png")
+        embed.set_image(url="attachment://candyshop.png")
+        if self.message:
+            await self.message.edit(embed=embed, attachments=[file], view=self)
+
+    async def on_timeout(self) -> None:
+        for item in self.children:
+            item.disabled = True
+        if self.message:
+            try:
+                await self.message.edit(view=self)
+            except Exception:
+                pass
 
 
 # --------------------------------------------------------------------- #
@@ -556,36 +664,67 @@ class Halloween(commands.Cog, name="Halloween"):
     @commands.command(name="candyshop", aliases=["spookyshop", "cshop", "halloween"])
     @commands.guild_only()
     async def candyshop_cmd(self, ctx: commands.Context) -> None:
-        """Browse the exclusive limited-time Halloween Candy Shop."""
+        """Browse the exclusive limited-time Halloween Candy Shop with visual catalog card and quick-buy buttons."""
         currency = await self.db.get_or_create_currency(ctx.author.id, ctx.guild.id)
         candy = currency.get("candy", 0)
 
-        item_lines = []
-        for item_key in halloween_catalog.CANDY_SHOP_ORDER:
-            item = halloween_catalog.CANDY_SHOP_ITEMS[item_key]
-            cost = item["candy_price"]
-            can_afford = "✅" if candy >= cost else "🔒"
-            item_lines.append(
-                f"{item['emoji']} **{item['name']}** — **{cost:,} 🍬 Candy** {can_afford}\n"
-                f"   ↳ *{item['description']}*\n"
-                f"   ↳ Purchase: `{ctx.prefix}buycandy {item_key}`"
-            )
+        # Check user's owned titles & pets
+        stats = await self.db.get_or_create_user_stats(ctx.author.id, ctx.guild.id)
+        raw_titles = stats.get("unlocked_titles") or []
+        owned_titles = set(raw_titles)
+        if stats.get("equipped_title"):
+            owned_titles.add(stats["equipped_title"])
 
-        items_text = "\n\n".join(item_lines)
+        owned_pets = {p["species_id"] for p in await self.db.get_owned_pets(ctx.author.id, ctx.guild.id)}
+        inv = await self.db.get_inventory(ctx.author.id, ctx.guild.id)
+        sugar_qty = inv.get("sugar_rush", 0)
+
+        view = CandyShopView(
+            ctx=ctx,
+            cog=self,
+            candy_balance=candy,
+            owned_titles=owned_titles,
+            owned_pets=owned_pets,
+            sugar_rush_qty=sugar_qty,
+        )
+
         embed = embeds.base_embed(
-            title="🎃 The Halloween Candy Shop",
+            title="🎃 The Halloween Candy Bazaar",
             description=(
-                f"🍬 **Your Candy:** **{candy:,} Candy**\n\n"
-                f"{items_text}\n\n"
-                f"Earn Candy by studying (`{ctx.prefix}start`), opening Hallo-Boxes (`{ctx.prefix}openbox`), "
-                f"and progressing your personal Jack-o'-Lantern pass (`{ctx.prefix}pumpkin`)!"
+                f"🍬 **{candy:,} Candy available**\n"
+                f"Tap the buttons below to claim exclusive event rewards!"
             ),
             color=0xFF7518,
         )
-        embeds.set_footer(embed, "Limited event shop", f"{ctx.prefix}buycandy <item>")
+        embeds.set_footer(embed, "Limited Event Rewards", f"{ctx.prefix}buycandy <item>")
 
-        view = CandyShopView(ctx.author.id, self, candy)
-        await ctx.send(embed=embed, view=view)
+        loop = asyncio.get_running_loop()
+        try:
+            card_bytes = await loop.run_in_executor(
+                None,
+                render_candy_shop_card_sync,
+                candy,
+                owned_titles,
+                owned_pets,
+                sugar_qty,
+            )
+            file = discord.File(io.BytesIO(card_bytes), filename="candyshop.png")
+            embed.set_image(url="attachment://candyshop.png")
+            msg = await ctx.send(file=file, embed=embed, view=view)
+            view.message = msg
+        except Exception as e:
+            log.error("Failed to render visual candy shop card", exc_info=e)
+            item_lines = []
+            for item_key in halloween_catalog.CANDY_SHOP_ORDER:
+                item = halloween_catalog.CANDY_SHOP_ITEMS[item_key]
+                cost = item["candy_price"]
+                item_lines.append(
+                    f"{item['emoji']} **{item['name']}** — **{cost:,} 🍬 Candy**\n"
+                    f"   ↳ *{item['description']}*"
+                )
+            embed.description = f"🍬 **Your Candy:** **{candy:,} Candy**\n\n" + "\n\n".join(item_lines)
+            msg = await ctx.send(embed=embed, view=view)
+            view.message = msg
 
     @commands.command(name="buycandy", aliases=["candypurchase", "spookybuy"])
     @commands.guild_only()
