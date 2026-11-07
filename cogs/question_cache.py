@@ -92,9 +92,9 @@ class QuestionCache(commands.Cog, name="QuestionCache"):
                 f"Wave {self.current_wave - 1} completed! Starting Wave {self.current_wave} across {len(self.topics)} topics."
             )
 
-    @tasks.loop(seconds=2.5)
+    @tasks.loop(seconds=8.0)
     async def wave_worker(self) -> None:
-        """Background worker that continuously pulls 1 question per topic."""
+        """Background worker that continuously pulls 1 question per topic at a safe rate."""
         if not self.topics:
             return
 
@@ -160,15 +160,15 @@ class QuestionCache(commands.Cog, name="QuestionCache"):
             self.consecutive_errors += 1
             log.warning(f"CJA error in wave pre-generator ({e.code}): {e.message}")
             self._advance_topic()
-            if self.consecutive_errors >= 5:
-                await asyncio.sleep(15)
+            if self.consecutive_errors >= 3:
+                await asyncio.sleep(25)
         except Exception as e:
             self.total_errors += 1
             self.consecutive_errors += 1
             log.warning(f"Unexpected error in wave pre-generator: {e}")
             self._advance_topic()
-            if self.consecutive_errors >= 5:
-                await asyncio.sleep(15)
+            if self.consecutive_errors >= 3:
+                await asyncio.sleep(25)
 
     @wave_worker.before_loop
     async def before_wave_worker(self) -> None:
@@ -205,7 +205,7 @@ class QuestionCache(commands.Cog, name="QuestionCache"):
         elif getattr(self.bot, "active_trivia_games", 0) > 0:
             status_str = "⏸️ **Paused** (Trivia in progress)"
         else:
-            status_str = "🟢 **Pre-generating** (~1 req / 2.5s)"
+            status_str = "🟢 **Pre-generating** (~1 req / 8.0s)"
 
         embed = embeds.base_embed(
             title="🌊 JEE Trivia Pre-Generator & Vault",

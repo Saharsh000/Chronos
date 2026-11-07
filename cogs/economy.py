@@ -162,14 +162,224 @@ class Economy(commands.Cog, name="Economy"):
         ))
         await self._announce_achievements(ctx)
 
+class InventoryView(discord.ui.View):
+    """Interactive pagination view for browsing player inventory & satchel."""
+
+    def __init__(
+        self,
+        bot: commands.Bot,
+        ctx: commands.Context,
+        target: discord.Member,
+        inventory_items: list[tuple[str, int]],
+        currency: dict[str, Any],
+        stats: dict[str, Any],
+        tier: str,
+        active_boosts: list[dict[str, Any]],
+        avatar_bytes: Optional[bytes],
+        page: int = 0,
+        per_page: int = 6,
+    ) -> None:
+        super().__init__(timeout=120)
+        self.bot = bot
+        self.ctx = ctx
+        self.target = target
+        self.inventory_items = inventory_items
+        self.currency = currency
+        self.stats = stats
+        self.tier = tier
+        self.active_boosts = active_boosts
+        self.avatar_bytes = avatar_bytes
+        self.per_page = per_page
+        self.total_pages = max(1, (len(inventory_items) + per_page - 1) // per_page)
+        self.page = max(0, min(page, self.total_pages - 1))
+        self.message: Optional[discord.Message] = None
+        self._update_buttons()
+
+    def _update_buttons(self) -> None:
+        self.clear_items()
+        if self.total_pages <= 1:
+            return
+
+        btn_first = discord.ui.Button(
+            emoji="⏮️",
+            style=discord.ButtonStyle.secondary,
+            disabled=(self.page == 0),
+            row=0,
+        )
+        btn_first.callback = self._first_callback
+        self.add_item(btn_first)
+
+        btn_prev = discord.ui.Button(
+            emoji="◀️",
+            label="Prev",
+            style=discord.ButtonStyle.primary,
+            disabled=(self.page == 0),
+            row=0,
+        )
+        btn_prev.callback = self._prev_callback
+        self.add_item(btn_prev)
+
+        btn_page = discord.ui.Button(
+            label=f"Page {self.page + 1} / {self.total_pages}",
+            style=discord.ButtonStyle.secondary,
+            disabled=True,
+            row=0,
+        )
+        self.add_item(btn_page)
+
+        btn_next = discord.ui.Button(
+            emoji="▶️",
+            label="Next",
+            style=discord.ButtonStyle.primary,
+            disabled=(self.page >= self.total_pages - 1),
+            row=0,
+        )
+        btn_next.callback = self._next_callback
+        self.add_item(btn_next)
+
+        btn_last = discord.ui.Button(
+            emoji="⏭️",
+            style=discord.ButtonStyle.secondary,
+            disabled=(self.page >= self.total_pages - 1),
+            row=0,
+        )
+        btn_last.callback = self._last_callback
+        self.add_item(btn_last)
+
+    async def _first_callback(self, interaction: discord.Interaction) -> None:
+        if interaction.user.id != self.ctx.author.id:
+            await interaction.response.send_message("Only the command caller can use pagination.", ephemeral=True)
+            return
+        self.page = 0
+        await self._render_page(interaction)
+
+    async def _prev_callback(self, interaction: discord.Interaction) -> None:
+        if interaction.user.id != self.ctx.author.id:
+            await interaction.response.send_message("Only the command caller can use pagination.", ephemeral=True)
+            return
+        if self.page > 0:
+            self.page -= 1
+        await self._render_page(interaction)
+
+    async def _next_callback(self, interaction: discord.Interaction) -> None:
+        if interaction.user.id != self.ctx.author.id:
+            await interaction.response.send_message("Only the command caller can use pagination.", ephemeral=True)
+            return
+        if self.page < self.total_pages - 1:
+            self.page += 1
+        await self._render_page(interaction)
+
+    async def _last_callback(self, interaction: discord.Interaction) -> None:
+        if interaction.user.id != self.ctx.author.id:
+            await interaction.response.send_message("Only the command caller can use pagination.", ephemeral=True)
+            return
+        self.page = self.total_pages - 1
+        await self._render_page(interaction)
+
+    async def _render_page(self, interaction: discord.Interaction) -> None:
+        await interaction.response.defer()
+        self._update_buttons()
+
+        loop = asyncio.get_running_loop()
+        card_bytes = await loop.run_in_executor(
+            None,
+            render_inventory_card_sync,
+            self.target.display_name,
+            self.target.name,
+            self.tier,
+            self.currency["coins"],
+            self.currency.get("candy", 0),
+            dict(self.inventory_items),
+            self.active_boosts,
+            self.stats.get("equipped_title"),
+            self.avatar_bytes,
+            self.page,
+            self.per_page,
+        )
+
+        coin_e = emojis.coin(self.ctx.guild)
+        total_items = len(self.inventory_items)
+        total_qty = sum(v for _, v in self.inventory_items)
+        embed = embeds.base_embed(
+            title=f"🎒 {self.target.display_name}'s Satchel & Inventory",
+            description=(
+                f"{coin_e} **Wallet:** `{self.currency['coins']:,}` Chronocoins · 🍬 `{self.currency.get('candy', 0):,}` Candy\n"
+                f"🏷️ **Equipped Title:** `{self.stats.get('equipped_title') or 'None'}` · 📦 **Total Items:** `{total_qty:,}` ({total_items} unique)"
+            ),
+            color=embeds.COLOR_ECONOMY,
+        )
+        embed.set_thumbnail(url=self.target.display_avatar.url)
+        embeds.set_footer(
+            embed,
+            f"Page {self.page + 1}/{self.total_pages} • {self.ctx.prefix}use <item>  •  {self.ctx.prefix}openbox  •  {self.ctx.prefix}shop"
+        )
+        file = discord.File(io.BytesIO(card_bytes), filename="inventory.png")
+        embed.set_image(url="attachment://inventory.png")
+
+        if self.message:
+            await self.message.edit(embed=embed, attachments=[file], view=self)
+
+    async def on_timeout(self) -> None:
+        for item in self.children:
+            item.disabled = True
+        if self.message:
+            try:
+                await self.message.edit(view=self)
+            except Exception:
+                pass
+
+
     @commands.command(name="inventory", aliases=["inv", "bag", "satchel"])
     @commands.guild_only()
-    async def inventory_cmd(self, ctx: commands.Context, member: Optional[discord.Member] = None) -> None:
-        """See what you (or someone else) own in your satchel with high-res visual card."""
-        target = member or ctx.author
+    async def inventory_cmd(
+        self,
+        ctx: commands.Context,
+        target_or_page: Optional[str] = None,
+        page_arg: Optional[int] = None,
+    ) -> None:
+        """See what you (or someone else) own in your satchel with high-res visual card.
+        
+        Usage:
+            .bag
+            .bag 2
+            .bag @member
+            .bag @member 2
+        """
+        target = ctx.author
+        page = 0
+
+        if target_or_page is not None:
+            if target_or_page.isdigit():
+                page = max(0, int(target_or_page) - 1)
+            else:
+                try:
+                    target = await commands.MemberConverter().convert(ctx, target_or_page)
+                except Exception:
+                    target = ctx.author
+                if page_arg is not None:
+                    page = max(0, page_arg - 1)
+
         inventory = await self.db.get_inventory(target.id, ctx.guild.id)
+        valid_items = [(k, v) for k, v in inventory.items() if v > 0]
         stats = await self.db.get_or_create_user_stats(target.id, ctx.guild.id)
         currency = await self.db.get_or_create_currency(target.id, ctx.guild.id)
+        coin_e = emojis.coin(ctx.guild)
+
+        if not valid_items:
+            embed = embeds.base_embed(
+                title=f"🎒 {target.display_name}'s Satchel & Inventory",
+                description=(
+                    f"{coin_e} **Wallet:** `{currency['coins']:,}` Chronocoins · 🍬 `{currency.get('candy', 0):,}` Candy\n"
+                    f"🏷️ **Equipped Title:** `{stats.get('equipped_title') or 'None'}`\n\n"
+                    f"*Your satchel is empty! Check out `{ctx.prefix}shop` to buy boosts, mystery boxes, or prestige titles.*"
+                ),
+                color=embeds.COLOR_ECONOMY,
+            )
+            embed.set_thumbnail(url=target.display_avatar.url)
+            embeds.set_footer(embed, f"Use {ctx.prefix}shop to buy items • {ctx.prefix}daily to get coins")
+            await ctx.send(embed=embed)
+            return
+
         effective_tiers = await self.db.get_effective_tiers(ctx.guild.id)
         _, _, lvl = xp_progress(stats["xp"])
         tier = tier_for_level(lvl, effective_tiers)
@@ -192,17 +402,35 @@ class Economy(commands.Cog, name="Economy"):
         except Exception:
             avatar_bytes = None
 
-        coin_e = emojis.coin(ctx.guild)
+        view = InventoryView(
+            bot=self.bot,
+            ctx=ctx,
+            target=target,
+            inventory_items=valid_items,
+            currency=currency,
+            stats=stats,
+            tier=tier,
+            active_boosts=active_boosts,
+            avatar_bytes=avatar_bytes,
+            page=page,
+            per_page=6,
+        )
+
+        total_items = len(valid_items)
+        total_qty = sum(v for _, v in valid_items)
         embed = embeds.base_embed(
             title=f"🎒 {target.display_name}'s Satchel & Inventory",
             description=(
                 f"{coin_e} **Wallet:** `{currency['coins']:,}` Chronocoins · 🍬 `{currency.get('candy', 0):,}` Candy\n"
-                f"🏷️ **Equipped Title:** `{stats.get('equipped_title') or 'None'}`"
+                f"🏷️ **Equipped Title:** `{stats.get('equipped_title') or 'None'}` · 📦 **Total Items:** `{total_qty:,}` ({total_items} unique)"
             ),
             color=embeds.COLOR_ECONOMY,
         )
         embed.set_thumbnail(url=target.display_avatar.url)
-        embeds.set_footer(embed, f"Use {ctx.prefix}use <item> to activate  •  {ctx.prefix}openbox to open  •  {ctx.prefix}shop to buy")
+        embeds.set_footer(
+            embed,
+            f"Page {view.page + 1}/{view.total_pages} • {ctx.prefix}use <item>  •  {ctx.prefix}openbox  •  {ctx.prefix}shop"
+        )
 
         loop = asyncio.get_running_loop()
         try:
@@ -214,27 +442,24 @@ class Economy(commands.Cog, name="Economy"):
                 tier,
                 currency["coins"],
                 currency.get("candy", 0),
-                inventory,
+                dict(valid_items),
                 active_boosts,
                 stats.get("equipped_title"),
                 avatar_bytes,
+                view.page,
+                view.per_page,
             )
             file = discord.File(io.BytesIO(card_bytes), filename="inventory.png")
             embed.set_image(url="attachment://inventory.png")
-            await ctx.send(file=file, embed=embed)
+            msg = await ctx.send(file=file, embed=embed, view=view if view.total_pages > 1 else None)
+            view.message = msg
         except Exception as e:
             log.error("Failed to render visual inventory card", exc_info=e)
-            if not inventory:
-                embed.description += f"\n\n*Nothing in your satchel yet — check out `{ctx.prefix}shop`.*"
-            else:
-                lines = []
-                for item_id, qty in inventory.items():
-                    item = economy.SHOP_ITEMS.get(item_id)
-                    if item:
-                        item_e = emojis.item(item_id, ctx.guild)
-                        lines.append(f"{item_e} **{item['name']}** ×{qty}")
-                if lines:
-                    embed.add_field(name="📦 Items Held", value="\n".join(lines), inline=False)
+            lines = []
+            for item_id, qty in valid_items:
+                item_e = emojis.item(item_id, ctx.guild)
+                lines.append(f"{item_e} **{item_id.replace('_', ' ').title()}** ×{qty}")
+            embed.add_field(name="📦 Items Held", value="\n".join(lines[:15]), inline=False)
             await ctx.send(embed=embed)
 
     @commands.command(name="use")

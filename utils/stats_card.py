@@ -884,7 +884,7 @@ def render_trivia_card_sync(
 # SHOP CARD & INVENTORY SATCHEL CARD GENERATORS
 # ==============================================================================
 SHOP_CARD_HEIGHT = 860
-INV_CARD_HEIGHT = 820
+INV_CARD_HEIGHT = 880
 
 SHOP_ITEMS_DATA = [
     {
@@ -1147,6 +1147,138 @@ def render_shop_card_sync(user_coins: int) -> bytes:
     return _export_png(img)
 
 
+def _wrap_text_lines(text: str, max_chars: int = 36, max_lines: int = 2) -> list[str]:
+    """Wrap text neatly across up to `max_lines` with ellipsis if overflow."""
+    words = text.split()
+    if not words:
+        return []
+    lines: list[str] = []
+    curr = ""
+    i = 0
+    while i < len(words):
+        w = words[i]
+        if not curr:
+            curr = w
+            i += 1
+        elif len(curr) + 1 + len(w) <= max_chars:
+            curr += " " + w
+            i += 1
+        else:
+            lines.append(curr)
+            curr = ""
+            if len(lines) == max_lines - 1:
+                rem_curr = ""
+                while i < len(words):
+                    nw = words[i]
+                    if not rem_curr:
+                        rem_curr = nw
+                    elif len(rem_curr) + 1 + len(nw) <= max_chars - 3:
+                        rem_curr += " " + nw
+                    else:
+                        rem_curr += "..."
+                        break
+                    i += 1
+                lines.append(rem_curr)
+                break
+    if curr and len(lines) < max_lines:
+        lines.append(curr)
+    return lines
+
+
+def get_item_display_meta(item_id: str) -> dict[str, Any]:
+    """Resolve rich metadata (name, icon, type, action, color) for any inventory item."""
+    if item_id in ITEM_METADATA:
+        return dict(ITEM_METADATA[item_id])
+
+    # 1. Economy shop catalog
+    try:
+        from utils.economy import SHOP_ITEMS
+        if item_id in SHOP_ITEMS:
+            si = SHOP_ITEMS[item_id]
+            itype = str(si.get("type", "item")).lower()
+            if itype == "boost":
+                color = ACCENT_GREEN if "xp" in item_id else ACCENT_GOLD
+                icon = "xp_boost" if "xp" in item_id else "coin_boost"
+                type_label = "BOOST CHARGES"
+                dur = si.get("duration_minutes", 60)
+                action = f".use {item_id.replace('_', ' ')} to activate ({dur}m)"
+            elif itype == "consumable":
+                color = ACCENT_PURPLE if "box" in item_id else ACCENT_CYAN
+                icon = "mystery_box" if "box" in item_id else "streak_freeze"
+                type_label = "CONSUMABLE"
+                action = ".openbox to open for rewards" if "box" in item_id else "Auto streak protection"
+            elif itype == "title":
+                color = (245, 158, 11, 255)
+                icon = "title_scroll"
+                type_label = "PRESTIGE TITLE"
+                action = f".settitle {si.get('title_text', item_id)} to equip"
+            else:
+                color = ACCENT_CYAN
+                icon = "mystery_box"
+                type_label = "VAULT ITEM"
+                action = si.get("description", "Owned item in satchel")
+            return {
+                "name": si.get("name", item_id.replace("_", " ").title()),
+                "icon": icon,
+                "type": type_label,
+                "action": action,
+                "color": color,
+            }
+    except Exception:
+        pass
+
+    # 2. Food catalog
+    try:
+        from utils.food import FOODS
+        if item_id in FOODS:
+            f = FOODS[item_id]
+            tier_str = str(f.get("tier", "snack")).upper()
+            return {
+                "name": f.get("name", item_id.replace("_", " ").title()),
+                "icon": "mystery_box",
+                "type": f"PET FOOD ({tier_str})",
+                "action": f"+{f.get('xp', 50)} Pet XP • Use .feed {item_id}",
+                "color": (52, 211, 153, 255),
+            }
+    except Exception:
+        pass
+
+    # 3. Halloween catalog
+    try:
+        from utils.halloween import CANDY_SHOP_ITEMS
+        if item_id in CANDY_SHOP_ITEMS:
+            c = CANDY_SHOP_ITEMS[item_id]
+            return {
+                "name": c.get("name", item_id.replace("_", " ").title()),
+                "icon": "xp_boost" if "rush" in item_id else "mystery_box",
+                "type": "HALLOWEEN REWARD",
+                "action": c.get("description", "Seasonal event item"),
+                "color": (244, 114, 182, 255),
+            }
+    except Exception:
+        pass
+
+    # 4. Title check
+    if item_id.startswith("title_"):
+        t_name = item_id.replace("title_", "").replace("_", " ").title()
+        return {
+            "name": f"Title: {t_name}",
+            "icon": "title_scroll",
+            "type": "PRESTIGE TITLE",
+            "action": f".settitle {t_name} to equip",
+            "color": ACCENT_GOLD,
+        }
+
+    # 5. Generic fallback
+    return {
+        "name": item_id.replace("_", " ").title(),
+        "icon": "mystery_box",
+        "type": "VAULT ITEM",
+        "action": "Owned item in your satchel",
+        "color": ACCENT_CYAN,
+    }
+
+
 def render_inventory_card_sync(
     display_name: str,
     username: str,
@@ -1157,8 +1289,10 @@ def render_inventory_card_sync(
     active_boosts: list[dict[str, Any]],
     equipped_title: Optional[str] = None,
     avatar_bytes: Optional[bytes] = None,
+    page: int = 0,
+    per_page: int = 6,
 ) -> bytes:
-    """Synchronously renders the high-res 1200x820 Inventory / Bag card PNG with big pixel art icons."""
+    """Synchronously renders the high-res 1200x880 Inventory / Bag card PNG with 2-column big cards and pagination."""
     img = Image.new("RGBA", (CARD_WIDTH, INV_CARD_HEIGHT), BG_COLOR)
     draw = ImageDraw.Draw(img)
 
@@ -1166,12 +1300,24 @@ def render_inventory_card_sync(
     tier_rgb = TIER_COLORS.get(clean_tier, (148, 163, 184))
     tier_rgba = (*tier_rgb, 255)
 
+    # Outer border & canvas
     draw.rounded_rectangle([20, 20, CARD_WIDTH - 20, INV_CARD_HEIGHT - 20], radius=20, fill=None, outline=(30, 41, 59, 255), width=2)
     draw.line([(50, 20), (CARD_WIDTH - 50, 20)], fill=ACCENT_CYAN, width=4)
 
+    # Collect valid items
+    valid_items = [(k, v) for k, v in inventory.items() if v > 0]
+    total_items = len(valid_items)
+    total_qty = sum(v for _, v in valid_items)
+    total_pages = max(1, (total_items + per_page - 1) // per_page)
+    curr_page = max(0, min(page, total_pages - 1))
+
+    # Slice for current page
+    start_idx = curr_page * per_page
+    page_items = valid_items[start_idx : start_idx + per_page]
+
     # Header
-    av_size = 72
-    av_x, av_y = 50, 42
+    av_size = 76
+    av_x, av_y = 50, 40
     if avatar_bytes:
         try:
             with Image.open(io.BytesIO(avatar_bytes)) as raw_av:
@@ -1184,95 +1330,124 @@ def render_inventory_card_sync(
         draw.ellipse([av_x, av_y, av_x + av_size, av_y + av_size], fill=CARD_BG, outline=tier_rgba, width=2)
 
     clean_disp = _sanitize_text(display_name) or "Candidate"
-    draw.text((av_x + av_size + 20, av_y + 4), f"{clean_disp.upper()}'S INVENTORY & SATCHEL", font=_get_font(24, bold=True), fill=TEXT_WHITE)
+    draw.text((av_x + av_size + 20, av_y + 4), f"{clean_disp.upper()}'S SATCHEL & INVENTORY", font=_get_font(26, bold=True), fill=TEXT_WHITE)
 
-    sub_parts = []
+    sub_parts = [
+        f"Page {curr_page + 1} of {total_pages}",
+        f"{total_items} Unique ({total_qty:,} Total Items)",
+    ]
     if equipped_title:
         sub_parts.append(f"Title: \"{_sanitize_text(equipped_title)}\"")
-    valid_items = [k for k, v in inventory.items() if v > 0]
-    sub_parts.append(f"{len(valid_items)} Unique Items Held")
-    draw.text((av_x + av_size + 20, av_y + 38), " · ".join(sub_parts), font=_get_font(13, bold=False), fill=TEXT_MUTED)
+    draw.text((av_x + av_size + 20, av_y + 42), " · ".join(sub_parts), font=_get_font(15, bold=False), fill=TEXT_MUTED)
 
     # Wallet Badges on Top Right
     w_coin_str = f"{coins:,}"
-    draw.rounded_rectangle([CARD_WIDTH - 380, av_y + 8, CARD_WIDTH - 210, av_y + 54], radius=10, fill=CARD_BG, outline=ACCENT_GOLD, width=1)
-    _paste_pixel_icon(img, "chronocoin", CARD_WIDTH - 370, av_y + 14, 26)
-    draw.text((CARD_WIDTH - 336, av_y + 18), w_coin_str, font=_get_font(16, bold=True), fill=ACCENT_GOLD)
+    draw.rounded_rectangle([CARD_WIDTH - 390, av_y + 8, CARD_WIDTH - 215, av_y + 54], radius=10, fill=CARD_BG, outline=ACCENT_GOLD, width=1)
+    _paste_pixel_icon(img, "chronocoin", CARD_WIDTH - 380, av_y + 14, 28)
+    draw.text((CARD_WIDTH - 344, av_y + 17), w_coin_str, font=_get_font(18, bold=True), fill=ACCENT_GOLD)
 
-    draw.rounded_rectangle([CARD_WIDTH - 195, av_y + 8, CARD_WIDTH - 50, av_y + 54], radius=10, fill=CARD_BG, outline=(236, 72, 153, 255), width=1)
-    draw.text((CARD_WIDTH - 185, av_y + 18), f"{candy:,} Candy", font=_get_font(16, bold=True), fill=(244, 114, 182, 255))
+    draw.rounded_rectangle([CARD_WIDTH - 200, av_y + 8, CARD_WIDTH - 50, av_y + 54], radius=10, fill=CARD_BG, outline=(236, 72, 153, 255), width=1)
+    draw.text((CARD_WIDTH - 190, av_y + 17), f"{candy:,} Candy", font=_get_font(18, bold=True), fill=(244, 114, 182, 255))
 
-    # Active Boosts Banner (y = 130)
-    banner_y = 130
-    banner_h = 60
-    draw.rounded_rectangle([50, banner_y, CARD_WIDTH - 50, banner_y + banner_h], radius=14, fill=CARD_BG, outline=CARD_BORDER, width=1)
+    # Active Boosts Banner (y = 132)
+    banner_y = 132
+    banner_h = 52
+    draw.rounded_rectangle([50, banner_y, CARD_WIDTH - 50, banner_y + banner_h], radius=12, fill=CARD_BG, outline=CARD_BORDER, width=1)
     if active_boosts:
-        draw.ellipse([70, banner_y + 24, 82, banner_y + 36], fill=ACCENT_GREEN)
-        draw.text((92, banner_y + 20), "ACTIVE BOOSTS RUNNING:", font=_get_font(13, bold=True), fill=ACCENT_GREEN)
-        bx_curr = 300
+        draw.ellipse([70, banner_y + 20, 82, banner_y + 32], fill=ACCENT_GREEN)
+        draw.text((92, banner_y + 17), "ACTIVE BOOSTS RUNNING:", font=_get_font(13, bold=True), fill=ACCENT_GREEN)
+        bx_curr = 295
         for b in active_boosts:
             rem = _format_time(b["remaining"])
             b_txt = f"{b['name']} ({b['mult']}x) — {rem} left"
-            draw.rounded_rectangle([bx_curr, banner_y + 14, bx_curr + len(b_txt) * 9 + 20, banner_y + banner_h - 14], radius=6, fill=(30, 41, 59, 200))
-            draw.text((bx_curr + 10, banner_y + 19), b_txt, font=_get_font(12, bold=True), fill=TEXT_WHITE)
-            bx_curr += len(b_txt) * 9 + 35
+            b_w = len(b_txt) * 9 + 20
+            draw.rounded_rectangle([bx_curr, banner_y + 10, bx_curr + b_w, banner_y + banner_h - 10], radius=6, fill=(30, 41, 59, 200))
+            draw.text((bx_curr + 10, banner_y + 16), b_txt, font=_get_font(13, bold=True), fill=TEXT_WHITE)
+            bx_curr += b_w + 15
     else:
-        draw.ellipse([70, banner_y + 24, 82, banner_y + 36], fill=(100, 116, 139, 255))
-        draw.text((92, banner_y + 20), "NO ACTIVE BOOSTS", font=_get_font(13, bold=True), fill=TEXT_MUTED)
-        draw.text((250, banner_y + 21), "Activate an XP or Coin boost from your inventory below with .use <item>", font=_get_font(13, bold=False), fill=TEXT_SUB)
+        draw.ellipse([70, banner_y + 20, 82, banner_y + 32], fill=(100, 116, 139, 255))
+        draw.text((92, banner_y + 17), "NO ACTIVE BOOSTS", font=_get_font(13, bold=True), fill=TEXT_MUTED)
+        draw.text((250, banner_y + 18), "Activate an XP or Coin boost from your inventory below with .use <item>", font=_get_font(14, bold=False), fill=TEXT_SUB)
 
-    # Main Grid (3 columns x 3 rows)
-    grid_y = 210
-    slot_w = 348
-    slot_h = 160
-    col_xs = [50, 426, 802]
-
-    display_items = []
-    for i_id, qty in inventory.items():
-        if qty > 0:
-            meta = ITEM_METADATA.get(i_id, {
-                "name": i_id.replace("_", " ").title(),
-                "icon": "mystery_box",
-                "type": "ITEM",
-                "action": "Owned Item",
-                "color": ACCENT_CYAN,
-            })
-            display_items.append((i_id, qty, meta))
+    # 2-Column Spacious Grid (2 cols x 3 rows = 6 items per page)
+    grid_y = 200
+    slot_w = 525
+    slot_h = 188
+    col_xs = [50, 625]
 
     for idx in range(6):
-        col = idx % 3
-        row = idx // 3
+        col = idx % 2
+        row = idx // 2
         sx = col_xs[col]
-        sy = grid_y + row * (slot_h + 20)
+        sy = grid_y + row * (slot_h + 18)
 
-        if idx < len(display_items):
-            i_id, qty, meta = display_items[idx]
+        if idx < len(page_items):
+            i_id, qty = page_items[idx]
+            meta = get_item_display_meta(i_id)
+
+            # Slot card
             draw.rounded_rectangle([sx, sy, sx + slot_w, sy + slot_h], radius=16, fill=CARD_BG, outline=CARD_BORDER, width=1)
-            draw.line([(sx + 20, sy), (sx + slot_w - 20, sy)], fill=meta["color"], width=3)
+            # Glowing accent strip & top accent line
+            draw.rounded_rectangle([sx, sy, sx + 5, sy + slot_h], radius=3, fill=meta["color"])
+            draw.line([(sx + 20, sy), (sx + slot_w - 20, sy)], fill=meta["color"], width=2)
 
-            # Icon
-            _paste_pixel_icon(img, meta["icon"], sx + 18, sy + 38, 56)
+            # Big Icon Frame
+            ix = sx + 20
+            iy = sy + 32
+            frame_size = 80
+            draw.rounded_rectangle(
+                [ix, iy, ix + frame_size, iy + frame_size],
+                radius=14,
+                fill=(15, 23, 42, 255),
+                outline=(meta["color"][0], meta["color"][1], meta["color"][2], 140),
+                width=2,
+            )
+            _paste_pixel_icon(img, meta["icon"], ix + 8, iy + 8, 64)
 
-            # Info
-            draw.text((sx + 88, sy + 22), meta["name"][:20], font=_get_font(18, bold=True), fill=TEXT_WHITE)
-            draw.text((sx + 88, sy + 52), meta["type"], font=_get_font(11, bold=True), fill=meta["color"])
-            draw.text((sx + 88, sy + 80), meta["action"], font=_get_font(11, bold=False), fill=TEXT_SUB)
-
-            # Quantity pill
-            qty_str = f"×{qty}"
-            q_bbox = draw.textbbox((0, 0), qty_str, font=_get_font(13, bold=True))
+            # Quantity pill (Top Right)
+            qty_str = f"×{qty:,}"
+            q_font = _get_font(20, bold=True)
+            q_bbox = draw.textbbox((0, 0), qty_str, font=q_font)
             qw = q_bbox[2] - q_bbox[0]
-            draw.rounded_rectangle([sx + slot_w - qw - 24, sy + 16, sx + slot_w - 14, sy + 40], radius=6, fill=(30, 41, 59, 220))
-            draw.text((sx + slot_w - qw - 19, sy + 20), qty_str, font=_get_font(13, bold=True), fill=ACCENT_CYAN)
+            draw.rounded_rectangle(
+                [sx + slot_w - qw - 30, sy + 16, sx + slot_w - 14, sy + 48],
+                radius=8,
+                fill=(30, 41, 59, 240),
+                outline=(meta["color"][0], meta["color"][1], meta["color"][2], 160),
+                width=1,
+            )
+            draw.text((sx + slot_w - qw - 22, sy + 20), qty_str, font=q_font, fill=meta["color"])
+
+            # Info text block
+            tx = sx + 118
+            item_name = meta["name"]
+            if len(item_name) > 23:
+                item_name = item_name[:21] + "..."
+            draw.text((tx, sy + 18), item_name, font=_get_font(23, bold=True), fill=TEXT_WHITE)
+
+            # Type Pill
+            tag_str = meta["type"]
+            f_tag = _get_font(12, bold=True)
+            t_bbox = draw.textbbox((0, 0), tag_str, font=f_tag)
+            tw = t_bbox[2] - t_bbox[0]
+            draw.rounded_rectangle([tx, sy + 54, tx + tw + 16, sy + 76], radius=6, fill=(meta["color"][0], meta["color"][1], meta["color"][2], 45))
+            draw.text((tx + 8, sy + 57), tag_str, font=f_tag, fill=meta["color"])
+
+            # Subtitle / Action lines
+            action_lines = _wrap_text_lines(meta["action"], max_chars=36, max_lines=2)
+            ay = sy + 88
+            for line in action_lines:
+                draw.text((tx, ay), line, font=_get_font(15, bold=False), fill=TEXT_SUB)
+                ay += 24
         else:
             # Empty slot
             draw.rounded_rectangle([sx, sy, sx + slot_w, sy + slot_h], radius=16, fill=PANEL_BG, outline=PANEL_BORDER, width=1)
-            draw.text((sx + slot_w // 2 - 45, sy + slot_h // 2 - 10), "[ EMPTY SLOT ]", font=_get_font(12, bold=True), fill=(71, 85, 105, 255))
+            draw.text((sx + 165, sy + 82), "[ EMPTY SATCHEL SLOT ]", font=_get_font(14, bold=True), fill=(71, 85, 105, 255))
 
     # Footer
-    f_foot = _get_font(13, bold=True)
-    draw.text((50, INV_CARD_HEIGHT - 45), "TIPS: .use <boost> to activate  •  .openbox to roll boxes  •  .settitle <title> to equip", font=f_foot, fill=TEXT_SUB)
-    draw.text((CARD_WIDTH - 280, INV_CARD_HEIGHT - 45), "CHRONOS STUDY OS · USER SATCHEL", font=_get_font(12, bold=False), fill=TEXT_MUTED)
+    fy = INV_CARD_HEIGHT - 45
+    draw.text((50, fy), "TIPS: .use <boost> to activate  •  .openbox to roll  •  .settitle to equip", font=_get_font(14, bold=True), fill=TEXT_SUB)
+    draw.text((CARD_WIDTH - 290, fy), f"PAGE {curr_page + 1} OF {total_pages} · CHRONOS OS", font=_get_font(13, bold=True), fill=TEXT_MUTED)
 
     return _export_png(img)
 
