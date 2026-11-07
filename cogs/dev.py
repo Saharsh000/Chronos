@@ -41,92 +41,131 @@ class Dev(commands.Cog, name="Dev"):
         cat = category.lower().strip() if category else "all"
 
         # 1. Fractions & Horizontal Bars
+        frac_quad_bar = format_fraction_bar('-b ± √(b² − 4ac)', '2a', prefix='x =')
+        frac_lim_bar = format_fraction_bar('sin x', 'x', prefix='lim (x → 0)', suffix='= 1')
+        raw_quad_disp = r"Solve: $$x = \frac{-b \pm \sqrt{b^2 - 4ac}}{2a}$$"
+        raw_vulgar = r"$\frac{1}{2}, \frac{1}{3}, \frac{2}{3}, \frac{1}{4}, \frac{3}{4}, \frac{5}{8}, \frac{7}{8}$"
+        raw_vars = r"$\frac{a}{b}, \frac{x+1}{x-1}$"
         frac_desc = (
             "### 1. Multiline Horizontal Fraction Bar (`format_fraction_bar`)\n"
-            f"```\n{format_fraction_bar('-b ± √(b² − 4ac)', '2a', prefix='x =')}\n```\n\n"
+            f"```\n{frac_quad_bar}\n```\n\n"
             "### 2. Limit with Horizontal Bar\n"
-            f"```\n{format_fraction_bar('sin x', 'x', prefix='lim (x → 0)', suffix='= 1')}\n```\n\n"
+            f"```\n{frac_lim_bar}\n```\n\n"
             "### 3. Display Math Fraction (`$$...$$` with Horizontal Bar)\n"
-            f"{format_academic_text(r'Solve: $$x = \frac{-b \pm \sqrt{b^2 - 4ac}}{2a}$$')}\n\n"
-            "### 4. Vulgar & Script Fractions (Inline, No `/`)\n"
-            f"• Standard: {format_academic_text(r'$\frac{1}{2}, \frac{1}{3}, \frac{2}{3}, \frac{1}{4}, \frac{3}{4}, \frac{5}{8}, \frac{7}{8}$')}\n"
-            f"• Inline variables: {format_academic_text(r'$\frac{a}{b}, \frac{x+1}{x-1}$')}"
+            + format_academic_text(raw_quad_disp) + "\n\n"
+            + "### 4. Vulgar & Script Fractions (Inline, No `/`)\n"
+            + "• Standard: " + format_academic_text(raw_vulgar) + "\n"
+            + "• Inline variables: " + format_academic_text(raw_vars)
         )
 
         # 2. Greek Letters & Typography
+        raw_greek_lower = r"$\alpha, \beta, \gamma, \delta, \epsilon, \zeta, \eta, \theta, \iota, \kappa, \lambda, \mu, \nu, \xi, \pi, \rho, \sigma, \tau, \upsilon, \phi, \chi, \psi, \omega$"
+        raw_greek_upper = r"$\Gamma, \Delta, \Theta, \Lambda, \Xi, \Pi, \Sigma, \Upsilon, \Phi, \Psi, \Omega$"
+        raw_identity = r"For $\theta \in [0, \pi]$, $\sin^2\theta + \cos^2\theta = 1$."
+        raw_degrees = r"Angle $\theta$ is $45^\circ\text{C}$ and $\beta$ is $5$."
+        raw_enthalpy = r"Reaction enthalpy is $\Delta H = -393.5\text{ kJ/mol}$."
         greek_desc = (
             "### 1. Lowercase Greek Alphabet\n"
-            f"{format_academic_text(r'$\alpha, \beta, \gamma, \delta, \epsilon, \zeta, \eta, \theta, \iota, \kappa, \lambda, \mu, \nu, \xi, \pi, \rho, \sigma, \tau, \upsilon, \phi, \chi, \psi, \omega$')}\n\n"
-            "### 2. Uppercase Greek Alphabet\n"
-            f"{format_academic_text(r'$\Gamma, \Delta, \Theta, \Lambda, \Xi, \Pi, \Sigma, \Upsilon, \Phi, \Psi, \Omega$')}\n\n"
-            "### 3. Word Spacing & Degree Symbols (No Eaten Spaces)\n"
-            f"• Identity: {format_academic_text(r'For $\theta \in [0, \pi]$, $\sin^2\theta + \cos^2\theta = 1$.')}\n"
-            f"• Degrees: {format_academic_text(r'Angle $\theta$ is $45^\circ\text{C}$ and $\beta$ is $5$.')}\n"
-            f"• Enthalpy: {format_academic_text(r'Reaction enthalpy is $\Delta H = -393.5\text{ kJ/mol}$.')}"
+            + format_academic_text(raw_greek_lower) + "\n\n"
+            + "### 2. Uppercase Greek Alphabet\n"
+            + format_academic_text(raw_greek_upper) + "\n\n"
+            + "### 3. Word Spacing & Degree Symbols (No Eaten Spaces)\n"
+            + "• Identity: " + format_academic_text(raw_identity) + "\n"
+            + "• Degrees: " + format_academic_text(raw_degrees) + "\n"
+            + "• Enthalpy: " + format_academic_text(raw_enthalpy)
         )
 
         # 3. Calculus & Analysis
+        raw_int_indef = r"$\int x^2\,dx = \frac{x^3}{3} + C$"
+        raw_int_def = r"$\int_{0}^{\pi} \sin x\,dx = 2$"
+        raw_int_multi = r"$\iint_D f(x,y)\,dA$ and $\oint_C \vec{F} \cdot d\vec{r}$"
+        raw_deriv_tot = r"$\frac{dy}{dx}$ and $\frac{d^2y}{dx^2}$"
+        raw_deriv_part = r"$\frac{\partial u}{\partial x} + \frac{\partial u}{\partial y} = 0$"
+        raw_lim = r"$\lim_{x \to 0} \frac{\sin x}{x} = 1$"
+        raw_sum = r"$\sum_{k=1}^n k^2 = \frac{n(n+1)(2n+1)}{6}$"
+        raw_prod = r"$\prod_{i=1}^n i = n!$"
         calc_desc = (
             "### 1. Integrals & Contour Integrals\n"
-            f"• Indefinite: {format_academic_text(r'$\int x^2\,dx = \frac{x^3}{3} + C$')}\n"
-            f"• Definite: {format_academic_text(r'$\int_{0}^{\pi} \sin x\,dx = 2$')}\n"
-            f"• Multiple: {format_academic_text(r'$\iint_D f(x,y)\,dA$ and $\oint_C \vec{F} \cdot d\vec{r}$')}\n\n"
-            "### 2. Differentials & Derivatives\n"
-            f"• Total: {format_academic_text(r'$\frac{dy}{dx}$ and $\frac{d^2y}{dx^2}$')}\n"
-            f"• Partial: {format_academic_text(r'$\frac{\partial u}{\partial x} + \frac{\partial u}{\partial y} = 0$')}\n\n"
-            "### 3. Limits, Sums & Products\n"
-            f"• Limit: {format_academic_text(r'$\lim_{x \to 0} \frac{\sin x}{x} = 1$')}\n"
-            f"• Summation: {format_academic_text(r'$\sum_{k=1}^n k^2 = \frac{n(n+1)(2n+1)}{6}$')}\n"
-            f"• Product: {format_academic_text(r'$\prod_{i=1}^n i = n!$')}"
+            + "• Indefinite: " + format_academic_text(raw_int_indef) + "\n"
+            + "• Definite: " + format_academic_text(raw_int_def) + "\n"
+            + "• Multiple: " + format_academic_text(raw_int_multi) + "\n\n"
+            + "### 2. Differentials & Derivatives\n"
+            + "• Total: " + format_academic_text(raw_deriv_tot) + "\n"
+            + "• Partial: " + format_academic_text(raw_deriv_part) + "\n\n"
+            + "### 3. Limits, Sums & Products\n"
+            + "• Limit: " + format_academic_text(raw_lim) + "\n"
+            + "• Summation: " + format_academic_text(raw_sum) + "\n"
+            + "• Product: " + format_academic_text(raw_prod)
         )
 
         # 4. Vectors & Physics
+        raw_vec_pos = r"$\vec{r} = 3\hat{i} - 4\hat{j} + 5\hat{k}$"
+        raw_vec_norm = r"$\hat{n} = \frac{\vec{A} \times \vec{B}}{|\vec{A} \times \vec{B}|}$"
+        raw_vec_newton = r"$\vec{F} = m\vec{a} = \frac{d\vec{p}}{dt}$"
+        raw_vec_torque = r"$\vec{\tau} = \vec{r} \times \vec{F}$"
+        raw_const_c = r"$c = 3 \times 10^8\,\text{m/s}$"
+        raw_const_g = r"$g = 9.8\,\text{m/s}^2$"
+        raw_const_h = r"$h = 6.626 \times 10^{-34}\,\text{J}\cdot\text{s}$"
         vectors_desc = (
             "### 1. Unit Vectors (Precomposed Hat Glyphs)\n"
-            f"• Position vector: {format_academic_text(r'$\vec{r} = 3\hat{i} - 4\hat{j} + 5\hat{k}$')}\n"
-            f"• Unit normal: {format_academic_text(r'$\hat{n} = \frac{\vec{A} \times \vec{B}}{|\vec{A} \times \vec{B}|}$')}\n\n"
-            "### 2. Physics Laws & Mechanics\n"
-            f"• Newton's Second Law: {format_academic_text(r'$\vec{F} = m\vec{a} = \frac{d\vec{p}}{dt}$')}\n"
-            f"• Torque: {format_academic_text(r'$\vec{\tau} = \vec{r} \times \vec{F}$')}\n\n"
-            "### 3. Physical Constants & Units\n"
-            f"• Speed of light: {format_academic_text(r'$c = 3 \times 10^8\,\text{m/s}$')}\n"
-            f"• Gravity: {format_academic_text(r'$g = 9.8\,\text{m/s}^2}$')}\n"
-            f"• Planck constant: {format_academic_text(r'$h = 6.626 \times 10^{-34}\,\text{J}\cdot\text{s}$')}"
+            + "• Position vector: " + format_academic_text(raw_vec_pos) + "\n"
+            + "• Unit normal: " + format_academic_text(raw_vec_norm) + "\n\n"
+            + "### 2. Physics Laws & Mechanics\n"
+            + "• Newton's Second Law: " + format_academic_text(raw_vec_newton) + "\n"
+            + "• Torque: " + format_academic_text(raw_vec_torque) + "\n\n"
+            + "### 3. Physical Constants & Units\n"
+            + "• Speed of light: " + format_academic_text(raw_const_c) + "\n"
+            + "• Gravity: " + format_academic_text(raw_const_g) + "\n"
+            + "• Planck constant: " + format_academic_text(raw_const_h)
         )
 
         # 5. Chemistry & Equilibrium
+        raw_chem_cuso4 = r"$\ce{CuSO4 . 5H2O}$"
+        raw_chem_mohr = r"$\ce{FeSO4 . (NH4)2SO4 . 6H2O}$"
+        raw_chem_comb = r"$\ce{2H2 + O2 -> 2H2O}$"
+        raw_chem_haber = r"$\ce{N2 + 3H2 <=> 2NH3}$"
+        raw_chem_dissoc = r"$\ce{PCl5 <=> PCl3 + Cl2}$"
+        raw_chem_fe = r"$\ce{Fe^{2+} + e- -> Fe^{3+}}$"
+        raw_chem_caco3 = r"$\ce{CaCO3 ->[\Delta] CaO + CO2}$"
         chem_desc = (
             "### 1. Hydrated Salts & Hydration Dot (`·`)\n"
-            f"• Copper sulfate: {format_academic_text(r'$\ce{CuSO4 . 5H2O}$')}\n"
-            f"• Mohr salt: {format_academic_text(r'$\ce{FeSO4 . (NH4)2SO4 . 6H2O}$')}\n\n"
-            "### 2. Chemical Equilibrium & Reaction Arrows\n"
-            f"• Combustion: {format_academic_text(r'$\ce{2H2 + O2 -> 2H2O}$')}\n"
-            f"• Haber process: {format_academic_text(r'$\ce{N2 + 3H2 <=> 2NH3}$')}\n"
-            f"• Dissociation: {format_academic_text(r'$\ce{PCl5 <=> PCl3 + Cl2}$')}\n\n"
-            "### 3. Redox Ions & Heat Catalysts\n"
-            f"• Oxidation: {format_academic_text(r'$\ce{Fe^{2+} + e- -> Fe^{3+}}$')}\n"
-            f"• Thermal decomposition: {format_academic_text(r'$\ce{CaCO3 ->[\Delta] CaO + CO2}$')}"
+            + "• Copper sulfate: " + format_academic_text(raw_chem_cuso4) + "\n"
+            + "• Mohr salt: " + format_academic_text(raw_chem_mohr) + "\n\n"
+            + "### 2. Chemical Equilibrium & Reaction Arrows\n"
+            + "• Combustion: " + format_academic_text(raw_chem_comb) + "\n"
+            + "• Haber process: " + format_academic_text(raw_chem_haber) + "\n"
+            + "• Dissociation: " + format_academic_text(raw_chem_dissoc) + "\n\n"
+            + "### 3. Redox Ions & Heat Catalysts\n"
+            + "• Oxidation: " + format_academic_text(raw_chem_fe) + "\n"
+            + "• Thermal decomposition: " + format_academic_text(raw_chem_caco3)
         )
 
         # 6. Set Theory, Logic & Relations
+        raw_logic_sets = r"$x \in \mathbb{R}$, $A \subset B$, $A \cap B = \emptyset$, $A \cup B = S$"
+        raw_logic_quant = r"$\forall x \in \mathbb{R}, \; \exists y \text{ such that } x + y = 0$"
+        raw_logic_impl = r"$P \implies Q$ and $P \iff Q$"
+        raw_logic_rel = r"$a \le b$, $x \ge y$, $p \ne q$, $f(x) \approx g(x)$, $x \pm \sigma$"
         logic_desc = (
             "### 1. Set Theory & Membership\n"
-            f"• Sets: {format_academic_text(r'$x \in \mathbb{R}$, $A \subset B$, $A \cap B = \emptyset$, $A \cup B = S$')}\n\n"
-            "### 2. Logic Quantifiers & Implications\n"
-            f"• Logic: {format_academic_text(r'$\forall x \in \mathbb{R}, \; \exists y \text{ such that } x + y = 0$')}\n"
-            f"• Implication: {format_academic_text(r'$P \implies Q$ and $P \iff Q$')}\n\n"
-            "### 3. Inequalities & Relations\n"
-            f"• Relations: {format_academic_text(r'$a \le b$, $x \ge y$, $p \ne q$, $f(x) \approx g(x)$, $x \pm \sigma$')}"
+            + "• Sets: " + format_academic_text(raw_logic_sets) + "\n\n"
+            + "### 2. Logic Quantifiers & Implications\n"
+            + "• Logic: " + format_academic_text(raw_logic_quant) + "\n"
+            + "• Implication: " + format_academic_text(raw_logic_impl) + "\n\n"
+            + "### 3. Inequalities & Relations\n"
+            + "• Relations: " + format_academic_text(raw_logic_rel)
         )
 
         # 7. Structured Question Layouts
+        raw_layout_ar = r"Assertion (A): Ice floats on water. Reason (R): Density of ice is less than liquid water."
+        raw_layout_stmt = r"Statement I: Acceleration is rate of change of velocity. Statement II: Velocity is a scalar quantity."
+        raw_layout_match = "Match the following:\nList-I:\nP. $NaCl$\nQ. $H_2SO_4$\nList-II:\n1. Common Salt\n2. Battery Acid"
         layout_desc = (
             "### 1. Assertion-Reason Format\n"
-            f"{format_academic_text(r'Assertion (A): Ice floats on water. Reason (R): Density of ice is less than liquid water.')}\n\n"
-            "### 2. Statement I & II Format\n"
-            f"{format_question_presentation(format_academic_text(r'Statement I: Acceleration is rate of change of velocity. Statement II: Velocity is a scalar quantity.'))}\n\n"
-            "### 3. Matching Layout (List-I and List-II)\n"
-            f"{format_matching_text('Match the following:\nList-I:\nP. $NaCl$\nQ. $H_2SO_4$\nList-II:\n1. Common Salt\n2. Battery Acid')}"
+            + format_academic_text(raw_layout_ar) + "\n\n"
+            + "### 2. Statement I & II Format\n"
+            + format_question_presentation(format_academic_text(raw_layout_stmt)) + "\n\n"
+            + "### 3. Matching Layout (List-I and List-II)\n"
+            + format_matching_text(raw_layout_match)
         )
 
         categories_map = {
