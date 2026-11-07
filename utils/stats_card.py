@@ -889,10 +889,29 @@ def render_trivia_card_sync(
 
 
 # ==============================================================================
-# SHOP CARD & INVENTORY SATCHEL CARD GENERATORS
+# SHOP CARD & INVENTORY SATCHEL CARD GENERATORS — PokeOne-style Parchment
 # ==============================================================================
-SHOP_CARD_HEIGHT = 1100
-INV_CARD_HEIGHT = 1100
+# Canvas is 800x500 (no EXPORT_SCALE).  Discord shows attachments at max ~520px
+# wide, giving a ~0.65x scale where 16px text renders at ~10 screen-px = readable.
+POKE_W = 800
+POKE_H = 500
+
+# Warm cream parchment palette (inspired by PokeOne /bag card)
+_P_BG        = (246, 243, 231, 255)   # Cream parchment base
+_P_SIDEBAR   = (236, 231, 213, 255)   # Left sidebar panel
+_P_ROW       = (240, 235, 220, 255)   # Item row alternate fill
+_P_ROW_ALT   = (246, 243, 231, 255)   # Item row base (matches BG)
+_P_BORDER    = (214, 207, 187, 255)   # Borders and dividers
+_P_DARK      = (38, 42, 48, 255)      # Primary dark text
+_P_MUTED     = (120, 125, 135, 255)   # Muted secondary text
+_P_ACCENT    = (193, 80, 72, 255)     # Active/selected pill (warm red)
+_P_GOLD_PILL = (185, 155, 80, 255)    # Gold coin text on parchment
+_P_CANDY     = (190, 60, 120, 255)    # Candy pink accent
+_P_GREEN     = (60, 140, 90, 255)     # Green accent
+_P_SIDEBAR_W = 200                    # Sidebar width
+_P_CONTENT_X = 220                    # Content area left edge
+_P_MARGIN    = 20                     # Outer margin
+_P_ITEMS_PER_PAGE = 7                 # 7 readable rows per page
 
 SHOP_ITEMS_DATA = [
     {
@@ -1065,20 +1084,188 @@ ITEM_METADATA = {
 }
 
 
+# Legacy height aliases (kept for any stray references)
+SHOP_CARD_HEIGHT = 1100
+INV_CARD_HEIGHT = 1100
+
+
+# ── PokeOne-style helpers ────────────────────────────────────────────────────
+def _poke_export(img: Image.Image) -> bytes:
+    """Export a PokeOne-style 800x500 card directly — no upscale."""
+    buf = io.BytesIO()
+    img.save(buf, format="PNG", optimize=True)
+    return buf.getvalue()
+
+
+def _poke_draw_sidebar(
+    img: Image.Image,
+    draw: ImageDraw.Draw,
+    *,
+    hero_icon: str,
+    title: str,
+    subtitle: str,
+    categories: list[tuple[str, int, bool]],
+    wallet_lines: list[tuple[str, tuple[int, int, int, int]]],
+) -> None:
+    """Draw the left PokeOne parchment sidebar: hero icon, title, category pills, wallet."""
+    sw = _P_SIDEBAR_W
+    m = _P_MARGIN
+    # Sidebar background
+    draw.rounded_rectangle(
+        [m, m, m + sw, POKE_H - m],
+        radius=14, fill=_P_SIDEBAR,
+    )
+    draw.line([(m + sw, m + 12), (m + sw, POKE_H - m - 12)], fill=_P_BORDER, width=1)
+
+    # Hero icon (centered, 56x56)
+    icon_x = m + (sw - 56) // 2
+    icon_y = m + 18
+    draw.rounded_rectangle(
+        [icon_x - 4, icon_y - 4, icon_x + 60, icon_y + 60],
+        radius=12, fill=_P_BG, outline=_P_BORDER, width=1,
+    )
+    _paste_pixel_icon(img, hero_icon, icon_x, icon_y, 56)
+
+    # Title & subtitle
+    ty = icon_y + 68
+    f_title = _get_font(14, bold=True)
+    t_bbox = draw.textbbox((0, 0), title, font=f_title)
+    tw = t_bbox[2] - t_bbox[0]
+    draw.text((m + (sw - tw) // 2, ty), title, font=f_title, fill=_P_DARK)
+    ty += 20
+    f_sub = _get_font(10, bold=False)
+    s_bbox = draw.textbbox((0, 0), subtitle, font=f_sub)
+    stw = s_bbox[2] - s_bbox[0]
+    draw.text((m + (sw - stw) // 2, ty), subtitle, font=f_sub, fill=_P_MUTED)
+    ty += 22
+
+    # Category pills
+    pill_x = m + 14
+    pill_w = sw - 28
+    for cat_name, count, is_active in categories:
+        pill_h = 26
+        if is_active:
+            draw.rounded_rectangle(
+                [pill_x, ty, pill_x + pill_w, ty + pill_h],
+                radius=6, fill=_P_ACCENT,
+            )
+            draw.text((pill_x + 10, ty + 5), cat_name.upper(), font=_get_font(10, bold=True), fill=(255, 255, 255, 255))
+        else:
+            draw.rounded_rectangle(
+                [pill_x, ty, pill_x + pill_w, ty + pill_h],
+                radius=6, fill=_P_BG, outline=_P_BORDER, width=1,
+            )
+            draw.text((pill_x + 10, ty + 5), cat_name.upper(), font=_get_font(10, bold=True), fill=_P_DARK)
+        # Count badge (right-aligned)
+        cnt_str = str(count)
+        f_cnt = _get_font(10, bold=True)
+        cb = draw.textbbox((0, 0), cnt_str, font=f_cnt)
+        cw = cb[2] - cb[0]
+        draw.text((pill_x + pill_w - cw - 10, ty + 5), cnt_str, font=f_cnt,
+                   fill=(255, 255, 255, 255) if is_active else _P_MUTED)
+        ty += pill_h + 6
+
+    # Wallet at bottom of sidebar
+    wy = POKE_H - m - 18 - len(wallet_lines) * 18
+    for wtxt, wcolor in wallet_lines:
+        f_w = _get_font(11, bold=True)
+        wb = draw.textbbox((0, 0), wtxt, font=f_w)
+        ww = wb[2] - wb[0]
+        draw.text((m + (sw - ww) // 2, wy), wtxt, font=f_w, fill=wcolor)
+        wy += 18
+
+
+def _poke_draw_item_rows(
+    img: Image.Image,
+    draw: ImageDraw.Draw,
+    *,
+    header_title: str,
+    header_sub: str,
+    page_str: str,
+    items_count_str: str,
+    rows: list[dict[str, Any]],
+    show_price: bool = False,
+    price_color: tuple[int, int, int, int] = _P_GOLD_PILL,
+) -> None:
+    """Draw the right-side item table: header + up to 7 spacious item rows."""
+    cx = _P_CONTENT_X
+    m = _P_MARGIN
+    rw = POKE_W - m - cx  # content width
+
+    # Header row
+    hy = m + 14
+    draw.text((cx + 8, hy), header_title, font=_get_font(18, bold=True), fill=_P_DARK)
+    draw.text((cx + 8, hy + 24), header_sub, font=_get_font(10, bold=False), fill=_P_MUTED)
+    # Page indicator (right-aligned)
+    f_page = _get_font(11, bold=True)
+    pb = draw.textbbox((0, 0), page_str, font=f_page)
+    pw = pb[2] - pb[0]
+    draw.text((POKE_W - m - pw - 10, hy), page_str, font=f_page, fill=_P_MUTED)
+    # Items count
+    f_cnt = _get_font(10, bold=False)
+    cb = draw.textbbox((0, 0), items_count_str, font=f_cnt)
+    cw = cb[2] - cb[0]
+    draw.text((POKE_W - m - cw - 10, hy + 18), items_count_str, font=f_cnt, fill=_P_MUTED)
+
+    # Horizontal divider
+    div_y = hy + 46
+    draw.line([(cx, div_y), (POKE_W - m, div_y)], fill=_P_BORDER, width=1)
+
+    # Item rows
+    row_h = 50
+    row_gap = 4
+    ry = div_y + 8
+
+    for i, row in enumerate(rows):
+        # Alternating row background
+        bg = _P_ROW if i % 2 == 0 else _P_ROW_ALT
+        draw.rounded_rectangle(
+            [cx + 4, ry, POKE_W - m - 4, ry + row_h],
+            radius=8, fill=bg,
+        )
+
+        # Bullet / icon (32x32 with 24x24 sprite)
+        icon_x = cx + 14
+        icon_y = ry + 9
+        draw.rounded_rectangle(
+            [icon_x, icon_y, icon_x + 32, icon_y + 32],
+            radius=6, fill=_P_SIDEBAR, outline=_P_BORDER, width=1,
+        )
+        _paste_pixel_icon(img, row.get("icon", "mystery_box"), icon_x + 4, icon_y + 4, 24)
+
+        # Item name
+        name = row.get("name", "Unknown")
+        if len(name) > 28:
+            name = name[:26] + ".."
+        draw.text((icon_x + 42, ry + 8), name, font=_get_font(14, bold=True), fill=_P_DARK)
+
+        # Subtitle / description
+        sub = row.get("subtitle", "")
+        if len(sub) > 42:
+            sub = sub[:40] + ".."
+        if sub:
+            draw.text((icon_x + 42, ry + 27), sub, font=_get_font(10, bold=False), fill=_P_MUTED)
+
+        # Right-aligned value (quantity or price)
+        val = row.get("right_text", "")
+        if val:
+            f_val = _get_font(13, bold=True)
+            vb = draw.textbbox((0, 0), val, font=f_val)
+            vw = vb[2] - vb[0]
+            val_color = row.get("right_color", _P_DARK)
+            draw.text((POKE_W - m - vw - 16, ry + 16), val, font=f_val, fill=val_color)
+
+        ry += row_h + row_gap
+
+
+# ── PokeOne-style Shop Card ─────────────────────────────────────────────────
 def render_shop_card_sync(
     user_coins: int,
     items: Optional[list[dict[str, Any]]] = None,
     page: int = 0,
-    per_page: int = 6,
+    per_page: int = 7,
 ) -> bytes:
-    """Synchronously renders the high-res 1200x1080 Shop catalog PNG with big pixel art icons."""
-    img = Image.new("RGBA", (CARD_WIDTH, SHOP_CARD_HEIGHT), BG_COLOR)
-    draw = ImageDraw.Draw(img)
-
-    # Outer border & canvas
-    draw.rounded_rectangle([20, 20, CARD_WIDTH - 20, SHOP_CARD_HEIGHT - 20], radius=24, fill=None, outline=(35, 43, 56, 255), width=2)
-    draw.line([(50, 20), (CARD_WIDTH - 50, 20)], fill=ACCENT_GOLD, width=4)
-
+    """800x500 PokeOne-style parchment shop card — ultra-readable on Discord."""
     # Prepare items
     if items is None:
         from utils.economy import SHOP_ITEMS, SHOP_ORDER
@@ -1088,30 +1275,20 @@ def render_shop_card_sync(
                 si = SHOP_ITEMS[item_id]
                 itype = str(si.get("type", "item")).upper()
                 if itype == "BOOST":
-                    color = ACCENT_GREEN if "xp" in item_id else ACCENT_GOLD
                     icon = "xp_boost" if "xp" in item_id else "coin_boost"
-                    tag = "BOOST CHARGES"
                 elif itype == "CONSUMABLE":
-                    color = ACCENT_PURPLE if "box" in item_id else ACCENT_CYAN
                     icon = "mystery_box" if "box" in item_id else "streak_freeze"
-                    tag = "CONSUMABLE"
                 elif itype == "TITLE":
-                    color = (245, 158, 11, 255)
                     icon = "title_scroll"
-                    tag = "PRESTIGE TITLE"
                 else:
-                    color = ACCENT_CYAN
                     icon = "mystery_box"
-                    tag = "ITEM"
                 items.append({
                     "id": item_id,
                     "num": num,
                     "name": si["name"],
                     "icon": icon,
-                    "type": tag,
                     "desc": si.get("description", ""),
                     "price": si["price"],
-                    "color": color,
                 })
 
     total_items = len(items)
@@ -1120,138 +1297,86 @@ def render_shop_card_sync(
     start_idx = curr_page * per_page
     page_items = items[start_idx : start_idx + per_page]
 
-    # Top Header
-    draw.ellipse([50, 42, 130, 122], fill=CARD_BG, outline=ACCENT_GOLD, width=2)
-    _paste_pixel_icon(img, "chronocoin", 60, 52, 60)
+    # Canvas
+    img = Image.new("RGBA", (POKE_W, POKE_H), _P_BG)
+    draw = ImageDraw.Draw(img)
+    # Outer card border
+    draw.rounded_rectangle(
+        [_P_MARGIN, _P_MARGIN, POKE_W - _P_MARGIN, POKE_H - _P_MARGIN],
+        radius=16, fill=None, outline=_P_BORDER, width=2,
+    )
 
-    draw.text((148, 44), "CHRONOS COIN SHOP", font=_get_font(28, bold=True), fill=TEXT_WHITE)
-    draw.text((148, 84), f"Page {curr_page + 1} of {total_pages} · Spend coins on boosts, streak freeze & prestige titles", font=_get_font(16, bold=False), fill=TEXT_MUTED)
+    # Sidebar
+    # Category breakdown
+    from utils.economy import SHOP_ITEMS, SHOP_ORDER
+    cat_counts: dict[str, int] = {}
+    for sid in SHOP_ORDER:
+        if sid in SHOP_ITEMS:
+            t = str(SHOP_ITEMS[sid].get("type", "item")).upper()
+            cat_counts[t] = cat_counts.get(t, 0) + 1
+    cats = [(name, cnt, i == 0) for i, (name, cnt) in enumerate(cat_counts.items())]
+    if not cats:
+        cats = [("ALL", total_items, True)]
 
-    # Wallet Balance Pill
-    wallet_w = 340
-    wallet_h = 52
-    w_x = CARD_WIDTH - 50 - wallet_w
-    w_y = 52
-    draw.rounded_rectangle([w_x, w_y, w_x + wallet_w, w_y + wallet_h], radius=12, fill=CARD_BG, outline=ACCENT_GOLD, width=2)
-    _paste_pixel_icon(img, "chronocoin", w_x + 14, w_y + 10, 32)
-    bal_str = f"{user_coins:,} Coins"
-    draw.text((w_x + 58, w_y + 12), bal_str, font=_get_font(20, bold=True), fill=ACCENT_GOLD)
+    _poke_draw_sidebar(
+        img, draw,
+        hero_icon="chronocoin",
+        title="CHRONOS SHOP",
+        subtitle=f"{total_items} items available",
+        categories=cats,
+        wallet_lines=[(f"{user_coins:,} Coins", _P_GOLD_PILL)],
+    )
 
-    # Pro-tip banner
-    banner_y = 138
-    banner_h = 56
-    draw.rounded_rectangle([50, banner_y, CARD_WIDTH - 50, banner_y + banner_h], radius=12, fill=CARD_BG, outline=CARD_BORDER, width=1)
-    draw.ellipse([70, banner_y + 22, 82, banner_y + 34], fill=ACCENT_GOLD)
-    draw.text((92, banner_y + 18), "QUICK PURCHASE:", font=_get_font(14, bold=True), fill=ACCENT_GOLD)
-    draw.text((250, banner_y + 19), "Use .buy <item> [qty] or select an item from the menu below to purchase!", font=_get_font(15, bold=False), fill=TEXT_SUB)
+    # Item rows
+    rows = []
+    for item in page_items:
+        rows.append({
+            "icon": item["icon"],
+            "name": f"{item['num']}. {item['name']}",
+            "subtitle": item["desc"][:42],
+            "right_text": f"{item['price']:,}",
+            "right_color": _P_GOLD_PILL,
+        })
 
-    # 2-Column Grid (3 rows x 2 cols = 6 slots per page)
-    grid_y = 212
-    slot_w = 525
-    slot_h = 242
-    col_xs = [50, 625]
+    _poke_draw_item_rows(
+        img, draw,
+        header_title="Coin Shop",
+        header_sub=f"Type .buy <number_or_name> [qty] to purchase",
+        page_str=f"PAGE {curr_page + 1}/{total_pages}",
+        items_count_str=f"{total_items} entries",
+        rows=rows,
+    )
 
-    for idx in range(6):
-        col = idx % 2
-        row = idx // 2
-        sx = col_xs[col]
-        sy = grid_y + row * (slot_h + 22)
+    # Footer accent line
+    draw.line(
+        [(_P_CONTENT_X, POKE_H - _P_MARGIN - 18), (POKE_W - _P_MARGIN, POKE_H - _P_MARGIN - 18)],
+        fill=_P_BORDER, width=1,
+    )
+    draw.text(
+        (_P_CONTENT_X + 8, POKE_H - _P_MARGIN - 16),
+        "Chronos · Study smarter, one session at a time",
+        font=_get_font(9, bold=False), fill=_P_MUTED,
+    )
 
-        if idx < len(page_items):
-            item = page_items[idx]
-
-            # Tile Card
-            draw.rounded_rectangle([sx, sy, sx + slot_w, sy + slot_h], radius=18, fill=CARD_BG, outline=CARD_BORDER, width=1)
-            # Glowing accent strip & top accent line
-            draw.rounded_rectangle([sx, sy, sx + 6, sy + slot_h], radius=3, fill=item["color"])
-            draw.line([(sx + 24, sy), (sx + slot_w - 24, sy)], fill=item["color"], width=2)
-
-            # Big 96x96 Icon Frame with 76x76 Pixel Art Icon
-            ix = sx + 22
-            iy = sy + 38
-            frame_size = 96
-            draw.rounded_rectangle(
-                [ix, iy, ix + frame_size, iy + frame_size],
-                radius=16,
-                fill=(15, 23, 42, 255),
-                outline=(item["color"][0], item["color"][1], item["color"][2], 140),
-                width=2,
-            )
-            _paste_pixel_icon(img, item["icon"], ix + 10, iy + 10, 76)
-
-            # Price Badge (Bottom Right of slot)
-            price_str = f"{item['price']:,} Coins"
-            p_font = _get_font(19, bold=True)
-            p_bbox = draw.textbbox((0, 0), price_str, font=p_font)
-            pw = p_bbox[2] - p_bbox[0]
-            draw.rounded_rectangle(
-                [sx + slot_w - pw - 56, sy + slot_h - 48, sx + slot_w - 18, sy + slot_h - 14],
-                radius=10,
-                fill=(30, 41, 59, 240),
-                outline=ACCENT_GOLD,
-                width=1,
-            )
-            _paste_pixel_icon(img, "chronocoin", sx + slot_w - pw - 48, sy + slot_h - 42, 22)
-            draw.text((sx + slot_w - pw - 20, sy + slot_h - 41), price_str, font=p_font, fill=ACCENT_GOLD)
-
-            # Info text block
-            tx = sx + 138
-            name_str = f"{item['num']}. {item['name']}"
-            if len(name_str) > 23:
-                name_str = name_str[:21] + "..."
-            draw.text((tx, sy + 22), name_str, font=_get_font(26, bold=True), fill=TEXT_WHITE)
-
-            # Type Pill
-            tag_str = item["type"]
-            f_tag = _get_font(13, bold=True)
-            t_bbox = draw.textbbox((0, 0), tag_str, font=f_tag)
-            tw = t_bbox[2] - t_bbox[0]
-            draw.rounded_rectangle([tx, sy + 60, tx + tw + 16, sy + 84], radius=6, fill=(item["color"][0], item["color"][1], item["color"][2], 40))
-            draw.text((tx + 8, sy + 63), tag_str, font=f_tag, fill=item["color"])
-
-            # Description (wrapped)
-            desc_lines = _wrap_text_lines(item["desc"], max_chars=34, max_lines=2)
-            ay = sy + 98
-            for line in desc_lines:
-                draw.text((tx, ay), line, font=_get_font(16, bold=False), fill=TEXT_SUB)
-                ay += 26
-        else:
-            # Empty slot
-            draw.rounded_rectangle([sx, sy, sx + slot_w, sy + slot_h], radius=18, fill=PANEL_BG, outline=PANEL_BORDER, width=1)
-            draw.text((sx + 175, sy + 105), "[ RESERVED SLOT ]", font=_get_font(15, bold=True), fill=(71, 85, 105, 255))
-
-    # Footer
-    fy = SHOP_CARD_HEIGHT - 55
-    draw.text((50, fy), "COMMAND: .buy <number_or_name> [quantity]  •  Example: .buy 1 3 or .buy freeze", font=_get_font(15, bold=True), fill=TEXT_SUB)
-    draw.text((CARD_WIDTH - 290, fy), f"PAGE {curr_page + 1} OF {total_pages} · CHRONOS OS", font=_get_font(14, bold=True), fill=TEXT_MUTED)
-
-    return _export_png(img)
+    return _poke_export(img)
 
 
+# ── PokeOne-style Food Shop Card ─────────────────────────────────────────────
 def render_food_shop_card_sync(
     tier: str,
     user_coins: int,
     owned_food: Optional[dict[str, int]] = None,
     page: int = 0,
-    per_page: int = 6,
+    per_page: int = 7,
 ) -> bytes:
-    """Synchronously renders the high-res 1200x1100 Food Shop catalog PNG with authentic pixel art food sprites."""
+    """800x500 PokeOne-style parchment food shop card — ultra-readable on Discord."""
     from utils.food import FOODS, FOODS_BY_TIER, FOOD_TIER_INFO
-
-    img = Image.new("RGBA", (CARD_WIDTH, SHOP_CARD_HEIGHT), BG_COLOR)
-    draw = ImageDraw.Draw(img)
 
     clean_tier = tier.lower().strip()
     if clean_tier not in FOODS_BY_TIER:
         clean_tier = "snack"
 
     tier_info = FOOD_TIER_INFO.get(clean_tier, {"label": clean_tier.title(), "color": 0x34D399})
-    t_color_int = tier_info["color"]
-    t_color = ((t_color_int >> 16) & 0xFF, (t_color_int >> 8) & 0xFF, t_color_int & 0xFF, 255)
-
-    # Outer border & canvas
-    draw.rounded_rectangle([20, 20, CARD_WIDTH - 20, SHOP_CARD_HEIGHT - 20], radius=24, fill=None, outline=(35, 43, 56, 255), width=2)
-    draw.line([(50, 20), (CARD_WIDTH - 50, 20)], fill=t_color, width=4)
 
     tier_food_ids = FOODS_BY_TIER.get(clean_tier, [])
     total_items = len(tier_food_ids)
@@ -1263,288 +1388,147 @@ def render_food_shop_card_sync(
     if owned_food is None:
         owned_food = {}
 
-    # Top Header
-    draw.ellipse([50, 42, 130, 122], fill=CARD_BG, outline=t_color, width=2)
-    first_icon = page_ids[0] if page_ids else "apple_pie"
-    _paste_pixel_icon(img, f"food/{first_icon}", 60, 52, 60)
+    # Canvas
+    img = Image.new("RGBA", (POKE_W, POKE_H), _P_BG)
+    draw = ImageDraw.Draw(img)
+    draw.rounded_rectangle(
+        [_P_MARGIN, _P_MARGIN, POKE_W - _P_MARGIN, POKE_H - _P_MARGIN],
+        radius=16, fill=None, outline=_P_BORDER, width=2,
+    )
 
-    draw.text((148, 44), f"PET BAKERY — {tier_info['label'].upper()} TIER", font=_get_font(28, bold=True), fill=TEXT_WHITE)
-    draw.text((148, 84), f"Page {curr_page + 1} of {total_pages} · Feeds your pet companion for massive XP and evolutions", font=_get_font(16, bold=False), fill=TEXT_MUTED)
+    # Sidebar — tier categories
+    tier_cats = []
+    for tk in ["snack", "meal", "feast", "golden"]:
+        ti = FOOD_TIER_INFO.get(tk, {"label": tk.title()})
+        cnt = len(FOODS_BY_TIER.get(tk, []))
+        tier_cats.append((ti["label"], cnt, tk == clean_tier))
 
-    # Wallet Balance Pill
-    wallet_w = 340
-    wallet_h = 52
-    w_x = CARD_WIDTH - 50 - wallet_w
-    w_y = 52
-    draw.rounded_rectangle([w_x, w_y, w_x + wallet_w, w_y + wallet_h], radius=12, fill=CARD_BG, outline=ACCENT_GOLD, width=2)
-    _paste_pixel_icon(img, "chronocoin", w_x + 14, w_y + 10, 32)
-    bal_str = f"{user_coins:,} Coins"
-    draw.text((w_x + 58, w_y + 12), bal_str, font=_get_font(20, bold=True), fill=ACCENT_GOLD)
+    first_icon = f"food/{page_ids[0]}" if page_ids else "food/apple_pie"
+    _poke_draw_sidebar(
+        img, draw,
+        hero_icon=first_icon,
+        title="PET BAKERY",
+        subtitle=f"{tier_info['label']} tier · {total_items} foods",
+        categories=tier_cats,
+        wallet_lines=[(f"{user_coins:,} Coins", _P_GOLD_PILL)],
+    )
 
-    # Pro-tip banner
-    banner_y = 138
-    banner_h = 56
-    draw.rounded_rectangle([50, banner_y, CARD_WIDTH - 50, banner_y + banner_h], radius=12, fill=CARD_BG, outline=CARD_BORDER, width=1)
-    draw.ellipse([70, banner_y + 22, 82, banner_y + 34], fill=t_color)
-    draw.text((92, banner_y + 18), "PET NUTRITION PRO-TIP:", font=_get_font(14, bold=True), fill=t_color)
-    draw.text((295, banner_y + 19), "Use .buyfood <item> [qty] to purchase or tap quick-buy buttons below! Feed with .feed", font=_get_font(15, bold=False), fill=TEXT_SUB)
+    # Item rows
+    rows = []
+    for fid in page_ids:
+        food = FOODS[fid]
+        have = owned_food.get(fid, 0)
+        own_str = f" (x{have})" if have > 0 else ""
+        rows.append({
+            "icon": f"food/{fid}",
+            "name": food["name"],
+            "subtitle": f"+{food['xp']:,} Pet XP{own_str}",
+            "right_text": f"{food['cost']:,}",
+            "right_color": _P_GOLD_PILL,
+        })
 
-    # 2-Column Grid (3 rows x 2 cols = 6 slots per page)
-    grid_y = 212
-    slot_w = 525
-    slot_h = 242
-    col_xs = [50, 625]
+    _poke_draw_item_rows(
+        img, draw,
+        header_title=f"{tier_info['label']} Foods",
+        header_sub=f".buyfood <name> [qty] · .feed <name>",
+        page_str=f"PAGE {curr_page + 1}/{total_pages}",
+        items_count_str=f"{total_items} entries",
+        rows=rows,
+    )
 
-    for idx in range(6):
-        col = idx % 2
-        row = idx // 2
-        sx = col_xs[col]
-        sy = grid_y + row * (slot_h + 22)
+    draw.line(
+        [(_P_CONTENT_X, POKE_H - _P_MARGIN - 18), (POKE_W - _P_MARGIN, POKE_H - _P_MARGIN - 18)],
+        fill=_P_BORDER, width=1,
+    )
+    draw.text(
+        (_P_CONTENT_X + 8, POKE_H - _P_MARGIN - 16),
+        "Chronos · Study smarter, one session at a time",
+        font=_get_font(9, bold=False), fill=_P_MUTED,
+    )
 
-        if idx < len(page_ids):
-            fid = page_ids[idx]
-            food = FOODS[fid]
-            have_qty = owned_food.get(fid, 0)
-
-            # Tile Card
-            draw.rounded_rectangle([sx, sy, sx + slot_w, sy + slot_h], radius=18, fill=CARD_BG, outline=CARD_BORDER, width=1)
-            # Glowing accent strip & top accent line
-            draw.rounded_rectangle([sx, sy, sx + 6, sy + slot_h], radius=3, fill=t_color)
-            draw.line([(sx + 24, sy), (sx + slot_w - 24, sy)], fill=t_color, width=2)
-
-            # Big 96x96 Icon Frame with 76x76 Pixel Art Icon
-            ix = sx + 22
-            iy = sy + 38
-            frame_size = 96
-            draw.rounded_rectangle(
-                [ix, iy, ix + frame_size, iy + frame_size],
-                radius=16,
-                fill=(15, 23, 42, 255),
-                outline=(t_color[0], t_color[1], t_color[2], 140),
-                width=2,
-            )
-            _paste_pixel_icon(img, f"food/{fid}", ix + 10, iy + 10, 76)
-
-            # Owned Pill (Top Right)
-            if have_qty > 0:
-                own_str = f"OWNED: ×{have_qty:,}"
-                o_font = _get_font(13, bold=True)
-                o_bbox = draw.textbbox((0, 0), own_str, font=o_font)
-                ow = o_bbox[2] - o_bbox[0]
-                draw.rounded_rectangle(
-                    [sx + slot_w - ow - 28, sy + 18, sx + slot_w - 16, sy + 44],
-                    radius=6,
-                    fill=(30, 41, 59, 240),
-                    outline=(t_color[0], t_color[1], t_color[2], 160),
-                    width=1,
-                )
-                draw.text((sx + slot_w - ow - 22, sy + 22), own_str, font=o_font, fill=t_color)
-
-            # Price Badge (Bottom Right of slot)
-            price_str = f"{food['cost']:,} Coins"
-            p_font = _get_font(19, bold=True)
-            p_bbox = draw.textbbox((0, 0), price_str, font=p_font)
-            pw = p_bbox[2] - p_bbox[0]
-            draw.rounded_rectangle(
-                [sx + slot_w - pw - 56, sy + slot_h - 48, sx + slot_w - 18, sy + slot_h - 14],
-                radius=10,
-                fill=(30, 41, 59, 240),
-                outline=ACCENT_GOLD,
-                width=1,
-            )
-            _paste_pixel_icon(img, "chronocoin", sx + slot_w - pw - 48, sy + slot_h - 42, 22)
-            draw.text((sx + slot_w - pw - 20, sy + slot_h - 41), price_str, font=p_font, fill=ACCENT_GOLD)
-
-            # Info text block
-            tx = sx + 138
-            food_name = food["name"]
-            if len(food_name) > 21:
-                food_name = food_name[:19] + "..."
-            draw.text((tx, sy + 22), food_name, font=_get_font(26, bold=True), fill=TEXT_WHITE)
-
-            # XP Pill
-            tag_str = f"+{food['xp']:,} PET XP"
-            f_tag = _get_font(13, bold=True)
-            t_bbox = draw.textbbox((0, 0), tag_str, font=f_tag)
-            tw = t_bbox[2] - t_bbox[0]
-            draw.rounded_rectangle([tx, sy + 60, tx + tw + 16, sy + 84], radius=6, fill=(t_color[0], t_color[1], t_color[2], 40))
-            draw.text((tx + 8, sy + 63), tag_str, font=f_tag, fill=t_color)
-
-            # Subtitle
-            sub_txt = f"Feeds active pet • Boosts happiness & level"
-            draw.text((tx, sy + 98), sub_txt, font=_get_font(16, bold=False), fill=TEXT_SUB)
-            draw.text((tx, sy + 124), f"Quick command: .feed {fid}", font=_get_font(14, bold=False), fill=TEXT_MUTED)
-        else:
-            # Empty slot
-            draw.rounded_rectangle([sx, sy, sx + slot_w, sy + slot_h], radius=18, fill=PANEL_BG, outline=PANEL_BORDER, width=1)
-            draw.text((sx + 175, sy + 105), "[ RESERVED SHELF ]", font=_get_font(15, bold=True), fill=(71, 85, 105, 255))
-
-    # Footer
-    fy = SHOP_CARD_HEIGHT - 55
-    draw.text((50, fy), f"COMMAND: .buyfood <item> [qty]  •  Example: .buyfood pizza 3 or .buyfood bread", font=_get_font(15, bold=True), fill=TEXT_SUB)
-    draw.text((CARD_WIDTH - 310, fy), f"{tier_info['label'].upper()} · PAGE {curr_page + 1}/{total_pages} · CHRONOS", font=_get_font(14, bold=True), fill=TEXT_MUTED)
-
-    return _export_png(img)
+    return _poke_export(img)
 
 
+# ── PokeOne-style Candy Shop Card ────────────────────────────────────────────
 def render_candy_shop_card_sync(
     user_candy: int,
     owned_titles: Optional[set[str]] = None,
     owned_pets: Optional[set[str]] = None,
     sugar_rush_qty: int = 0,
 ) -> bytes:
-    """Synchronously renders the high-res 1200x1100 Halloween Candy Shop catalog PNG."""
+    """800x500 PokeOne-style parchment candy shop card — ultra-readable on Discord."""
     from utils.halloween import CANDY_SHOP_ITEMS, CANDY_SHOP_ORDER
-
-    img = Image.new("RGBA", (CARD_WIDTH, SHOP_CARD_HEIGHT), BG_COLOR)
-    draw = ImageDraw.Draw(img)
-
-    accent_orange = (255, 117, 24, 255)
-    accent_purple = (168, 85, 247, 255)
-
-    # Outer border & canvas
-    draw.rounded_rectangle([20, 20, CARD_WIDTH - 20, SHOP_CARD_HEIGHT - 20], radius=24, fill=None, outline=(35, 43, 56, 255), width=2)
-    draw.line([(50, 20), (CARD_WIDTH - 50, 20)], fill=accent_orange, width=4)
 
     if owned_titles is None:
         owned_titles = set()
     if owned_pets is None:
         owned_pets = set()
 
-    # Top Header
-    draw.ellipse([50, 42, 130, 122], fill=CARD_BG, outline=accent_orange, width=2)
-    _paste_pixel_icon(img, "mystery_box", 60, 52, 60)
+    # Canvas
+    img = Image.new("RGBA", (POKE_W, POKE_H), _P_BG)
+    draw = ImageDraw.Draw(img)
+    draw.rounded_rectangle(
+        [_P_MARGIN, _P_MARGIN, POKE_W - _P_MARGIN, POKE_H - _P_MARGIN],
+        radius=16, fill=None, outline=_P_BORDER, width=2,
+    )
 
-    draw.text((148, 44), "THE HALLOWEEN CANDY BAZAAR", font=_get_font(28, bold=True), fill=TEXT_WHITE)
-    draw.text((148, 84), "Limited Event Catalog · Spend collected treats on exclusive unlocks, pets & boosts", font=_get_font(16, bold=False), fill=TEXT_MUTED)
-
-    # Wallet Balance Pill
-    wallet_w = 320
-    wallet_h = 52
-    w_x = CARD_WIDTH - 50 - wallet_w
-    w_y = 52
-    draw.rounded_rectangle([w_x, w_y, w_x + wallet_w, w_y + wallet_h], radius=12, fill=CARD_BG, outline=(244, 114, 182, 255), width=2)
-    bal_str = f"{user_candy:,} 🍬 Candy"
-    draw.text((w_x + 36, w_y + 12), bal_str, font=_get_font(20, bold=True), fill=(244, 114, 182, 255))
-
-    # Pro-tip banner
-    banner_y = 138
-    banner_h = 56
-    draw.rounded_rectangle([50, banner_y, CARD_WIDTH - 50, banner_y + banner_h], radius=12, fill=CARD_BG, outline=CARD_BORDER, width=1)
-    draw.ellipse([70, banner_y + 22, 82, banner_y + 34], fill=accent_orange)
-    draw.text((92, banner_y + 18), "HALLOWEEN REWARDS PRO-TIP:", font=_get_font(14, bold=True), fill=accent_orange)
-    draw.text((320, banner_y + 19), "Earn Candy by studying (.start), opening Hallo-Boxes (.openbox), and pass levels!", font=_get_font(15, bold=False), fill=TEXT_SUB)
-
-    # 4 Big Tiles (2 cols x 2 rows)
-    grid_y = 216
-    slot_w = 525
-    slot_h = 360
-    col_xs = [50, 625]
-
-    for idx, item_key in enumerate(CANDY_SHOP_ORDER):
-        if idx >= 4:
-            break
-        item = CANDY_SHOP_ITEMS[item_key]
-        col = idx % 2
-        row = idx // 2
-        sx = col_xs[col]
-        sy = grid_y + row * (slot_h + 30)
-
-        # Determine theme color & icon
-        if item_key == "pumpkaboo":
-            t_color = accent_orange
-            icon_name = "mystery_box"
-            tag_label = "EVENT-EXCLUSIVE PET"
-            is_owned = "pumpkaboo" in owned_pets
-            own_badge = "🐾 UNLOCKED" if is_owned else None
-        elif item_key == "sugar_rush":
-            t_color = (251, 191, 36, 255)
-            icon_name = "xp_boost"
-            tag_label = "EVENT CONSUMABLE"
-            own_badge = f"OWNED: ×{sugar_rush_qty:,}" if sugar_rush_qty > 0 else None
+    # Build items list
+    shop_rows: list[dict[str, Any]] = []
+    for key in CANDY_SHOP_ORDER:
+        item = CANDY_SHOP_ITEMS[key]
+        if key == "pumpkaboo":
+            icon = "mystery_box"
+            sub = "Event-exclusive pet companion"
+            owned = "pumpkaboo" in owned_pets
+        elif key == "sugar_rush":
+            icon = "xp_boost"
+            sub = f"2x XP boost (60m) · Owned: x{sugar_rush_qty}"
+            owned = False
         else:
-            t_color = accent_purple if "inorganic" in item_key else (56, 189, 248, 255)
-            icon_name = "title_scroll"
-            tag_label = "PRESTIGE TITLE"
-            t_title = item.get("title_text", item_key)
-            is_owned = item_key in owned_titles or t_title in owned_titles
-            own_badge = "✅ OWNED" if is_owned else None
+            icon = "title_scroll"
+            t_title = item.get("title_text", key)
+            sub = f'Title: "{t_title}"'
+            owned = key in owned_titles or t_title in owned_titles
 
-        # Tile Card
-        draw.rounded_rectangle([sx, sy, sx + slot_w, sy + slot_h], radius=20, fill=CARD_BG, outline=CARD_BORDER, width=1)
-        # Glowing accent strip & top accent line
-        draw.rounded_rectangle([sx, sy, sx + 6, sy + slot_h], radius=3, fill=t_color)
-        draw.line([(sx + 24, sy), (sx + slot_w - 24, sy)], fill=t_color, width=2)
+        own_tag = " [OWNED]" if owned else ""
+        shop_rows.append({
+            "icon": icon,
+            "name": item["name"] + own_tag,
+            "subtitle": sub,
+            "right_text": f"{item['candy_price']:,}",
+            "right_color": _P_CANDY,
+        })
 
-        # Big 104x104 Icon Frame with 82x82 Pixel Art Icon
-        ix = sx + 26
-        iy = sy + 44
-        frame_size = 104
-        draw.rounded_rectangle(
-            [ix, iy, ix + frame_size, iy + frame_size],
-            radius=18,
-            fill=(15, 23, 42, 255),
-            outline=(t_color[0], t_color[1], t_color[2], 140),
-            width=2,
-        )
-        _paste_pixel_icon(img, icon_name, ix + 11, iy + 11, 82)
+    # Sidebar
+    _poke_draw_sidebar(
+        img, draw,
+        hero_icon="mystery_box",
+        title="CANDY BAZAAR",
+        subtitle=f"Halloween 2026 · {len(shop_rows)} items",
+        categories=[("ALL REWARDS", len(shop_rows), True)],
+        wallet_lines=[(f"{user_candy:,} Candy", _P_CANDY)],
+    )
 
-        # Owned Pill (Top Right)
-        if own_badge:
-            o_font = _get_font(14, bold=True)
-            o_bbox = draw.textbbox((0, 0), own_badge, font=o_font)
-            ow = o_bbox[2] - o_bbox[0]
-            draw.rounded_rectangle(
-                [sx + slot_w - ow - 28, sy + 20, sx + slot_w - 16, sy + 50],
-                radius=8,
-                fill=(30, 41, 59, 240),
-                outline=(t_color[0], t_color[1], t_color[2], 160),
-                width=1,
-            )
-            draw.text((sx + slot_w - ow - 22, sy + 24), own_badge, font=o_font, fill=t_color)
+    _poke_draw_item_rows(
+        img, draw,
+        header_title="Halloween Rewards",
+        header_sub=f".buycandy <item> [qty] to purchase",
+        page_str=f"PAGE 1/1",
+        items_count_str=f"{len(shop_rows)} entries",
+        rows=shop_rows,
+    )
 
-        # Price Badge (Bottom Right)
-        price_str = f"{item['candy_price']:,} Candy"
-        p_font = _get_font(21, bold=True)
-        p_bbox = draw.textbbox((0, 0), price_str, font=p_font)
-        pw = p_bbox[2] - p_bbox[0]
-        draw.rounded_rectangle(
-            [sx + slot_w - pw - 48, sy + slot_h - 56, sx + slot_w - 18, sy + slot_h - 16],
-            radius=12,
-            fill=(30, 41, 59, 240),
-            outline=(244, 114, 182, 255),
-            width=1,
-        )
-        draw.text((sx + slot_w - pw - 38, sy + slot_h - 48), price_str, font=p_font, fill=(244, 114, 182, 255))
+    draw.line(
+        [(_P_CONTENT_X, POKE_H - _P_MARGIN - 18), (POKE_W - _P_MARGIN, POKE_H - _P_MARGIN - 18)],
+        fill=_P_BORDER, width=1,
+    )
+    draw.text(
+        (_P_CONTENT_X + 8, POKE_H - _P_MARGIN - 16),
+        "Chronos · Study smarter, one session at a time",
+        font=_get_font(9, bold=False), fill=_P_MUTED,
+    )
 
-        # Info text block
-        tx = sx + 148
-        item_name = item["name"]
-        draw.text((tx, sy + 28), item_name, font=_get_font(26, bold=True), fill=TEXT_WHITE)
-
-        # Type Pill
-        f_tag = _get_font(13, bold=True)
-        t_bbox = draw.textbbox((0, 0), tag_label, font=f_tag)
-        tw = t_bbox[2] - t_bbox[0]
-        draw.rounded_rectangle([tx, sy + 68, tx + tw + 18, sy + 94], radius=6, fill=(t_color[0], t_color[1], t_color[2], 40))
-        draw.text((tx + 9, sy + 71), tag_label, font=f_tag, fill=t_color)
-
-        # Description (wrapped)
-        desc_lines = _wrap_text_lines(item["description"], max_chars=34, max_lines=4)
-        ay = sy + 112
-        for line in desc_lines:
-            draw.text((tx, ay), line, font=_get_font(16, bold=False), fill=TEXT_SUB)
-            ay += 26
-
-        # Command hint
-        draw.text((26 + sx, sy + slot_h - 44), f"Command: .buycandy {item_key}", font=_get_font(14, bold=False), fill=TEXT_MUTED)
-
-    # Footer
-    fy = SHOP_CARD_HEIGHT - 55
-    draw.text((50, fy), "COMMAND: .buycandy <item> [qty]  •  Example: .buycandy pumpkaboo or .buycandy sugar 3", font=_get_font(15, bold=True), fill=TEXT_SUB)
-    draw.text((CARD_WIDTH - 290, fy), "HALLOWEEN 2026 · CHRONOS", font=_get_font(14, bold=True), fill=TEXT_MUTED)
-
-    return _export_png(img)
+    return _poke_export(img)
 
 
 def _wrap_text_lines(text: str, max_chars: int = 36, max_lines: int = 2) -> list[str]:
@@ -1703,6 +1687,7 @@ def get_item_display_meta(item_id: str) -> dict[str, Any]:
     }
 
 
+# ── PokeOne-style Inventory/Bag Card ────────────────────────────────────────
 def render_inventory_card_sync(
     display_name: str,
     username: str,
@@ -1714,166 +1699,114 @@ def render_inventory_card_sync(
     equipped_title: Optional[str] = None,
     avatar_bytes: Optional[bytes] = None,
     page: int = 0,
-    per_page: int = 6,
+    per_page: int = 7,
 ) -> bytes:
-    """Synchronously renders the high-res 1200x880 Inventory / Bag card PNG with 2-column big cards and pagination."""
-    img = Image.new("RGBA", (CARD_WIDTH, INV_CARD_HEIGHT), BG_COLOR)
-    draw = ImageDraw.Draw(img)
-
-    clean_tier = tier_name.split()[-1].lower() if tier_name else "iron"
-    tier_rgb = TIER_COLORS.get(clean_tier, (148, 163, 184))
-    tier_rgba = (*tier_rgb, 255)
-
-    # Outer border & canvas
-    draw.rounded_rectangle([20, 20, CARD_WIDTH - 20, INV_CARD_HEIGHT - 20], radius=20, fill=None, outline=(30, 41, 59, 255), width=2)
-    draw.line([(50, 20), (CARD_WIDTH - 50, 20)], fill=ACCENT_CYAN, width=4)
-
+    """800x500 PokeOne-style parchment inventory card — ultra-readable on Discord."""
     # Collect valid items
     valid_items = [(k, v) for k, v in inventory.items() if v > 0]
     total_items = len(valid_items)
     total_qty = sum(v for _, v in valid_items)
     total_pages = max(1, (total_items + per_page - 1) // per_page)
     curr_page = max(0, min(page, total_pages - 1))
-
-    # Slice for current page
     start_idx = curr_page * per_page
     page_items = valid_items[start_idx : start_idx + per_page]
 
-    # Header
-    av_size = 76
-    av_x, av_y = 50, 40
+    # Categorize items for sidebar
+    cat_counts: dict[str, int] = {}
+    for item_id, qty in valid_items:
+        meta = get_item_display_meta(item_id)
+        t = meta.get("type", "ITEM")
+        # Simplify type names
+        if "BOOST" in t:
+            cat_key = "BOOSTS"
+        elif "FOOD" in t:
+            cat_key = "PET FOOD"
+        elif "TITLE" in t:
+            cat_key = "TITLES"
+        elif "CONSUMABLE" in t:
+            cat_key = "CONSUMABLE"
+        elif "HALLOWEEN" in t or "EVENT" in t:
+            cat_key = "EVENT"
+        else:
+            cat_key = "MISC"
+        cat_counts[cat_key] = cat_counts.get(cat_key, 0) + qty
+
+    cats = [(name, cnt, i == 0) for i, (name, cnt) in enumerate(cat_counts.items())]
+    if not cats:
+        cats = [("EMPTY", 0, True)]
+
+    # Canvas
+    img = Image.new("RGBA", (POKE_W, POKE_H), _P_BG)
+    draw = ImageDraw.Draw(img)
+    draw.rounded_rectangle(
+        [_P_MARGIN, _P_MARGIN, POKE_W - _P_MARGIN, POKE_H - _P_MARGIN],
+        radius=16, fill=None, outline=_P_BORDER, width=2,
+    )
+
+    # Try to paste avatar into sidebar hero area
+    clean_disp = _sanitize_text(display_name) or "Bag"
+    hero_icon = "chronocoin"  # fallback
+
+    _poke_draw_sidebar(
+        img, draw,
+        hero_icon=hero_icon,
+        title=f"{clean_disp.upper()}'S BAG",
+        subtitle=f"{total_items} unique · {total_qty:,} total",
+        categories=cats,
+        wallet_lines=[
+            (f"{coins:,} Coins", _P_GOLD_PILL),
+            (f"{candy:,} Candy", _P_CANDY),
+        ],
+    )
+
+    # If avatar_bytes available, paste over the hero icon area
     if avatar_bytes:
         try:
             with Image.open(io.BytesIO(avatar_bytes)) as raw_av:
-                circle_av = _make_circular_avatar(raw_av, av_size)
-                img.paste(circle_av, (av_x, av_y), circle_av)
-                draw.ellipse([av_x - 2, av_y - 2, av_x + av_size + 2, av_y + av_size + 2], outline=tier_rgba, width=2)
+                circle_av = _make_circular_avatar(raw_av, 56)
+                ax = _P_MARGIN + (_P_SIDEBAR_W - 56) // 2
+                ay = _P_MARGIN + 18
+                img.paste(circle_av, (ax, ay), circle_av)
         except Exception:
-            draw.ellipse([av_x, av_y, av_x + av_size, av_y + av_size], fill=CARD_BG, outline=tier_rgba, width=2)
-    else:
-        draw.ellipse([av_x, av_y, av_x + av_size, av_y + av_size], fill=CARD_BG, outline=tier_rgba, width=2)
+            pass
 
-    clean_disp = _sanitize_text(display_name) or "Candidate"
-    draw.text((av_x + av_size + 20, av_y + 4), f"{clean_disp.upper()}'S SATCHEL & INVENTORY", font=_get_font(26, bold=True), fill=TEXT_WHITE)
+    # Item rows
+    rows = []
+    for item_id, qty in page_items:
+        meta = get_item_display_meta(item_id)
+        rows.append({
+            "icon": meta["icon"],
+            "name": meta["name"],
+            "subtitle": meta["action"],
+            "right_text": f"{qty}x",
+            "right_color": _P_DARK,
+        })
 
-    sub_parts = [
-        f"Page {curr_page + 1} of {total_pages}",
-        f"{total_items} Unique ({total_qty:,} Total Items)",
-    ]
-    if equipped_title:
-        sub_parts.append(f"Title: \"{_sanitize_text(equipped_title)}\"")
-    draw.text((av_x + av_size + 20, av_y + 42), " · ".join(sub_parts), font=_get_font(15, bold=False), fill=TEXT_MUTED)
-
-    # Wallet Badges on Top Right
-    w_coin_str = f"{coins:,}"
-    draw.rounded_rectangle([CARD_WIDTH - 390, av_y + 8, CARD_WIDTH - 215, av_y + 54], radius=10, fill=CARD_BG, outline=ACCENT_GOLD, width=1)
-    _paste_pixel_icon(img, "chronocoin", CARD_WIDTH - 380, av_y + 14, 28)
-    draw.text((CARD_WIDTH - 344, av_y + 17), w_coin_str, font=_get_font(18, bold=True), fill=ACCENT_GOLD)
-
-    draw.rounded_rectangle([CARD_WIDTH - 200, av_y + 8, CARD_WIDTH - 50, av_y + 54], radius=10, fill=CARD_BG, outline=(236, 72, 153, 255), width=1)
-    draw.text((CARD_WIDTH - 190, av_y + 17), f"{candy:,} Candy", font=_get_font(18, bold=True), fill=(244, 114, 182, 255))
-
-    # Active Boosts Banner (y = 132)
-    banner_y = 132
-    banner_h = 52
-    draw.rounded_rectangle([50, banner_y, CARD_WIDTH - 50, banner_y + banner_h], radius=12, fill=CARD_BG, outline=CARD_BORDER, width=1)
+    boost_hint = ""
     if active_boosts:
-        draw.ellipse([70, banner_y + 20, 82, banner_y + 32], fill=ACCENT_GREEN)
-        draw.text((92, banner_y + 17), "ACTIVE BOOSTS RUNNING:", font=_get_font(13, bold=True), fill=ACCENT_GREEN)
-        bx_curr = 295
-        for b in active_boosts:
-            rem = _format_time(b["remaining"])
-            b_txt = f"{b['name']} ({b['mult']}x) — {rem} left"
-            b_w = len(b_txt) * 9 + 20
-            draw.rounded_rectangle([bx_curr, banner_y + 10, bx_curr + b_w, banner_y + banner_h - 10], radius=6, fill=(30, 41, 59, 200))
-            draw.text((bx_curr + 10, banner_y + 16), b_txt, font=_get_font(13, bold=True), fill=TEXT_WHITE)
-            bx_curr += b_w + 15
-    else:
-        draw.ellipse([70, banner_y + 20, 82, banner_y + 32], fill=(100, 116, 139, 255))
-        draw.text((92, banner_y + 17), "NO ACTIVE BOOSTS", font=_get_font(13, bold=True), fill=TEXT_MUTED)
-        draw.text((250, banner_y + 18), "Activate an XP or Coin boost from your inventory below with .use <item>", font=_get_font(14, bold=False), fill=TEXT_SUB)
+        b = active_boosts[0]
+        boost_hint = f" · {b['name']} active"
 
-    # 2-Column Spacious Grid (2 cols x 3 rows = 6 items per page)
-    grid_y = 212
-    slot_w = 525
-    slot_h = 242
-    col_xs = [50, 625]
+    _poke_draw_item_rows(
+        img, draw,
+        header_title="Satchel" + boost_hint,
+        header_sub=".use <item> · .openbox · .settitle",
+        page_str=f"PAGE {curr_page + 1}/{total_pages}",
+        items_count_str=f"{total_items} entries",
+        rows=rows,
+    )
 
-    for idx in range(6):
-        col = idx % 2
-        row = idx // 2
-        sx = col_xs[col]
-        sy = grid_y + row * (slot_h + 22)
+    draw.line(
+        [(_P_CONTENT_X, POKE_H - _P_MARGIN - 18), (POKE_W - _P_MARGIN, POKE_H - _P_MARGIN - 18)],
+        fill=_P_BORDER, width=1,
+    )
+    draw.text(
+        (_P_CONTENT_X + 8, POKE_H - _P_MARGIN - 16),
+        "Chronos · Study smarter, one session at a time",
+        font=_get_font(9, bold=False), fill=_P_MUTED,
+    )
 
-        if idx < len(page_items):
-            i_id, qty = page_items[idx]
-            meta = get_item_display_meta(i_id)
-
-            # Slot card
-            draw.rounded_rectangle([sx, sy, sx + slot_w, sy + slot_h], radius=18, fill=CARD_BG, outline=CARD_BORDER, width=1)
-            # Glowing accent strip & top accent line
-            draw.rounded_rectangle([sx, sy, sx + 6, sy + slot_h], radius=3, fill=meta["color"])
-            draw.line([(sx + 24, sy), (sx + slot_w - 24, sy)], fill=meta["color"], width=2)
-
-            # Big Icon Frame (96x96 with 76x76 pixel art)
-            ix = sx + 22
-            iy = sy + 38
-            frame_size = 96
-            draw.rounded_rectangle(
-                [ix, iy, ix + frame_size, iy + frame_size],
-                radius=16,
-                fill=(15, 23, 42, 255),
-                outline=(meta["color"][0], meta["color"][1], meta["color"][2], 140),
-                width=2,
-            )
-            _paste_pixel_icon(img, meta["icon"], ix + 10, iy + 10, 76)
-
-            # Quantity pill (Top Right)
-            qty_str = f"×{qty:,}"
-            q_font = _get_font(22, bold=True)
-            q_bbox = draw.textbbox((0, 0), qty_str, font=q_font)
-            qw = q_bbox[2] - q_bbox[0]
-            draw.rounded_rectangle(
-                [sx + slot_w - qw - 32, sy + 18, sx + slot_w - 16, sy + 52],
-                radius=8,
-                fill=(30, 41, 59, 240),
-                outline=(meta["color"][0], meta["color"][1], meta["color"][2], 160),
-                width=1,
-            )
-            draw.text((sx + slot_w - qw - 24, sy + 22), qty_str, font=q_font, fill=meta["color"])
-
-            # Info text block
-            tx = sx + 138
-            item_name = meta["name"]
-            if len(item_name) > 23:
-                item_name = item_name[:21] + "..."
-            draw.text((tx, sy + 22), item_name, font=_get_font(26, bold=True), fill=TEXT_WHITE)
-
-            # Type Pill
-            tag_str = meta["type"]
-            f_tag = _get_font(13, bold=True)
-            t_bbox = draw.textbbox((0, 0), tag_str, font=f_tag)
-            tw = t_bbox[2] - t_bbox[0]
-            draw.rounded_rectangle([tx, sy + 60, tx + tw + 16, sy + 84], radius=6, fill=(meta["color"][0], meta["color"][1], meta["color"][2], 40))
-            draw.text((tx + 8, sy + 63), tag_str, font=f_tag, fill=meta["color"])
-
-            # Subtitle / Action lines
-            action_lines = _wrap_text_lines(meta["action"], max_chars=34, max_lines=2)
-            ay = sy + 98
-            for line in action_lines:
-                draw.text((tx, ay), line, font=_get_font(16, bold=False), fill=TEXT_SUB)
-                ay += 26
-        else:
-            # Empty slot
-            draw.rounded_rectangle([sx, sy, sx + slot_w, sy + slot_h], radius=18, fill=PANEL_BG, outline=PANEL_BORDER, width=1)
-            draw.text((sx + 165, sy + 105), "[ EMPTY SATCHEL SLOT ]", font=_get_font(15, bold=True), fill=(71, 85, 105, 255))
-
-    # Footer
-    fy = INV_CARD_HEIGHT - 55
-    draw.text((50, fy), "TIPS: .use <boost> to activate  •  .openbox to roll  •  .settitle to equip", font=_get_font(15, bold=True), fill=TEXT_SUB)
-    draw.text((CARD_WIDTH - 290, fy), f"PAGE {curr_page + 1} OF {total_pages} · CHRONOS OS", font=_get_font(14, bold=True), fill=TEXT_MUTED)
-
-    return _export_png(img)
+    return _poke_export(img)
 
 
 # ==============================================================================

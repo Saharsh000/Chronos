@@ -147,7 +147,7 @@ class FoodShopView(discord.ui.View):
         page: int = 0,
         user_coins: int = 0,
         owned_food: Optional[dict[str, int]] = None,
-        per_page: int = 6,
+        per_page: int = 7,
     ) -> None:
         super().__init__(timeout=180)
         self.bot = bot
@@ -688,7 +688,7 @@ class Pets(commands.Cog, name="Pets"):
             page=page,
             user_coins=currency.get("coins", 0),
             owned_food=owned_food,
-            per_page=6,
+            per_page=7,
         )
 
         coin_e = emojis.coin(ctx.guild)
