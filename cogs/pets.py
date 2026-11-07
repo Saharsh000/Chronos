@@ -11,16 +11,20 @@ utils/food.py for the full catalogs.
 """
 from __future__ import annotations
 
+import asyncio
+import io
 import logging
-from typing import Optional
+from typing import Any, Optional
 
 import discord
 from discord.ext import commands
 
 import config
 from utils import embeds
+from utils import emojis
 from utils import food as food_catalog
 from utils import pets as pet_catalog
+from utils.stats_card import render_food_shop_card_sync
 from utils.views import ShopPaginator
 from utils.xp import progress_bar
 
@@ -130,6 +134,271 @@ async def _send_embed_grid(ctx: commands.Context, embed_list: list[discord.Embed
     instead of one cramped text embed."""
     for i in range(0, len(embed_list), chunk_size):
         await ctx.send(embeds=embed_list[i:i + chunk_size])
+
+
+class FoodShopView(discord.ui.View):
+    """Interactive visual shop view for browsing and purchasing pet food."""
+
+    def __init__(
+        self,
+        bot: commands.Bot,
+        ctx: commands.Context,
+        tier: str = "snack",
+        page: int = 0,
+        user_coins: int = 0,
+        owned_food: Optional[dict[str, int]] = None,
+        per_page: int = 6,
+    ) -> None:
+        super().__init__(timeout=180)
+        self.bot = bot
+        self.ctx = ctx
+        self.tier = tier.lower()
+        self.page = page
+        self.user_coins = user_coins
+        self.owned_food = owned_food or {}
+        self.per_page = per_page
+        self.message: Optional[discord.Message] = None
+        self._update_components()
+
+    @property
+    def tier_food_ids(self) -> list[str]:
+        return food_catalog.FOODS_BY_TIER.get(self.tier, [])
+
+    @property
+    def total_pages(self) -> int:
+        return max(1, (len(self.tier_food_ids) + self.per_page - 1) // self.per_page)
+
+    def _update_components(self) -> None:
+        self.clear_items()
+
+        # Row 0: Tier Select Dropdown
+        tier_select = discord.ui.Select(
+            placeholder="Select Food Tier...",
+            min_values=1,
+            max_values=1,
+            row=0,
+            options=[
+                discord.SelectOption(
+                    label="Snack Tier (40 - 65 Pet XP)",
+                    value="snack",
+                    description="Everyday snacks (100 - 150 coins)",
+                    emoji="🍪",
+                    default=(self.tier == "snack"),
+                ),
+                discord.SelectOption(
+                    label="Meal Tier (200 - 260 Pet XP)",
+                    value="meal",
+                    description="Hearty dishes & meals (450 - 570 coins)",
+                    emoji="🍛",
+                    default=(self.tier == "meal"),
+                ),
+                discord.SelectOption(
+                    label="Feast Tier (800 - 1,000 Pet XP)",
+                    value="feast",
+                    description="Massive feasts for rapid leveling (1,600 - 2,000 coins)",
+                    emoji="🍗",
+                    default=(self.tier == "feast"),
+                ),
+                discord.SelectOption(
+                    label="Golden Tier (3,000 - 4,000 Pet XP)",
+                    value="golden",
+                    description="Mythic royal delicacies (5,500 - 7,000 coins)",
+                    emoji="✨",
+                    default=(self.tier == "golden"),
+                ),
+            ],
+        )
+        tier_select.callback = self._tier_select_callback
+        self.add_item(tier_select)
+
+        # Rows 1 & 2: Quick buy buttons for items on current page (up to 3 per row)
+        start_idx = self.page * self.per_page
+        page_ids = self.tier_food_ids[start_idx : start_idx + self.per_page]
+
+        for i, fid in enumerate(page_ids):
+            row = 1 if i < 3 else 2
+            food = food_catalog.FOODS[fid]
+            short_name = food["name"]
+            if len(short_name) > 13:
+                short_name = short_name[:11] + ".."
+
+            t_emoji = food_catalog.FOOD_TIER_INFO[food["tier"]]["emoji"]
+            btn = discord.ui.Button(
+                emoji=t_emoji,
+                label=f"Buy {short_name}",
+                style=discord.ButtonStyle.secondary,
+                row=row,
+            )
+            btn.callback = self._create_buy_callback(fid, food)
+            self.add_item(btn)
+
+        # Row 3: Pagination buttons
+        if self.total_pages > 1:
+            btn_first = discord.ui.Button(
+                emoji="⏮️",
+                style=discord.ButtonStyle.secondary,
+                disabled=(self.page == 0),
+                row=3,
+            )
+            btn_first.callback = self._first_callback
+            self.add_item(btn_first)
+
+            btn_prev = discord.ui.Button(
+                emoji="◀️",
+                label="Prev",
+                style=discord.ButtonStyle.primary,
+                disabled=(self.page == 0),
+                row=3,
+            )
+            btn_prev.callback = self._prev_callback
+            self.add_item(btn_prev)
+
+            btn_page = discord.ui.Button(
+                label=f"Page {self.page + 1} / {self.total_pages}",
+                style=discord.ButtonStyle.secondary,
+                disabled=True,
+                row=3,
+            )
+            self.add_item(btn_page)
+
+            btn_next = discord.ui.Button(
+                emoji="▶️",
+                label="Next",
+                style=discord.ButtonStyle.primary,
+                disabled=(self.page >= self.total_pages - 1),
+                row=3,
+            )
+            btn_next.callback = self._next_callback
+            self.add_item(btn_next)
+
+            btn_last = discord.ui.Button(
+                emoji="⏭️",
+                style=discord.ButtonStyle.secondary,
+                disabled=(self.page >= self.total_pages - 1),
+                row=3,
+            )
+            btn_last.callback = self._last_callback
+            self.add_item(btn_last)
+
+    def _create_buy_callback(self, fid: str, food: dict[str, Any]):
+        async def callback(interaction: discord.Interaction) -> None:
+            await self._buy_food_callback(interaction, fid, food)
+        return callback
+
+    async def _tier_select_callback(self, interaction: discord.Interaction) -> None:
+        if interaction.user.id != self.ctx.author.id:
+            await interaction.response.send_message("Only the command caller can switch tiers.", ephemeral=True)
+            return
+        select = interaction.data["values"][0]
+        self.tier = select
+        self.page = 0
+        await interaction.response.defer()
+        await self._render_page()
+
+    async def _first_callback(self, interaction: discord.Interaction) -> None:
+        if interaction.user.id != self.ctx.author.id:
+            await interaction.response.send_message("Only the command caller can use pagination.", ephemeral=True)
+            return
+        await interaction.response.defer()
+        self.page = 0
+        await self._render_page()
+
+    async def _prev_callback(self, interaction: discord.Interaction) -> None:
+        if interaction.user.id != self.ctx.author.id:
+            await interaction.response.send_message("Only the command caller can use pagination.", ephemeral=True)
+            return
+        await interaction.response.defer()
+        if self.page > 0:
+            self.page -= 1
+        await self._render_page()
+
+    async def _next_callback(self, interaction: discord.Interaction) -> None:
+        if interaction.user.id != self.ctx.author.id:
+            await interaction.response.send_message("Only the command caller can use pagination.", ephemeral=True)
+            return
+        await interaction.response.defer()
+        if self.page < self.total_pages - 1:
+            self.page += 1
+        await self._render_page()
+
+    async def _last_callback(self, interaction: discord.Interaction) -> None:
+        if interaction.user.id != self.ctx.author.id:
+            await interaction.response.send_message("Only the command caller can use pagination.", ephemeral=True)
+            return
+        await interaction.response.defer()
+        self.page = self.total_pages - 1
+        await self._render_page()
+
+    async def _buy_food_callback(self, interaction: discord.Interaction, fid: str, food: dict[str, Any]) -> None:
+        if interaction.user.id != self.ctx.author.id:
+            await interaction.response.send_message(f"Use `{self.ctx.prefix}foodshop` to open your own food bakery!", ephemeral=True)
+            return
+
+        result = await self.bot.db.buy_food(interaction.user.id, self.ctx.guild.id, fid, qty=1)
+        if not result["success"]:
+            reasons = {
+                "not_found": "That food doesn't exist.",
+                "insufficient_funds": f"❌ You don't have enough Chronocoins! You have **{self.user_coins:,}**, but this costs **{food['cost']:,}**.",
+            }
+            await interaction.response.send_message(reasons.get(result.get("reason"), "Purchase failed."), ephemeral=True)
+            return
+
+        self.user_coins = max(0, self.user_coins - food["cost"])
+        self.owned_food[fid] = self.owned_food.get(fid, 0) + 1
+
+        await interaction.response.defer()
+        await self._render_page()
+
+        await interaction.followup.send(
+            f"✅ Purchased 1x **{food['name']}** for **{food['cost']:,} Chronocoins**!\n"
+            f"🍖 Feed it to your active pet with `{self.ctx.prefix}feed {fid}` (+{food['xp']:,} Pet XP)\n"
+            f"🪙 **New Balance:** `{self.user_coins:,}` Chronocoins",
+            ephemeral=True,
+        )
+
+        newly = await self.bot.db.check_achievements(self.ctx.author.id, self.ctx.guild.id)
+        if newly:
+            await self.ctx.send(embed=embeds.achievement_unlock_embed(self.ctx.author, newly))
+
+    async def _render_page(self) -> None:
+        self._update_components()
+        loop = asyncio.get_running_loop()
+        card_bytes = await loop.run_in_executor(
+            None,
+            render_food_shop_card_sync,
+            self.tier,
+            self.user_coins,
+            self.owned_food,
+            self.page,
+            self.per_page,
+        )
+        coin_e = emojis.coin(self.ctx.guild)
+        tier_info = food_catalog.FOOD_TIER_INFO[self.tier]
+        embed = embeds.base_embed(
+            title=f"🏪 Chronos Pet Bakery — {tier_info['emoji']} {tier_info['label']} Tier",
+            description=(
+                f"{coin_e} **{self.user_coins:,} Chronocoins available**\n"
+                f"Use the menu to switch food tiers or click buttons below to purchase!"
+            ),
+            color=tier_info["color"],
+        )
+        embeds.set_footer(
+            embed,
+            f"Tier: {tier_info['label']} • Page {self.page + 1}/{self.total_pages} • {self.ctx.prefix}feed <food> [qty]"
+        )
+        file = discord.File(io.BytesIO(card_bytes), filename="foodshop.png")
+        embed.set_image(url="attachment://foodshop.png")
+        if self.message:
+            await self.message.edit(embed=embed, attachments=[file], view=self)
+
+    async def on_timeout(self) -> None:
+        for item in self.children:
+            item.disabled = True
+        if self.message:
+            try:
+                await self.message.edit(view=self)
+            except Exception:
+                pass
 
 
 class Pets(commands.Cog, name="Pets"):
@@ -384,42 +653,91 @@ class Pets(commands.Cog, name="Pets"):
     # ------------------------------------------------------------------ #
     @commands.command(name="foodshop", aliases=["fshop"])
     @commands.guild_only()
-    async def foodshop_cmd(self, ctx: commands.Context, tier: Optional[str] = None) -> None:
-        """Browse pet food in an interactive, paginated menu.
+    async def foodshop_cmd(
+        self,
+        ctx: commands.Context,
+        tier_or_page: Optional[str] = None,
+        page_arg: Optional[int] = None,
+    ) -> None:
+        """Browse pet food with high-res visual catalog cards, tier dropdown, and quick-buy buttons.
 
-        `.foodshop` opens at the Snack tier; `.foodshop <tier>` jumps
-        straight to that tier. Use the dropdown to switch tiers and the
-        arrows to page through them.
+        Usage:
+            .foodshop
+            .foodshop meal
+            .foodshop feast 2
         """
         tier_key = "snack"
-        if tier is not None:
-            candidate = tier.strip().lower()
-            if candidate not in food_catalog.FOOD_TIER_INFO:
-                await ctx.send(embed=embeds.error_embed(
-                    f"Unknown tier `{tier}`. Try one of: {', '.join(food_catalog.FOOD_TIER_ORDER)}."
-                ))
-                return
-            tier_key = candidate
+        page = 0
+
+        if tier_or_page is not None:
+            candidate = tier_or_page.strip().lower()
+            if candidate in food_catalog.FOOD_TIER_INFO:
+                tier_key = candidate
+                if page_arg is not None:
+                    page = max(0, page_arg - 1)
+            elif candidate.isdigit():
+                page = max(0, int(candidate) - 1)
 
         currency = await self.db.get_or_create_currency(ctx.author.id, ctx.guild.id)
         owned_food = await self.db.get_food_inventory(ctx.author.id, ctx.guild.id)
 
-        def build(tier_name: str, page: int) -> list[discord.Embed]:
-            return build_food_shop_page(
-                tier_name, page, ctx.prefix, coins=currency["coins"], owned=owned_food,
-            )
-
-        view = ShopPaginator(
-            author_id=ctx.author.id,
-            tiers=[
-                (key, food_catalog.FOOD_TIER_INFO[key]["label"], food_catalog.FOOD_TIER_INFO[key]["emoji"])
-                for key in food_catalog.FOOD_TIER_ORDER
-            ],
-            initial_tier=tier_key,
-            build_page=build,
-            count_pages=count_food_shop_pages,
+        view = FoodShopView(
+            bot=self.bot,
+            ctx=ctx,
+            tier=tier_key,
+            page=page,
+            user_coins=currency.get("coins", 0),
+            owned_food=owned_food,
+            per_page=6,
         )
-        view.message = await ctx.send(embeds=view.embeds(), view=view)
+
+        coin_e = emojis.coin(ctx.guild)
+        tier_info = food_catalog.FOOD_TIER_INFO[view.tier]
+        embed = embeds.base_embed(
+            title=f"🏪 Chronos Pet Bakery — {tier_info['emoji']} {tier_info['label']} Tier",
+            description=(
+                f"{coin_e} **{view.user_coins:,} Chronocoins available**\n"
+                f"Use the menu to switch food tiers or click buttons below to purchase!"
+            ),
+            color=tier_info["color"],
+        )
+        embeds.set_footer(
+            embed,
+            f"Tier: {tier_info['label']} • Page {view.page + 1}/{view.total_pages} • {ctx.prefix}feed <food> [qty]"
+        )
+
+        loop = asyncio.get_running_loop()
+        try:
+            card_bytes = await loop.run_in_executor(
+                None,
+                render_food_shop_card_sync,
+                view.tier,
+                view.user_coins,
+                view.owned_food,
+                view.page,
+                view.per_page,
+            )
+            file = discord.File(io.BytesIO(card_bytes), filename="foodshop.png")
+            embed.set_image(url="attachment://foodshop.png")
+            msg = await ctx.send(file=file, embed=embed, view=view)
+            view.message = msg
+        except Exception as e:
+            log.error("Failed to render visual food shop card", exc_info=e)
+            def build(tier_name: str, p: int) -> list[discord.Embed]:
+                return build_food_shop_page(
+                    tier_name, p, ctx.prefix, coins=currency["coins"], owned=owned_food,
+                )
+            old_view = ShopPaginator(
+                author_id=ctx.author.id,
+                tiers=[
+                    (key, food_catalog.FOOD_TIER_INFO[key]["label"], food_catalog.FOOD_TIER_INFO[key]["emoji"])
+                    for key in food_catalog.FOOD_TIER_ORDER
+                ],
+                initial_tier=tier_key,
+                build_page=build,
+                count_pages=count_food_shop_pages,
+            )
+            old_view.message = await ctx.send(embeds=old_view.embeds(), view=old_view)
 
     # ------------------------------------------------------------------ #
     # .buyfood

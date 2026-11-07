@@ -1228,6 +1228,165 @@ def render_shop_card_sync(
     return _export_png(img)
 
 
+def render_food_shop_card_sync(
+    tier: str,
+    user_coins: int,
+    owned_food: Optional[dict[str, int]] = None,
+    page: int = 0,
+    per_page: int = 6,
+) -> bytes:
+    """Synchronously renders the high-res 1200x1100 Food Shop catalog PNG with authentic pixel art food sprites."""
+    from utils.food import FOODS, FOODS_BY_TIER, FOOD_TIER_INFO
+
+    img = Image.new("RGBA", (CARD_WIDTH, SHOP_CARD_HEIGHT), BG_COLOR)
+    draw = ImageDraw.Draw(img)
+
+    clean_tier = tier.lower().strip()
+    if clean_tier not in FOODS_BY_TIER:
+        clean_tier = "snack"
+
+    tier_info = FOOD_TIER_INFO.get(clean_tier, {"label": clean_tier.title(), "color": 0x34D399})
+    t_color_int = tier_info["color"]
+    t_color = ((t_color_int >> 16) & 0xFF, (t_color_int >> 8) & 0xFF, t_color_int & 0xFF, 255)
+
+    # Outer border & canvas
+    draw.rounded_rectangle([20, 20, CARD_WIDTH - 20, SHOP_CARD_HEIGHT - 20], radius=24, fill=None, outline=(35, 43, 56, 255), width=2)
+    draw.line([(50, 20), (CARD_WIDTH - 50, 20)], fill=t_color, width=4)
+
+    tier_food_ids = FOODS_BY_TIER.get(clean_tier, [])
+    total_items = len(tier_food_ids)
+    total_pages = max(1, (total_items + per_page - 1) // per_page)
+    curr_page = max(0, min(page, total_pages - 1))
+    start_idx = curr_page * per_page
+    page_ids = tier_food_ids[start_idx : start_idx + per_page]
+
+    if owned_food is None:
+        owned_food = {}
+
+    # Top Header
+    draw.ellipse([50, 42, 130, 122], fill=CARD_BG, outline=t_color, width=2)
+    first_icon = page_ids[0] if page_ids else "apple_pie"
+    _paste_pixel_icon(img, f"food/{first_icon}", 60, 52, 60)
+
+    draw.text((148, 44), f"PET BAKERY — {tier_info['label'].upper()} TIER", font=_get_font(28, bold=True), fill=TEXT_WHITE)
+    draw.text((148, 84), f"Page {curr_page + 1} of {total_pages} · Feeds your pet companion for massive XP and evolutions", font=_get_font(16, bold=False), fill=TEXT_MUTED)
+
+    # Wallet Balance Pill
+    wallet_w = 340
+    wallet_h = 52
+    w_x = CARD_WIDTH - 50 - wallet_w
+    w_y = 52
+    draw.rounded_rectangle([w_x, w_y, w_x + wallet_w, w_y + wallet_h], radius=12, fill=CARD_BG, outline=ACCENT_GOLD, width=2)
+    _paste_pixel_icon(img, "chronocoin", w_x + 14, w_y + 10, 32)
+    bal_str = f"{user_coins:,} Coins"
+    draw.text((w_x + 58, w_y + 12), bal_str, font=_get_font(20, bold=True), fill=ACCENT_GOLD)
+
+    # Pro-tip banner
+    banner_y = 138
+    banner_h = 56
+    draw.rounded_rectangle([50, banner_y, CARD_WIDTH - 50, banner_y + banner_h], radius=12, fill=CARD_BG, outline=CARD_BORDER, width=1)
+    draw.ellipse([70, banner_y + 22, 82, banner_y + 34], fill=t_color)
+    draw.text((92, banner_y + 18), "PET NUTRITION PRO-TIP:", font=_get_font(14, bold=True), fill=t_color)
+    draw.text((295, banner_y + 19), "Use .buyfood <item> [qty] to purchase or tap quick-buy buttons below! Feed with .feed", font=_get_font(15, bold=False), fill=TEXT_SUB)
+
+    # 2-Column Grid (3 rows x 2 cols = 6 slots per page)
+    grid_y = 212
+    slot_w = 525
+    slot_h = 242
+    col_xs = [50, 625]
+
+    for idx in range(6):
+        col = idx % 2
+        row = idx // 2
+        sx = col_xs[col]
+        sy = grid_y + row * (slot_h + 22)
+
+        if idx < len(page_ids):
+            fid = page_ids[idx]
+            food = FOODS[fid]
+            have_qty = owned_food.get(fid, 0)
+
+            # Tile Card
+            draw.rounded_rectangle([sx, sy, sx + slot_w, sy + slot_h], radius=18, fill=CARD_BG, outline=CARD_BORDER, width=1)
+            # Glowing accent strip & top accent line
+            draw.rounded_rectangle([sx, sy, sx + 6, sy + slot_h], radius=3, fill=t_color)
+            draw.line([(sx + 24, sy), (sx + slot_w - 24, sy)], fill=t_color, width=2)
+
+            # Big 96x96 Icon Frame with 76x76 Pixel Art Icon
+            ix = sx + 22
+            iy = sy + 38
+            frame_size = 96
+            draw.rounded_rectangle(
+                [ix, iy, ix + frame_size, iy + frame_size],
+                radius=16,
+                fill=(15, 23, 42, 255),
+                outline=(t_color[0], t_color[1], t_color[2], 140),
+                width=2,
+            )
+            _paste_pixel_icon(img, f"food/{fid}", ix + 10, iy + 10, 76)
+
+            # Owned Pill (Top Right)
+            if have_qty > 0:
+                own_str = f"OWNED: ×{have_qty:,}"
+                o_font = _get_font(13, bold=True)
+                o_bbox = draw.textbbox((0, 0), own_str, font=o_font)
+                ow = o_bbox[2] - o_bbox[0]
+                draw.rounded_rectangle(
+                    [sx + slot_w - ow - 28, sy + 18, sx + slot_w - 16, sy + 44],
+                    radius=6,
+                    fill=(30, 41, 59, 240),
+                    outline=(t_color[0], t_color[1], t_color[2], 160),
+                    width=1,
+                )
+                draw.text((sx + slot_w - ow - 22, sy + 22), own_str, font=o_font, fill=t_color)
+
+            # Price Badge (Bottom Right of slot)
+            price_str = f"{food['cost']:,} Coins"
+            p_font = _get_font(19, bold=True)
+            p_bbox = draw.textbbox((0, 0), price_str, font=p_font)
+            pw = p_bbox[2] - p_bbox[0]
+            draw.rounded_rectangle(
+                [sx + slot_w - pw - 56, sy + slot_h - 48, sx + slot_w - 18, sy + slot_h - 14],
+                radius=10,
+                fill=(30, 41, 59, 240),
+                outline=ACCENT_GOLD,
+                width=1,
+            )
+            _paste_pixel_icon(img, "chronocoin", sx + slot_w - pw - 48, sy + slot_h - 42, 22)
+            draw.text((sx + slot_w - pw - 20, sy + slot_h - 41), price_str, font=p_font, fill=ACCENT_GOLD)
+
+            # Info text block
+            tx = sx + 138
+            food_name = food["name"]
+            if len(food_name) > 21:
+                food_name = food_name[:19] + "..."
+            draw.text((tx, sy + 22), food_name, font=_get_font(26, bold=True), fill=TEXT_WHITE)
+
+            # XP Pill
+            tag_str = f"+{food['xp']:,} PET XP"
+            f_tag = _get_font(13, bold=True)
+            t_bbox = draw.textbbox((0, 0), tag_str, font=f_tag)
+            tw = t_bbox[2] - t_bbox[0]
+            draw.rounded_rectangle([tx, sy + 60, tx + tw + 16, sy + 84], radius=6, fill=(t_color[0], t_color[1], t_color[2], 40))
+            draw.text((tx + 8, sy + 63), tag_str, font=f_tag, fill=t_color)
+
+            # Subtitle
+            sub_txt = f"Feeds active pet • Boosts happiness & level"
+            draw.text((tx, sy + 98), sub_txt, font=_get_font(16, bold=False), fill=TEXT_SUB)
+            draw.text((tx, sy + 124), f"Quick command: .feed {fid}", font=_get_font(14, bold=False), fill=TEXT_MUTED)
+        else:
+            # Empty slot
+            draw.rounded_rectangle([sx, sy, sx + slot_w, sy + slot_h], radius=18, fill=PANEL_BG, outline=PANEL_BORDER, width=1)
+            draw.text((sx + 175, sy + 105), "[ RESERVED SHELF ]", font=_get_font(15, bold=True), fill=(71, 85, 105, 255))
+
+    # Footer
+    fy = SHOP_CARD_HEIGHT - 55
+    draw.text((50, fy), f"COMMAND: .buyfood <item> [qty]  •  Example: .buyfood pizza 3 or .buyfood bread", font=_get_font(15, bold=True), fill=TEXT_SUB)
+    draw.text((CARD_WIDTH - 310, fy), f"{tier_info['label'].upper()} · PAGE {curr_page + 1}/{total_pages} · CHRONOS", font=_get_font(14, bold=True), fill=TEXT_MUTED)
+
+    return _export_png(img)
+
+
 def _wrap_text_lines(text: str, max_chars: int = 36, max_lines: int = 2) -> list[str]:
     """Wrap text neatly across up to `max_lines` with ellipsis if overflow."""
     words = text.split()
