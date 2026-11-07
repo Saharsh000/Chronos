@@ -803,46 +803,27 @@ class TriviaQuestionView(discord.ui.View):
         else:
             status_banner = "⏰ **TIME'S UP — SOLUTION REVEALED!**"
 
-        has_card = bool(
-            self.message
-            and any(
-                getattr(a, "filename", "") == "question.png"
-                for a in getattr(self.message, "attachments", [])
-            )
-        )
-
-        if has_card:
-            desc_parts = [
-                f"{status_banner}\n",
-                f"🏆 **OFFICIAL ANSWER KEY:**  `[ {official_ans_fmt} ]`",
-                f"💡 **CORE CONCEPT:** *{concept_fmt}*",
-                f"━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━\n",
-                f"📖 **Detailed Theory Breakdown:**\n{explanation_fmt}\n",
-            ]
+        if q_type == "match":
+            formatted_q = format_matching_text(self.q.get("question", ""))
         else:
-            if q_type == "match":
-                formatted_q = format_matching_text(self.q.get("question", ""))
-            else:
-                raw_q = format_academic_text(self.q.get("question", ""))
-                formatted_q = format_question_presentation(raw_q)
+            raw_q = format_academic_text(self.q.get("question", ""))
+            formatted_q = format_question_presentation(raw_q)
 
-            desc_parts = [
-                f"{status_banner}\n",
-                f"### 📋 Question\n{formatted_q}\n",
-                f"━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━",
-                f"🏆 **OFFICIAL ANSWER KEY:**  `[ {official_ans_fmt} ]`",
-                f"💡 **CORE CONCEPT:** *{concept_fmt}*",
-                f"━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━\n",
-                f"📖 **Detailed Theory Breakdown:**\n{explanation_fmt}\n",
-            ]
+        desc_parts = [
+            f"{status_banner}\n",
+            f"### 📋 Question\n{formatted_q}\n",
+            f"━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━",
+            f"🏆 **OFFICIAL ANSWER KEY:**  `[ {official_ans_fmt} ]`",
+            f"💡 **CORE CONCEPT:** *{concept_fmt}*",
+            f"━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━\n",
+            f"📖 **Detailed Theory Breakdown:**\n{explanation_fmt}\n",
+        ]
 
         embed = embeds.base_embed(
             title=f"{emoji} {subj_name} Trivia  •  {exam_name} Solution",
             description="\n".join(desc_parts),
             color=color,
         )
-        if has_card:
-            embed.set_image(url="attachment://question.png")
 
         if self.results_summary:
             summary_lines = []
@@ -868,6 +849,7 @@ class TriviaQuestionView(discord.ui.View):
             )
 
         # If continuous mode is enabled, show the next question controls!
+        # Strip attachments=[] so the large question card image is deleted when the round concludes
         if self.continuous:
             embeds.set_footer(embed, "Practice Mode Active · Click Next Question to continue or Stop to finish")
             controls_view = TriviaContinuousControlsView(
@@ -880,13 +862,13 @@ class TriviaQuestionView(discord.ui.View):
             )
             controls_view.message = self.message
             try:
-                await self.message.edit(embed=embed, view=controls_view)
+                await self.message.edit(embed=embed, view=controls_view, attachments=[])
             except Exception as e:
                 log.warning(f"Failed to edit trivia message with continuous controls: {e}")
         else:
             embeds.set_footer(embed, "Use ,trivia r for another question | ,trivia p/c/m for continuous practice")
             try:
-                await self.message.edit(embed=embed, view=self)
+                await self.message.edit(embed=embed, view=self, attachments=[])
             except Exception as e:
                 log.warning(f"Failed to edit trivia message on conclusion: {e}")
 
@@ -1696,11 +1678,11 @@ class Trivia(commands.Cog, name="Trivia"):
         coin_e = emojis.coin(ctx.guild)
         embed.add_field(
             name="⏱️ Round Clock",
-            value=f"**{timeout_sec}s** timer\n⏩ Skip: `15 {coin_e}`",
+            value=f"**{timeout_sec}s** timer\n⏩ Skip: **15** {coin_e}",
             inline=True,
         )
 
-        footer_text = f"⏱️ {timeout_sec}s limit • Submit with buttons below • Skip costs 15 {coin_e}"
+        footer_text = f"⏱️ {timeout_sec}s limit • Submit with buttons below • Skip costs 15 🪙"
         if continuous:
             footer_text += " • Practice Mode"
         embeds.set_footer(embed, footer_text)
@@ -1845,7 +1827,7 @@ class Trivia(commands.Cog, name="Trivia"):
         status_txt = "🟢 **Ready to grind!**" if is_ready else "⏳ Cooldown active"
         embed.add_field(name="⏱️ Status", value=status_txt, inline=True)
 
-        embeds.set_footer(embed, f"Use {ctx.prefix}trivia r to attempt a question • Skip costs 15 {coin_e}")
+        embeds.set_footer(embed, f"Use {ctx.prefix}trivia r to attempt a question • Skip costs 15 🪙")
         await ctx.send(embed=embed)
 
 
