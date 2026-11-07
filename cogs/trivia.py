@@ -522,6 +522,8 @@ class TriviaQuestionView(discord.ui.View):
         # instead of making a second (dummy) check call.
         self.official_result: Optional[dict[str, Any]] = None
         self.message: Optional[discord.Message] = None
+        self._concluded: bool = False
+        self.bot.active_trivia_games = getattr(self.bot, "active_trivia_games", 0) + 1
         self._build_components()
 
     def _build_components(self) -> None:
@@ -760,6 +762,12 @@ class TriviaQuestionView(discord.ui.View):
 
     async def conclude_round(self, skipped_by: Optional[discord.User] = None) -> None:
         """Edit the message to show the finalized answer, explanation, and results."""
+        if not self._concluded:
+            self._concluded = True
+            current_active = getattr(self.bot, "active_trivia_games", 0)
+            if current_active > 0:
+                self.bot.active_trivia_games = current_active - 1
+
         for item in self.children:
             item.disabled = True
 
@@ -1557,25 +1565,40 @@ class Trivia(commands.Cog, name="Trivia"):
         else:
             msg = await ctx.send(embed=loading_embed)
 
+        # 1. Try to serve instantly from pre-generated question cache
+        q_data: Optional[dict[str, Any]] = None
         try:
-            q_data = await cja_client.get_question(
+            q_data = await self.db.pop_cached_question(
                 subject=subject,
                 chapter=chapter,
                 topic=topic,
-                fast=True,
-                hide_answer=True,
-                embed=True,
             )
-        except CJAError as e:
-            err_text = f"**CJA Error ({e.code})**: {e.message}"
-            if e.suggestions:
-                err_text += f"\nSuggestions: {', '.join(e.suggestions)}"
-            await msg.edit(embed=embeds.error_embed(err_text))
-            return
+            if q_data:
+                log.info(f"Served question {q_data.get('id')} from pre-generator cache ({subject=}, {chapter=}, {topic=})")
         except Exception as e:
-            log.error(f"Unexpected error in trivia start: {e}", exc_info=True)
-            await msg.edit(embed=embeds.error_embed("Could not load a trivia question at this moment. Please try again!"))
-            return
+            log.warning(f"Error popping question from cache: {e}")
+
+        # 2. Fall back to live CJA request on cache miss
+        if not q_data:
+            try:
+                q_data = await cja_client.get_question(
+                    subject=subject,
+                    chapter=chapter,
+                    topic=topic,
+                    fast=True,
+                    hide_answer=True,
+                    embed=True,
+                )
+            except CJAError as e:
+                err_text = f"**CJA Error ({e.code})**: {e.message}"
+                if e.suggestions:
+                    err_text += f"\nSuggestions: {', '.join(e.suggestions)}"
+                await msg.edit(embed=embeds.error_embed(err_text))
+                return
+            except Exception as e:
+                log.error(f"Unexpected error in trivia start: {e}", exc_info=True)
+                await msg.edit(embed=embeds.error_embed("Could not load a trivia question at this moment. Please try again!"))
+                return
 
         # Build Question Embed
         subj_info = q_data.get("subject", {})

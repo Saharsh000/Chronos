@@ -44,6 +44,7 @@ drops or rewrites a column, so old data is preserved untouched.
 """
 from __future__ import annotations
 
+import json
 import logging
 import os
 import random
@@ -341,6 +342,21 @@ CREATE TABLE IF NOT EXISTS user_notes (
 
 CREATE INDEX IF NOT EXISTS idx_user_notes_lookup ON user_notes (user_id, guild_id, subject);
 CREATE INDEX IF NOT EXISTS idx_user_notes_pinned ON user_notes (user_id, guild_id, is_pinned DESC, updated_at DESC);
+
+-- JEE Trivia Pre-Generator Question Cache
+CREATE TABLE IF NOT EXISTS trivia_question_cache (
+    id            TEXT PRIMARY KEY,
+    subject_id    TEXT NOT NULL,
+    chapter_id    TEXT NOT NULL,
+    topic_id      TEXT NOT NULL,
+    question_data TEXT NOT NULL,
+    created_at    INTEGER NOT NULL
+);
+
+CREATE INDEX IF NOT EXISTS idx_trivia_cache_subject ON trivia_question_cache (subject_id);
+CREATE INDEX IF NOT EXISTS idx_trivia_cache_chapter ON trivia_question_cache (chapter_id);
+CREATE INDEX IF NOT EXISTS idx_trivia_cache_topic ON trivia_question_cache (topic_id);
+CREATE INDEX IF NOT EXISTS idx_trivia_cache_lookup ON trivia_question_cache (subject_id, chapter_id, topic_id);
 """
 
 # Columns added to `user_stats` after its original release. Applied by
@@ -579,6 +595,28 @@ class Database:
         """)
         await self._conn.execute("""
         CREATE INDEX IF NOT EXISTS idx_user_notes_pinned ON user_notes (user_id, guild_id, is_pinned DESC, updated_at DESC);
+        """)
+        await self._conn.execute("""
+        CREATE TABLE IF NOT EXISTS trivia_question_cache (
+            id            TEXT PRIMARY KEY,
+            subject_id    TEXT NOT NULL,
+            chapter_id    TEXT NOT NULL,
+            topic_id      TEXT NOT NULL,
+            question_data TEXT NOT NULL,
+            created_at    INTEGER NOT NULL
+        );
+        """)
+        await self._conn.execute("""
+        CREATE INDEX IF NOT EXISTS idx_trivia_cache_subject ON trivia_question_cache (subject_id);
+        """)
+        await self._conn.execute("""
+        CREATE INDEX IF NOT EXISTS idx_trivia_cache_chapter ON trivia_question_cache (chapter_id);
+        """)
+        await self._conn.execute("""
+        CREATE INDEX IF NOT EXISTS idx_trivia_cache_topic ON trivia_question_cache (topic_id);
+        """)
+        await self._conn.execute("""
+        CREATE INDEX IF NOT EXISTS idx_trivia_cache_lookup ON trivia_question_cache (subject_id, chapter_id, topic_id);
         """)
 
     async def _migrate_table(self, table: str, migrations: dict[str, str]) -> None:
@@ -3076,4 +3114,130 @@ class Database:
         subject_counts = {r["subject"]: r["count"] for r in sub_rows}
 
         return {"total": total, "pinned": pinned, "subject_counts": subject_counts}
+
+    # ------------------------------------------------------------------ #
+    # Trivia Question Cache (Pre-generator & Instant Serving)
+    # ------------------------------------------------------------------ #
+    async def cache_question(
+        self,
+        question_id: str,
+        subject_id: str,
+        chapter_id: str,
+        topic_id: str,
+        question_data: dict[str, Any] | str,
+        created_at: Optional[int] = None,
+    ) -> bool:
+        """Store a pre-generated question in the cache."""
+        now = created_at if created_at is not None else int(time.time())
+        raw_json = json.dumps(question_data) if isinstance(question_data, dict) else str(question_data)
+        cur = await self.conn.execute(
+            """
+            INSERT OR IGNORE INTO trivia_question_cache
+                (id, subject_id, chapter_id, topic_id, question_data, created_at)
+            VALUES (?, ?, ?, ?, ?, ?)
+            """,
+            (str(question_id), str(subject_id).lower(), str(chapter_id).lower(), str(topic_id).lower(), raw_json, now),
+        )
+        await self.conn.commit()
+        return cur.rowcount > 0
+
+    async def pop_cached_question(
+        self,
+        subject: Optional[str] = None,
+        chapter: Optional[str] = None,
+        topic: Optional[str] = None,
+    ) -> Optional[dict[str, Any]]:
+        """Atomically pop (select and delete) a matching cached question.
+        
+        Guarantees that a question is served at most once and deleted immediately.
+        """
+        clauses: list[str] = []
+        params: list[Any] = []
+
+        if subject:
+            sub = subject.lower().strip()
+            if sub in ("math", "maths", "m"):
+                sub = "mathematics"
+            elif sub in ("phys", "p"):
+                sub = "physics"
+            elif sub in ("chem", "c"):
+                sub = "chemistry"
+            clauses.append("subject_id = ?")
+            params.append(sub)
+
+        if chapter:
+            ch = chapter.lower().strip()
+            clauses.append("(chapter_id = ? OR chapter_id = ?)")
+            params.extend([ch, ch.replace(" ", "-")])
+
+        if topic:
+            top = topic.lower().strip()
+            clauses.append("(topic_id = ? OR topic_id = ?)")
+            params.extend([top, top.replace(" ", "-")])
+
+        where_sql = f"WHERE {' AND '.join(clauses)}" if clauses else ""
+        query = f"SELECT id, question_data FROM trivia_question_cache {where_sql} ORDER BY RANDOM() LIMIT 1"
+
+        cur = await self.conn.execute(query, params)
+        row = await cur.fetchone()
+        if not row:
+            return None
+
+        q_id = row["id"]
+        data_raw = row["question_data"]
+
+        # Delete immediately so questions are never reused
+        await self.conn.execute("DELETE FROM trivia_question_cache WHERE id = ?", (q_id,))
+        await self.conn.commit()
+
+        try:
+            return json.loads(data_raw)
+        except Exception:
+            log.exception(f"Failed to decode cached question json for ID {q_id}")
+            return None
+
+    async def count_cached_questions(self, topic_id: str) -> int:
+        """Count cached questions for a given topic."""
+        top = topic_id.lower().strip()
+        cur = await self.conn.execute(
+            "SELECT COUNT(*) FROM trivia_question_cache WHERE topic_id = ? OR topic_id = ?",
+            (top, top.replace(" ", "-")),
+        )
+        row = await cur.fetchone()
+        return row[0] if row else 0
+
+    async def get_cache_stats(self) -> dict[str, Any]:
+        """Aggregate statistics about pre-generated questions in cache."""
+        cur = await self.conn.execute("SELECT COUNT(*) FROM trivia_question_cache")
+        total = (await cur.fetchone())[0]
+
+        cur_sub = await self.conn.execute(
+            "SELECT subject_id, COUNT(*) AS count FROM trivia_question_cache GROUP BY subject_id"
+        )
+        sub_rows = await cur_sub.fetchall()
+        by_subject = {r["subject_id"]: r["count"] for r in sub_rows}
+
+        cur_ch = await self.conn.execute(
+            "SELECT COUNT(DISTINCT chapter_id) FROM trivia_question_cache"
+        )
+        ch_count = (await cur_ch.fetchone())[0]
+
+        cur_top = await self.conn.execute(
+            "SELECT COUNT(DISTINCT topic_id) FROM trivia_question_cache"
+        )
+        top_count = (await cur_top.fetchone())[0]
+
+        return {
+            "total": total,
+            "by_subject": by_subject,
+            "distinct_chapters": ch_count,
+            "distinct_topics": top_count,
+        }
+
+    async def clear_cache(self) -> int:
+        """Wipe all cached questions."""
+        cur = await self.conn.execute("DELETE FROM trivia_question_cache")
+        await self.conn.commit()
+        return cur.rowcount
+
 
