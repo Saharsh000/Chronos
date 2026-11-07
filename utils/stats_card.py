@@ -166,16 +166,24 @@ def _export_png(img: Image.Image) -> bytes:
 
 
 def _paste_pixel_icon(img: Image.Image, icon_name: str, x: int, y: int, size: int) -> bool:
-    """Safely paste a Minecraft pixel-art icon with nearest-neighbor scaling."""
-    icon_path = os.path.join(os.path.dirname(os.path.dirname(__file__)), "assets", "icons", f"{icon_name}_128.png")
-    if os.path.exists(icon_path):
-        try:
-            with Image.open(icon_path) as p_icon:
-                p_icon = p_icon.convert("RGBA").resize((size, size), Image.Resampling.NEAREST)
-                img.paste(p_icon, (x, y), p_icon)
-                return True
-        except Exception:
-            return False
+    """Safely paste a pixel-art icon (Minecraft items, food sprites, etc.) with nearest-neighbor scaling."""
+    base_dir = os.path.join(os.path.dirname(os.path.dirname(__file__)), "assets", "icons")
+    clean_name = icon_name.replace("food/", "")
+    candidates = [
+        os.path.join(base_dir, f"{icon_name}_128.png"),
+        os.path.join(base_dir, f"{icon_name}.png"),
+        os.path.join(base_dir, "food", f"{clean_name}.png"),
+        os.path.join(base_dir, f"{clean_name}.png"),
+    ]
+    for c in candidates:
+        if os.path.exists(c):
+            try:
+                with Image.open(c) as p_icon:
+                    p_icon = p_icon.convert("RGBA").resize((size, size), Image.Resampling.NEAREST)
+                    img.paste(p_icon, (x, y), p_icon)
+                    return True
+            except Exception:
+                return False
     return False
 
 
@@ -1302,16 +1310,40 @@ def get_item_display_meta(item_id: str) -> dict[str, Any]:
 
     # 2. Food catalog
     try:
-        from utils.food import FOODS
+        from utils.food import FOODS, FOOD_TIER_INFO
         if item_id in FOODS:
             f = FOODS[item_id]
-            tier_str = str(f.get("tier", "snack")).upper()
+            tier_key = str(f.get("tier", "snack")).lower()
+            tier_str = tier_key.upper()
+            tier_color_int = FOOD_TIER_INFO.get(tier_key, {}).get("color", 0x34D399)
+            r = (tier_color_int >> 16) & 0xFF
+            g = (tier_color_int >> 8) & 0xFF
+            b = tier_color_int & 0xFF
             return {
                 "name": f.get("name", item_id.replace("_", " ").title()),
-                "icon": "mystery_box",
+                "icon": f"food/{item_id}",
                 "type": f"PET FOOD ({tier_str})",
                 "action": f"+{f.get('xp', 50)} Pet XP • Use .feed {item_id}",
-                "color": (52, 211, 153, 255),
+                "color": (r, g, b, 255),
+            }
+    except Exception:
+        pass
+
+    # 2.5 Hallo-Boxes
+    try:
+        from utils.halloween import HALLO_BOXES
+        if item_id in HALLO_BOXES:
+            hb = HALLO_BOXES[item_id]
+            c_int = hb.get("color", 0x34D399)
+            r = (c_int >> 16) & 0xFF
+            g = (c_int >> 8) & 0xFF
+            b = c_int & 0xFF
+            return {
+                "name": hb.get("name", item_id.replace("_", " ").title()),
+                "icon": "mystery_box",
+                "type": "HALLOWEEN BOX",
+                "action": f".openbox {item_id} to open",
+                "color": (r, g, b, 255),
             }
     except Exception:
         pass
