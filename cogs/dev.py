@@ -18,7 +18,25 @@ from utils.time_format import format_duration, parse_duration
 from utils.xp import tier_for_level
 from cogs.trivia import format_academic_text, format_matching_text, format_question_presentation
 import distexer
-from distexer.formatters.text import format_fraction_bar
+try:
+    from distexer.formatters.text import format_fraction_bar
+except ImportError:
+    try:
+        from distexer import format_fraction_bar
+    except ImportError:
+        def format_fraction_bar(num: str, den: str, prefix: str = "", suffix: str = "") -> str:
+            n = num.strip()
+            d = den.strip()
+            p_str = (prefix.strip() + " ") if prefix.strip() else ""
+            s_str = (" " + suffix.strip()) if suffix.strip() else ""
+            width = max(len(n), len(d)) + 2
+            bar = "─" * width
+            pad_n = (width - len(n)) // 2
+            top = " " * len(p_str) + " " * pad_n + n + " " * (width - len(n) - pad_n)
+            mid = p_str + bar + s_str
+            pad_d = (width - len(d)) // 2
+            bot = " " * len(p_str) + " " * pad_d + d + " " * (width - len(d) - pad_d)
+            return f"{top}\n{mid}\n{bot}"
 
 log = logging.getLogger("dev")
 
