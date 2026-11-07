@@ -12,7 +12,7 @@ import io
 import logging
 import random
 import time
-from typing import Optional
+from typing import Any, Optional
 
 import discord
 from discord.ext import commands
@@ -197,6 +197,250 @@ class InventoryView(discord.ui.View):
                 pass
 
 
+class ShopView(discord.ui.View):
+    """Interactive pagination and quick-purchase view for browsing the Chronocoin shop."""
+
+    def __init__(
+        self,
+        bot: commands.Bot,
+        ctx: commands.Context,
+        shop_items: list[dict[str, Any]],
+        user_coins: int,
+        owned_titles: set[str],
+        page: int = 0,
+        per_page: int = 6,
+    ) -> None:
+        super().__init__(timeout=180)
+        self.bot = bot
+        self.ctx = ctx
+        self.shop_items = shop_items
+        self.user_coins = user_coins
+        self.owned_titles = owned_titles
+        self.per_page = per_page
+        self.total_pages = max(1, (len(shop_items) + per_page - 1) // per_page)
+        self.page = max(0, min(page, self.total_pages - 1))
+        self.message: Optional[discord.Message] = None
+        self._update_components()
+
+    def _create_buy_callback(self, item: dict[str, Any]):
+        async def callback(interaction: discord.Interaction) -> None:
+            await self._buy_button_callback(interaction, item)
+        return callback
+
+    def _update_components(self) -> None:
+        self.clear_items()
+        start_idx = self.page * self.per_page
+        page_items = self.shop_items[start_idx : start_idx + self.per_page]
+
+        # Row 0 & 1: Quick buy buttons for the items on current page (up to 3 per row)
+        for i, item in enumerate(page_items):
+            row = 0 if i < 3 else 1
+            item_id = item["id"]
+            is_title = item.get("type") == "PRESTIGE TITLE" or item_id.startswith("title_")
+            already_owned = is_title and (item_id in self.owned_titles or item.get("name", "") in self.owned_titles)
+
+            raw_name = item.get("name", "Item")
+            if raw_name.startswith("Title: "):
+                short_name = raw_name[7:]
+            else:
+                short_name = raw_name
+
+            if len(short_name) > 13:
+                short_name = short_name[:11] + ".."
+
+            emoji_char = item.get("emoji") or ("🏷️" if is_title else "🛒")
+
+            if already_owned:
+                btn = discord.ui.Button(
+                    emoji="✅",
+                    label=f"{short_name} (Owned)",
+                    style=discord.ButtonStyle.secondary,
+                    disabled=True,
+                    row=row,
+                )
+            else:
+                btn = discord.ui.Button(
+                    emoji=emoji_char,
+                    label=f"Buy {short_name}",
+                    style=discord.ButtonStyle.secondary,
+                    row=row,
+                )
+                btn.callback = self._create_buy_callback(item)
+
+            self.add_item(btn)
+
+        # Pagination Buttons (Row 2)
+        if self.total_pages > 1:
+            btn_first = discord.ui.Button(
+                emoji="⏮️",
+                style=discord.ButtonStyle.secondary,
+                disabled=(self.page == 0),
+                row=2,
+            )
+            btn_first.callback = self._first_callback
+            self.add_item(btn_first)
+
+            btn_prev = discord.ui.Button(
+                emoji="◀️",
+                label="Prev",
+                style=discord.ButtonStyle.primary,
+                disabled=(self.page == 0),
+                row=2,
+            )
+            btn_prev.callback = self._prev_callback
+            self.add_item(btn_prev)
+
+            btn_page = discord.ui.Button(
+                label=f"Page {self.page + 1} / {self.total_pages}",
+                style=discord.ButtonStyle.secondary,
+                disabled=True,
+                row=2,
+            )
+            self.add_item(btn_page)
+
+            btn_next = discord.ui.Button(
+                emoji="▶️",
+                label="Next",
+                style=discord.ButtonStyle.primary,
+                disabled=(self.page >= self.total_pages - 1),
+                row=2,
+            )
+            btn_next.callback = self._next_callback
+            self.add_item(btn_next)
+
+            btn_last = discord.ui.Button(
+                emoji="⏭️",
+                style=discord.ButtonStyle.secondary,
+                disabled=(self.page >= self.total_pages - 1),
+                row=2,
+            )
+            btn_last.callback = self._last_callback
+            self.add_item(btn_last)
+
+    async def _first_callback(self, interaction: discord.Interaction) -> None:
+        if interaction.user.id != self.ctx.author.id:
+            await interaction.response.send_message("Only the command caller can use pagination.", ephemeral=True)
+            return
+        await interaction.response.defer()
+        self.page = 0
+        await self._render_page()
+
+    async def _prev_callback(self, interaction: discord.Interaction) -> None:
+        if interaction.user.id != self.ctx.author.id:
+            await interaction.response.send_message("Only the command caller can use pagination.", ephemeral=True)
+            return
+        await interaction.response.defer()
+        if self.page > 0:
+            self.page -= 1
+        await self._render_page()
+
+    async def _next_callback(self, interaction: discord.Interaction) -> None:
+        if interaction.user.id != self.ctx.author.id:
+            await interaction.response.send_message("Only the command caller can use pagination.", ephemeral=True)
+            return
+        await interaction.response.defer()
+        if self.page < self.total_pages - 1:
+            self.page += 1
+        await self._render_page()
+
+    async def _last_callback(self, interaction: discord.Interaction) -> None:
+        if interaction.user.id != self.ctx.author.id:
+            await interaction.response.send_message("Only the command caller can use pagination.", ephemeral=True)
+            return
+        await interaction.response.defer()
+        self.page = self.total_pages - 1
+        await self._render_page()
+
+    async def _buy_button_callback(self, interaction: discord.Interaction, item: dict[str, Any]) -> None:
+        if interaction.user.id != self.ctx.author.id:
+            await interaction.response.send_message(
+                f"🛒 Use `{self.ctx.prefix}shop` to open your own interactive shop!",
+                ephemeral=True,
+            )
+            return
+
+        item_id = item["id"]
+        result = await self.bot.db.buy_item(interaction.user.id, self.ctx.guild.id, item_id, quantity=1)
+        if not result["success"]:
+            reasons = {
+                "insufficient_funds": f"❌ You don't have enough Chronocoins! You have **{self.user_coins:,}** coins, but **{item['name']}** costs **{item['price']:,}** coins.",
+                "already_owned": f"⚠️ You already own the **{item['name']}** title! Equip it with `{self.ctx.prefix}settitle`.",
+                "not_found": "❌ That item doesn't exist in the catalog.",
+                "title_quantity": "⚠️ Titles can only be unlocked once.",
+            }
+            await interaction.response.send_message(
+                reasons.get(result.get("reason"), "❌ Purchase failed."),
+                ephemeral=True,
+            )
+            return
+
+        # Success!
+        self.user_coins = max(0, self.user_coins - item["price"])
+        if item.get("type") == "PRESTIGE TITLE" or item_id.startswith("title_"):
+            self.owned_titles.add(item_id)
+            self.owned_titles.add(item.get("name", ""))
+
+        await interaction.response.defer()
+        await self._render_page()
+
+        note = ""
+        if item_id == "mystery_box":
+            note = f"\n📦 Open it with `{self.ctx.prefix}openbox`!"
+        elif "boost" in item_id:
+            note = f"\n⚡ Activate it with `{self.ctx.prefix}use {item_id}`!"
+        elif "title" in item_id:
+            t_name = item.get("title_text") or item["name"].replace("Title: ", "")
+            note = f"\n🏷️ Equip it with `{self.ctx.prefix}settitle {t_name}`!"
+
+        await interaction.followup.send(
+            f"✅ Purchased **{item['name']}** for **{item['price']:,} Chronocoins**!{note}\n"
+            f"🪙 **New Balance:** `{self.user_coins:,}` Chronocoins",
+            ephemeral=True,
+        )
+
+        newly = await self.bot.db.check_achievements(self.ctx.author.id, self.ctx.guild.id)
+        if newly:
+            await self.ctx.send(embed=embeds.achievement_unlock_embed(self.ctx.author, newly))
+
+    async def _render_page(self) -> None:
+        self._update_components()
+        loop = asyncio.get_running_loop()
+        card_bytes = await loop.run_in_executor(
+            None,
+            render_shop_card_sync,
+            self.user_coins,
+            self.shop_items,
+            self.page,
+            self.per_page,
+        )
+        coin_e = emojis.coin(self.ctx.guild)
+        embed = embeds.base_embed(
+            title="🛒 Chronos Coin Shop",
+            description=(
+                f"{coin_e} **{self.user_coins:,} Chronocoins available**\n"
+                f"Click a button below or type `{self.ctx.prefix}buy <item> [qty]` to purchase!"
+            ),
+            color=embeds.COLOR_ECONOMY,
+        )
+        embeds.set_footer(
+            embed,
+            f"Page {self.page + 1}/{self.total_pages} • {self.ctx.prefix}buy <item> [qty]  •  {self.ctx.prefix}inv to view your satchel"
+        )
+        file = discord.File(io.BytesIO(card_bytes), filename="shop.png")
+        embed.set_image(url="attachment://shop.png")
+        if self.message:
+            await self.message.edit(embed=embed, attachments=[file], view=self)
+
+    async def on_timeout(self) -> None:
+        for item in self.children:
+            item.disabled = True
+        if self.message:
+            try:
+                await self.message.edit(view=self)
+            except Exception:
+                pass
+
+
 class Economy(commands.Cog, name="Economy"):
     def __init__(self, bot: commands.Bot):
         self.bot = bot
@@ -235,41 +479,122 @@ class Economy(commands.Cog, name="Economy"):
     # ------------------------------------------------------------------ #
     @commands.command(name="shop", aliases=["store"])
     @commands.guild_only()
-    async def shop_cmd(self, ctx: commands.Context) -> None:
-        """Browse the Chronocoin shop with high-res visual catalog card."""
+    async def shop_cmd(self, ctx: commands.Context, page_arg: Optional[str] = None) -> None:
+        """Browse the Chronocoin shop with high-res visual catalog card and quick-buy buttons.
+
+        Usage:
+            .shop
+            .shop 2
+        """
+        page = 0
+        if page_arg and page_arg.isdigit():
+            page = max(0, int(page_arg) - 1)
+
         currency = await self.db.get_or_create_currency(ctx.author.id, ctx.guild.id)
+        user_coins = currency.get("coins", 0)
+
+        # Build complete catalog
+        catalog: list[dict[str, Any]] = []
+        for num, item_id in enumerate(economy.SHOP_ORDER, start=1):
+            if item_id in economy.SHOP_ITEMS:
+                si = economy.SHOP_ITEMS[item_id]
+                itype = str(si.get("type", "item")).upper()
+                if itype == "BOOST":
+                    color = (52, 211, 153, 255) if "xp" in item_id else (251, 191, 36, 255)
+                    icon = "xp_boost" if "xp" in item_id else "coin_boost"
+                    tag = "BOOST CHARGES"
+                elif itype == "CONSUMABLE":
+                    color = (192, 132, 252, 255) if "box" in item_id else (56, 189, 248, 255)
+                    icon = "mystery_box" if "box" in item_id else "streak_freeze"
+                    tag = "CONSUMABLE"
+                elif itype == "TITLE":
+                    color = (245, 158, 11, 255)
+                    icon = "title_scroll"
+                    tag = "PRESTIGE TITLE"
+                else:
+                    color = (56, 189, 248, 255)
+                    icon = "mystery_box"
+                    tag = "ITEM"
+                catalog.append({
+                    "id": item_id,
+                    "num": num,
+                    "name": si["name"],
+                    "icon": icon,
+                    "type": tag,
+                    "desc": si.get("description", ""),
+                    "price": si["price"],
+                    "color": color,
+                    "emoji": si.get("emoji", "🛒"),
+                    "title_text": si.get("title_text"),
+                })
+
+        try:
+            custom_tags = await self.db.get_custom_tags(ctx.guild.id)
+            for item_id, ct in custom_tags.items():
+                catalog.append({
+                    "id": item_id,
+                    "num": len(catalog) + 1,
+                    "name": ct.get("name", item_id),
+                    "icon": "title_scroll",
+                    "type": "SERVER ROLE",
+                    "desc": ct.get("description", "Server custom cosmetic tag"),
+                    "price": ct.get("price", 500),
+                    "color": (236, 72, 153, 255),
+                    "emoji": ct.get("emoji", "🏷️"),
+                })
+        except Exception as e:
+            log.warning(f"Failed to fetch custom tags for shop: {e}")
+
+        stats = await self.db.get_or_create_user_stats(ctx.author.id, ctx.guild.id)
+        raw_titles = stats.get("unlocked_titles") or []
+        owned_titles = set(raw_titles)
+        if stats.get("equipped_title"):
+            owned_titles.add(stats["equipped_title"])
+
+        view = ShopView(
+            bot=self.bot,
+            ctx=ctx,
+            shop_items=catalog,
+            user_coins=user_coins,
+            owned_titles=owned_titles,
+            page=page,
+            per_page=6,
+        )
+
         coin_e = emojis.coin(ctx.guild)
         embed = embeds.base_embed(
             title="🛒 Chronos Coin Shop",
             description=(
-                f"{coin_e} **{currency['coins']:,} Chronocoins available**\n"
-                f"Type `{ctx.prefix}buy <number_or_name> [quantity]` to purchase!"
+                f"{coin_e} **{user_coins:,} Chronocoins available**\n"
+                f"Click a button below or type `{ctx.prefix}buy <item> [qty]` to purchase!"
             ),
             color=embeds.COLOR_ECONOMY,
         )
-        embeds.set_footer(embed, f"Example: {ctx.prefix}buy 1 3  •  {ctx.prefix}buy freeze  •  {ctx.prefix}inv to view your satchel")
+        embeds.set_footer(
+            embed,
+            f"Page {view.page + 1}/{view.total_pages} • {ctx.prefix}buy <item> [qty]  •  {ctx.prefix}inv to view your satchel"
+        )
 
         loop = asyncio.get_running_loop()
         try:
-            card_bytes = await loop.run_in_executor(None, render_shop_card_sync, currency["coins"])
+            card_bytes = await loop.run_in_executor(
+                None,
+                render_shop_card_sync,
+                user_coins,
+                catalog,
+                view.page,
+                view.per_page,
+            )
             file = discord.File(io.BytesIO(card_bytes), filename="shop.png")
             embed.set_image(url="attachment://shop.png")
-            await ctx.send(file=file, embed=embed)
+            msg = await ctx.send(file=file, embed=embed, view=view)
+            view.message = msg
         except Exception as e:
             log.error("Failed to render visual shop card", exc_info=e)
-            for i, item_id in enumerate(economy.SHOP_ORDER, start=1):
-                item = economy.SHOP_ITEMS[item_id]
-                item_e = emojis.item(item_id, ctx.guild)
+            for item in catalog:
                 embed.add_field(
-                    name=f"`{i}.` {item_e} {item['name']} — **{item['price']:,}** {coin_e}",
-                    value=f"▷ {item['description']}",
-                    inline=False,
-                )
-            custom_tags = await self.db.get_custom_tags(ctx.guild.id)
-            for item_id, item in custom_tags.items():
-                embed.add_field(
-                    name=f"{item['emoji']} {item['name']} — **{item['price']:,}** {coin_e}",
-                    value=f"▷ {item['description']}",
+                    name=f"`{item['num']}.` {item['emoji']} {item['name']} — **{item['price']:,}** {coin_e}",
+                    value=f"▷ {item['desc']}",
                     inline=False,
                 )
             await ctx.send(embed=embed)

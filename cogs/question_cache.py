@@ -97,7 +97,7 @@ class QuestionCache(commands.Cog, name="QuestionCache"):
         except Exception as e:
             log.warning(f"Failed to persist wave state: {e}")
 
-    @tasks.loop(seconds=8.0)
+    @tasks.loop(seconds=20.0)
     async def wave_worker(self) -> None:
         """Background worker that continuously pulls 1 question per topic at a safe rate."""
         if not self.topics:
@@ -165,15 +165,20 @@ class QuestionCache(commands.Cog, name="QuestionCache"):
             self.consecutive_errors += 1
             log.warning(f"CJA error in wave pre-generator ({e.code}): {e.message}")
             await self._advance_topic()
-            if self.consecutive_errors >= 3:
-                await asyncio.sleep(25)
+            retry_wait = max(getattr(e, "retry_after", 0), 20)
+            if self.consecutive_errors == 1:
+                await asyncio.sleep(retry_wait)
+            elif self.consecutive_errors == 2:
+                await asyncio.sleep(45)
+            elif self.consecutive_errors >= 3:
+                await asyncio.sleep(90)
         except Exception as e:
             self.total_errors += 1
             self.consecutive_errors += 1
             log.warning(f"Unexpected error in wave pre-generator: {e}")
             await self._advance_topic()
-            if self.consecutive_errors >= 3:
-                await asyncio.sleep(25)
+            if self.consecutive_errors >= 2:
+                await asyncio.sleep(45)
 
     @wave_worker.before_loop
     async def before_wave_worker(self) -> None:
@@ -222,7 +227,7 @@ class QuestionCache(commands.Cog, name="QuestionCache"):
         elif getattr(self.bot, "active_trivia_games", 0) > 0:
             status_str = "⏸️ **Paused** (Trivia in progress)"
         else:
-            status_str = "🟢 **Pre-generating** (~1 req / 8.0s)"
+            status_str = "🟢 **Pre-generating** (~1 req / 20.0s)"
 
         embed = embeds.base_embed(
             title="🌊 JEE Trivia Pre-Generator & Vault",
@@ -274,6 +279,34 @@ class QuestionCache(commands.Cog, name="QuestionCache"):
 
         embeds.set_footer(embed, "Questions are automatically served & deleted on use • Cap: 5 per topic")
         await ctx.send(embed=embed)
+
+    @commands.command(name="waveseek")
+    @is_dev()
+    @commands.guild_only()
+    async def wave_seek_cmd(self, ctx: commands.Context, topic_num: int) -> None:
+        """[Dev only] Seek the wave pre-generator to a specific topic number (1-737)."""
+        if not self.topics:
+            await ctx.send("No topics loaded.")
+            return
+        idx = max(0, min(topic_num - 1, len(self.topics) - 1))
+        self.topic_index = idx
+        self.consecutive_errors = 0
+        await self.db.set_kv("trivia_topic_index", str(self.topic_index))
+        t = self.topics[idx]
+        await ctx.send(embed=embeds.success_embed(
+            f"🎯 Wave seek set to Topic #{idx + 1} of {len(self.topics)}:\n"
+            f"**{t['subject_name']}** ▸ `{t['chapter_name']}` └ *{t['name']}*"
+        ))
+
+    @commands.command(name="wavereset")
+    @is_dev()
+    @commands.guild_only()
+    async def wave_reset_cmd(self, ctx: commands.Context) -> None:
+        """[Dev only] Reset wave pre-generator back to Topic 1 of the current wave."""
+        self.topic_index = 0
+        self.consecutive_errors = 0
+        await self.db.set_kv("trivia_topic_index", "0")
+        await ctx.send(embed=embeds.success_embed(f"🔄 Reset wave pre-generator to Topic #1 of Wave {self.current_wave}."))
 
     @commands.command(name="cachepause")
     @is_dev()

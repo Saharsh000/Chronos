@@ -883,8 +883,8 @@ def render_trivia_card_sync(
 # ==============================================================================
 # SHOP CARD & INVENTORY SATCHEL CARD GENERATORS
 # ==============================================================================
-SHOP_CARD_HEIGHT = 860
-INV_CARD_HEIGHT = 880
+SHOP_CARD_HEIGHT = 1100
+INV_CARD_HEIGHT = 1100
 
 SHOP_ITEMS_DATA = [
     {
@@ -1057,92 +1057,165 @@ ITEM_METADATA = {
 }
 
 
-def render_shop_card_sync(user_coins: int) -> bytes:
-    """Synchronously renders the high-res 1200x860 Shop catalog PNG with big pixel art icons."""
+def render_shop_card_sync(
+    user_coins: int,
+    items: Optional[list[dict[str, Any]]] = None,
+    page: int = 0,
+    per_page: int = 6,
+) -> bytes:
+    """Synchronously renders the high-res 1200x1080 Shop catalog PNG with big pixel art icons."""
     img = Image.new("RGBA", (CARD_WIDTH, SHOP_CARD_HEIGHT), BG_COLOR)
     draw = ImageDraw.Draw(img)
 
-    draw.rounded_rectangle([20, 20, CARD_WIDTH - 20, SHOP_CARD_HEIGHT - 20], radius=20, fill=None, outline=(30, 41, 59, 255), width=2)
+    # Outer border & canvas
+    draw.rounded_rectangle([20, 20, CARD_WIDTH - 20, SHOP_CARD_HEIGHT - 20], radius=24, fill=None, outline=(35, 43, 56, 255), width=2)
     draw.line([(50, 20), (CARD_WIDTH - 50, 20)], fill=ACCENT_GOLD, width=4)
 
+    # Prepare items
+    if items is None:
+        from utils.economy import SHOP_ITEMS, SHOP_ORDER
+        items = []
+        for num, item_id in enumerate(SHOP_ORDER, start=1):
+            if item_id in SHOP_ITEMS:
+                si = SHOP_ITEMS[item_id]
+                itype = str(si.get("type", "item")).upper()
+                if itype == "BOOST":
+                    color = ACCENT_GREEN if "xp" in item_id else ACCENT_GOLD
+                    icon = "xp_boost" if "xp" in item_id else "coin_boost"
+                    tag = "BOOST CHARGES"
+                elif itype == "CONSUMABLE":
+                    color = ACCENT_PURPLE if "box" in item_id else ACCENT_CYAN
+                    icon = "mystery_box" if "box" in item_id else "streak_freeze"
+                    tag = "CONSUMABLE"
+                elif itype == "TITLE":
+                    color = (245, 158, 11, 255)
+                    icon = "title_scroll"
+                    tag = "PRESTIGE TITLE"
+                else:
+                    color = ACCENT_CYAN
+                    icon = "mystery_box"
+                    tag = "ITEM"
+                items.append({
+                    "id": item_id,
+                    "num": num,
+                    "name": si["name"],
+                    "icon": icon,
+                    "type": tag,
+                    "desc": si.get("description", ""),
+                    "price": si["price"],
+                    "color": color,
+                })
+
+    total_items = len(items)
+    total_pages = max(1, (total_items + per_page - 1) // per_page)
+    curr_page = max(0, min(page, total_pages - 1))
+    start_idx = curr_page * per_page
+    page_items = items[start_idx : start_idx + per_page]
+
     # Top Header
-    draw.text((50, 45), "CHRONOS COIN SHOP", font=_get_font(28, bold=True), fill=TEXT_WHITE)
-    draw.text((50, 82), "Spend Chronocoins on boosts, streak protection, and prestige titles", font=_get_font(14, bold=False), fill=TEXT_MUTED)
+    draw.ellipse([50, 42, 130, 122], fill=CARD_BG, outline=ACCENT_GOLD, width=2)
+    _paste_pixel_icon(img, "chronocoin", 60, 52, 60)
+
+    draw.text((148, 44), "CHRONOS COIN SHOP", font=_get_font(28, bold=True), fill=TEXT_WHITE)
+    draw.text((148, 84), f"Page {curr_page + 1} of {total_pages} · Spend coins on boosts, streak freeze & prestige titles", font=_get_font(16, bold=False), fill=TEXT_MUTED)
 
     # Wallet Balance Pill
-    wallet_w = 320
-    wallet_h = 48
+    wallet_w = 340
+    wallet_h = 52
     w_x = CARD_WIDTH - 50 - wallet_w
-    w_y = 48
+    w_y = 52
     draw.rounded_rectangle([w_x, w_y, w_x + wallet_w, w_y + wallet_h], radius=12, fill=CARD_BG, outline=ACCENT_GOLD, width=2)
-    _paste_pixel_icon(img, "chronocoin", w_x + 14, w_y + 8, 32)
-    bal_str = f"{user_coins:,} Coins Available"
-    draw.text((w_x + 56, w_y + 12), bal_str, font=_get_font(18, bold=True), fill=ACCENT_GOLD)
+    _paste_pixel_icon(img, "chronocoin", w_x + 14, w_y + 10, 32)
+    bal_str = f"{user_coins:,} Coins"
+    draw.text((w_x + 58, w_y + 12), bal_str, font=_get_font(20, bold=True), fill=ACCENT_GOLD)
 
-    # 8 Tiles (2 cols x 4 rows)
-    col_w = 535
-    row_h = 135
-    c1_x = 50
-    c2_x = 615
+    # Pro-tip banner
+    banner_y = 138
+    banner_h = 56
+    draw.rounded_rectangle([50, banner_y, CARD_WIDTH - 50, banner_y + banner_h], radius=12, fill=CARD_BG, outline=CARD_BORDER, width=1)
+    draw.ellipse([70, banner_y + 22, 82, banner_y + 34], fill=ACCENT_GOLD)
+    draw.text((92, banner_y + 18), "QUICK PURCHASE:", font=_get_font(14, bold=True), fill=ACCENT_GOLD)
+    draw.text((250, banner_y + 19), "Use .buy <item> [qty] or select an item from the menu below to purchase!", font=_get_font(15, bold=False), fill=TEXT_SUB)
 
-    for idx, item in enumerate(SHOP_ITEMS_DATA):
+    # 2-Column Grid (3 rows x 2 cols = 6 slots per page)
+    grid_y = 212
+    slot_w = 525
+    slot_h = 242
+    col_xs = [50, 625]
+
+    for idx in range(6):
         col = idx % 2
         row = idx // 2
-        tx = c1_x if col == 0 else c2_x
-        ty = 145 + row * (row_h + 20)
+        sx = col_xs[col]
+        sy = grid_y + row * (slot_h + 22)
 
-        # Tile Card
-        draw.rounded_rectangle([tx, ty, tx + col_w, ty + row_h], radius=16, fill=CARD_BG, outline=CARD_BORDER, width=1)
-        # Left Accent Line
-        draw.line([(tx + 4, ty + 16), (tx + 4, ty + row_h - 16)], fill=item["color"], width=4)
+        if idx < len(page_items):
+            item = page_items[idx]
 
-        # Big 64x64 Pixel Art Icon
-        _paste_pixel_icon(img, item["icon"], tx + 20, ty + 35, 64)
+            # Tile Card
+            draw.rounded_rectangle([sx, sy, sx + slot_w, sy + slot_h], radius=18, fill=CARD_BG, outline=CARD_BORDER, width=1)
+            # Glowing accent strip & top accent line
+            draw.rounded_rectangle([sx, sy, sx + 6, sy + slot_h], radius=3, fill=item["color"])
+            draw.line([(sx + 24, sy), (sx + slot_w - 24, sy)], fill=item["color"], width=2)
 
-        # Item Info
-        info_x = tx + 98
-        name_str = f"{item['num']}. {item['name']}"
-        draw.text((info_x, ty + 18), name_str, font=_get_font(19, bold=True), fill=TEXT_WHITE)
+            # Big 96x96 Icon Frame with 76x76 Pixel Art Icon
+            ix = sx + 22
+            iy = sy + 38
+            frame_size = 96
+            draw.rounded_rectangle(
+                [ix, iy, ix + frame_size, iy + frame_size],
+                radius=16,
+                fill=(15, 23, 42, 255),
+                outline=(item["color"][0], item["color"][1], item["color"][2], 140),
+                width=2,
+            )
+            _paste_pixel_icon(img, item["icon"], ix + 10, iy + 10, 76)
 
-        # Type Pill
-        t_bbox = draw.textbbox((0, 0), item["type"], font=_get_font(10, bold=True))
-        t_w = t_bbox[2] - t_bbox[0]
-        name_bbox = draw.textbbox((info_x, ty + 18), name_str, font=_get_font(19, bold=True))
-        pill_x = name_bbox[2] + 12
-        draw.rounded_rectangle([pill_x, ty + 18, pill_x + t_w + 14, ty + 38], radius=5, fill=(30, 41, 59, 200))
-        draw.text((pill_x + 7, ty + 22), item["type"], font=_get_font(10, bold=True), fill=item["color"])
+            # Price Badge (Bottom Right of slot)
+            price_str = f"{item['price']:,} Coins"
+            p_font = _get_font(19, bold=True)
+            p_bbox = draw.textbbox((0, 0), price_str, font=p_font)
+            pw = p_bbox[2] - p_bbox[0]
+            draw.rounded_rectangle(
+                [sx + slot_w - pw - 56, sy + slot_h - 48, sx + slot_w - 18, sy + slot_h - 14],
+                radius=10,
+                fill=(30, 41, 59, 240),
+                outline=ACCENT_GOLD,
+                width=1,
+            )
+            _paste_pixel_icon(img, "chronocoin", sx + slot_w - pw - 48, sy + slot_h - 42, 22)
+            draw.text((sx + slot_w - pw - 20, sy + slot_h - 41), price_str, font=p_font, fill=ACCENT_GOLD)
 
-        # Price Pill on the right
-        price_str = f"{item['price']:,}"
-        p_bbox = draw.textbbox((0, 0), price_str, font=_get_font(20, bold=True))
-        pw = p_bbox[2] - p_bbox[0]
-        px = tx + col_w - 20 - pw - 30
-        draw.text((px, ty + 18), price_str, font=_get_font(20, bold=True), fill=ACCENT_GOLD)
-        _paste_pixel_icon(img, "chronocoin", px + pw + 6, ty + 18, 22)
+            # Info text block
+            tx = sx + 138
+            name_str = f"{item['num']}. {item['name']}"
+            if len(name_str) > 23:
+                name_str = name_str[:21] + "..."
+            draw.text((tx, sy + 22), name_str, font=_get_font(26, bold=True), fill=TEXT_WHITE)
 
-        # Description (wrapped)
-        desc_lines = []
-        words = item["desc"].split()
-        cur_line = []
-        f_desc = _get_font(12, bold=False)
-        for w in words:
-            cur_line.append(w)
-            test_line = " ".join(cur_line)
-            bbox = draw.textbbox((0, 0), test_line, font=f_desc)
-            if (bbox[2] - bbox[0]) > (col_w - 120):
-                cur_line.pop()
-                desc_lines.append(" ".join(cur_line))
-                cur_line = [w]
-        if cur_line:
-            desc_lines.append(" ".join(cur_line))
+            # Type Pill
+            tag_str = item["type"]
+            f_tag = _get_font(13, bold=True)
+            t_bbox = draw.textbbox((0, 0), tag_str, font=f_tag)
+            tw = t_bbox[2] - t_bbox[0]
+            draw.rounded_rectangle([tx, sy + 60, tx + tw + 16, sy + 84], radius=6, fill=(item["color"][0], item["color"][1], item["color"][2], 40))
+            draw.text((tx + 8, sy + 63), tag_str, font=f_tag, fill=item["color"])
 
-        for d_idx, d_line in enumerate(desc_lines[:2]):
-            draw.text((info_x, ty + 56 + d_idx * 20), d_line, font=f_desc, fill=TEXT_SUB)
+            # Description (wrapped)
+            desc_lines = _wrap_text_lines(item["desc"], max_chars=34, max_lines=2)
+            ay = sy + 98
+            for line in desc_lines:
+                draw.text((tx, ay), line, font=_get_font(16, bold=False), fill=TEXT_SUB)
+                ay += 26
+        else:
+            # Empty slot
+            draw.rounded_rectangle([sx, sy, sx + slot_w, sy + slot_h], radius=18, fill=PANEL_BG, outline=PANEL_BORDER, width=1)
+            draw.text((sx + 175, sy + 105), "[ RESERVED SLOT ]", font=_get_font(15, bold=True), fill=(71, 85, 105, 255))
 
     # Footer
-    f_foot = _get_font(13, bold=True)
-    draw.text((50, SHOP_CARD_HEIGHT - 45), "COMMAND: .buy <number_or_name> [quantity]  •  Example: .buy 1 3 or .buy freeze", font=f_foot, fill=TEXT_SUB)
-    draw.text((CARD_WIDTH - 280, SHOP_CARD_HEIGHT - 45), "CHRONOS STUDY OS · SHOP CATALOG", font=_get_font(12, bold=False), fill=TEXT_MUTED)
+    fy = SHOP_CARD_HEIGHT - 55
+    draw.text((50, fy), "COMMAND: .buy <number_or_name> [quantity]  •  Example: .buy 1 3 or .buy freeze", font=_get_font(15, bold=True), fill=TEXT_SUB)
+    draw.text((CARD_WIDTH - 290, fy), f"PAGE {curr_page + 1} OF {total_pages} · CHRONOS OS", font=_get_font(14, bold=True), fill=TEXT_MUTED)
 
     return _export_png(img)
 
@@ -1370,84 +1443,84 @@ def render_inventory_card_sync(
         draw.text((250, banner_y + 18), "Activate an XP or Coin boost from your inventory below with .use <item>", font=_get_font(14, bold=False), fill=TEXT_SUB)
 
     # 2-Column Spacious Grid (2 cols x 3 rows = 6 items per page)
-    grid_y = 200
+    grid_y = 212
     slot_w = 525
-    slot_h = 188
+    slot_h = 242
     col_xs = [50, 625]
 
     for idx in range(6):
         col = idx % 2
         row = idx // 2
         sx = col_xs[col]
-        sy = grid_y + row * (slot_h + 18)
+        sy = grid_y + row * (slot_h + 22)
 
         if idx < len(page_items):
             i_id, qty = page_items[idx]
             meta = get_item_display_meta(i_id)
 
             # Slot card
-            draw.rounded_rectangle([sx, sy, sx + slot_w, sy + slot_h], radius=16, fill=CARD_BG, outline=CARD_BORDER, width=1)
+            draw.rounded_rectangle([sx, sy, sx + slot_w, sy + slot_h], radius=18, fill=CARD_BG, outline=CARD_BORDER, width=1)
             # Glowing accent strip & top accent line
-            draw.rounded_rectangle([sx, sy, sx + 5, sy + slot_h], radius=3, fill=meta["color"])
-            draw.line([(sx + 20, sy), (sx + slot_w - 20, sy)], fill=meta["color"], width=2)
+            draw.rounded_rectangle([sx, sy, sx + 6, sy + slot_h], radius=3, fill=meta["color"])
+            draw.line([(sx + 24, sy), (sx + slot_w - 24, sy)], fill=meta["color"], width=2)
 
-            # Big Icon Frame
-            ix = sx + 20
-            iy = sy + 32
-            frame_size = 80
+            # Big Icon Frame (96x96 with 76x76 pixel art)
+            ix = sx + 22
+            iy = sy + 38
+            frame_size = 96
             draw.rounded_rectangle(
                 [ix, iy, ix + frame_size, iy + frame_size],
-                radius=14,
+                radius=16,
                 fill=(15, 23, 42, 255),
                 outline=(meta["color"][0], meta["color"][1], meta["color"][2], 140),
                 width=2,
             )
-            _paste_pixel_icon(img, meta["icon"], ix + 8, iy + 8, 64)
+            _paste_pixel_icon(img, meta["icon"], ix + 10, iy + 10, 76)
 
             # Quantity pill (Top Right)
             qty_str = f"×{qty:,}"
-            q_font = _get_font(20, bold=True)
+            q_font = _get_font(22, bold=True)
             q_bbox = draw.textbbox((0, 0), qty_str, font=q_font)
             qw = q_bbox[2] - q_bbox[0]
             draw.rounded_rectangle(
-                [sx + slot_w - qw - 30, sy + 16, sx + slot_w - 14, sy + 48],
+                [sx + slot_w - qw - 32, sy + 18, sx + slot_w - 16, sy + 52],
                 radius=8,
                 fill=(30, 41, 59, 240),
                 outline=(meta["color"][0], meta["color"][1], meta["color"][2], 160),
                 width=1,
             )
-            draw.text((sx + slot_w - qw - 22, sy + 20), qty_str, font=q_font, fill=meta["color"])
+            draw.text((sx + slot_w - qw - 24, sy + 22), qty_str, font=q_font, fill=meta["color"])
 
             # Info text block
-            tx = sx + 118
+            tx = sx + 138
             item_name = meta["name"]
             if len(item_name) > 23:
                 item_name = item_name[:21] + "..."
-            draw.text((tx, sy + 18), item_name, font=_get_font(23, bold=True), fill=TEXT_WHITE)
+            draw.text((tx, sy + 22), item_name, font=_get_font(26, bold=True), fill=TEXT_WHITE)
 
             # Type Pill
             tag_str = meta["type"]
-            f_tag = _get_font(12, bold=True)
+            f_tag = _get_font(13, bold=True)
             t_bbox = draw.textbbox((0, 0), tag_str, font=f_tag)
             tw = t_bbox[2] - t_bbox[0]
-            draw.rounded_rectangle([tx, sy + 54, tx + tw + 16, sy + 76], radius=6, fill=(meta["color"][0], meta["color"][1], meta["color"][2], 45))
-            draw.text((tx + 8, sy + 57), tag_str, font=f_tag, fill=meta["color"])
+            draw.rounded_rectangle([tx, sy + 60, tx + tw + 16, sy + 84], radius=6, fill=(meta["color"][0], meta["color"][1], meta["color"][2], 40))
+            draw.text((tx + 8, sy + 63), tag_str, font=f_tag, fill=meta["color"])
 
             # Subtitle / Action lines
-            action_lines = _wrap_text_lines(meta["action"], max_chars=36, max_lines=2)
-            ay = sy + 88
+            action_lines = _wrap_text_lines(meta["action"], max_chars=34, max_lines=2)
+            ay = sy + 98
             for line in action_lines:
-                draw.text((tx, ay), line, font=_get_font(15, bold=False), fill=TEXT_SUB)
-                ay += 24
+                draw.text((tx, ay), line, font=_get_font(16, bold=False), fill=TEXT_SUB)
+                ay += 26
         else:
             # Empty slot
-            draw.rounded_rectangle([sx, sy, sx + slot_w, sy + slot_h], radius=16, fill=PANEL_BG, outline=PANEL_BORDER, width=1)
-            draw.text((sx + 165, sy + 82), "[ EMPTY SATCHEL SLOT ]", font=_get_font(14, bold=True), fill=(71, 85, 105, 255))
+            draw.rounded_rectangle([sx, sy, sx + slot_w, sy + slot_h], radius=18, fill=PANEL_BG, outline=PANEL_BORDER, width=1)
+            draw.text((sx + 165, sy + 105), "[ EMPTY SATCHEL SLOT ]", font=_get_font(15, bold=True), fill=(71, 85, 105, 255))
 
     # Footer
-    fy = INV_CARD_HEIGHT - 45
-    draw.text((50, fy), "TIPS: .use <boost> to activate  •  .openbox to roll  •  .settitle to equip", font=_get_font(14, bold=True), fill=TEXT_SUB)
-    draw.text((CARD_WIDTH - 290, fy), f"PAGE {curr_page + 1} OF {total_pages} · CHRONOS OS", font=_get_font(13, bold=True), fill=TEXT_MUTED)
+    fy = INV_CARD_HEIGHT - 55
+    draw.text((50, fy), "TIPS: .use <boost> to activate  •  .openbox to roll  •  .settitle to equip", font=_get_font(15, bold=True), fill=TEXT_SUB)
+    draw.text((CARD_WIDTH - 290, fy), f"PAGE {curr_page + 1} OF {total_pages} · CHRONOS OS", font=_get_font(14, bold=True), fill=TEXT_MUTED)
 
     return _export_png(img)
 
