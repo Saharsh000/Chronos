@@ -166,12 +166,14 @@ def _export_png(img: Image.Image) -> bytes:
 
 
 def _paste_pixel_icon(img: Image.Image, icon_name: str, x: int, y: int, size: int) -> bool:
-    """Safely paste a pixel-art icon (Minecraft items, food sprites, etc.) with nearest-neighbor scaling."""
+    """Safely paste a pixel-art icon (Minecraft items, food sprites, tier shields, etc.) with nearest-neighbor scaling."""
     base_dir = os.path.join(os.path.dirname(os.path.dirname(__file__)), "assets", "icons")
-    clean_name = icon_name.replace("food/", "")
+    clean_name = icon_name.replace("food/", "").replace("tiers/", "").replace("tier_", "")
     candidates = [
         os.path.join(base_dir, f"{icon_name}_128.png"),
         os.path.join(base_dir, f"{icon_name}.png"),
+        os.path.join(base_dir, "tiers", f"{clean_name}.png"),
+        os.path.join(base_dir, f"tier_{clean_name}.png"),
         os.path.join(base_dir, "food", f"{clean_name}.png"),
         os.path.join(base_dir, f"{clean_name}.png"),
     ]
@@ -236,6 +238,7 @@ def render_overview_card_sync(
 
     clean_disp = _sanitize_text(display_name) or "Aspirant"
     clean_tier = tier_name.replace(" Tier", "").strip().title() if tier_name else "Iron"
+    tier_key = clean_tier.lower().replace(" ", "")
 
     av_pasted = False
     if avatar_bytes:
@@ -247,7 +250,14 @@ def render_overview_card_sync(
         except Exception:
             pass
     if not av_pasted:
-        _paste_pixel_icon(img, "chronocoin", av_x + 6, av_y + 6, 60)
+        if not _paste_pixel_icon(img, f"tier_{tier_key}", av_x + 6, av_y + 6, 60):
+            _paste_pixel_icon(img, "chronocoin", av_x + 6, av_y + 6, 60)
+    else:
+        # Tier Shield Badge on bottom-right of avatar box
+        badge_box_x = av_x + av_box - 24
+        badge_box_y = av_y + av_box - 24
+        draw.rounded_rectangle([badge_box_x - 1, badge_box_y - 1, badge_box_x + 25, badge_box_y + 25], radius=6, fill=_P_SIDEBAR, outline=_P_BORDER, width=1)
+        _paste_pixel_icon(img, f"tier_{tier_key}", badge_box_x, badge_box_y, 24)
 
     # Name and Level/Tier
     ty = av_y + av_box + 12
@@ -540,7 +550,15 @@ def render_leaderboard_card_sync(
                 except Exception:
                     pass
             if not av_pasted:
-                row_icon = row.get("icon", "chronocoin")
+                row_icon = row.get("icon")
+                if not row_icon or row_icon == "chronocoin":
+                    sub_str = str(row.get("sub", "")).lower()
+                    for t_name in ["air1", "air 1", "radiant", "immortal", "ascendant", "diamond", "platinum", "gold", "silver", "bronze", "iron"]:
+                        if t_name in sub_str:
+                            row_icon = f"tier_{t_name.replace(' ', '')}"
+                            break
+                    if not row_icon:
+                        row_icon = "chronocoin"
                 _paste_pixel_icon(img, row_icon, av_x + 6, ry + 14, 40)
 
             # Name & Subtitle

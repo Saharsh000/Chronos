@@ -17,6 +17,7 @@ import asyncio
 import datetime as dt
 import io
 import logging
+import os
 import time
 from typing import Optional, Union
 
@@ -25,6 +26,7 @@ from discord.ext import commands
 
 import config
 from utils import embeds
+from utils import emojis
 from utils.views import LeaderboardView, StatsPaginationView
 from cogs.trivia import get_trivia_tier
 from utils import xp as xp_utils
@@ -311,7 +313,7 @@ class Stats(commands.Cog, name="Stats"):
 
     @commands.command(name="rank", aliases=["level", "lvl"])
     async def rank_cmd(self, ctx: commands.Context, member: Optional[discord.Member] = None) -> None:
-        """View level/XP progress and tier."""
+        """View level/XP progress and tier with official Minecraft prestige shield."""
         target = member or ctx.author
         stats = await self.db.get_or_create_user_stats(target.id, ctx.guild.id)
         current_into, needed_for_next, level = xp_utils.xp_progress(stats["xp"])
@@ -323,14 +325,24 @@ class Stats(commands.Cog, name="Stats"):
         ranking = sorted(alltime_totals.items(), key=lambda kv: kv[1], reverse=True)
         rank_position = next((i + 1 for i, (uid, _) in enumerate(ranking) if uid == target.id), None)
 
-        embed = embeds.base_embed(title=f"\U0001F3C5 Rank Card \u2014 {target.display_name}", color=embeds.COLOR_SOCIAL)
-        embed.set_thumbnail(url=target.display_avatar.url)
-        embed.add_field(name="Tier", value=tier, inline=True)
-        embed.add_field(name="Level", value=str(level), inline=True)
-        embed.add_field(name="Server Rank", value=f"#{rank_position}" if rank_position else "Unranked", inline=True)
-        embed.add_field(name="XP", value=f"{stats['xp']:,} total XP", inline=False)
-        embed.add_field(name="Next level in", value=f"`{bar}` {needed_for_next - current_into} XP to go", inline=False)
-        await ctx.send(embed=embed)
+        tier_e = emojis.tier(tier, ctx.guild)
+        embed = embeds.base_embed(title=f"🏅 Rank Card — {target.display_name}", color=embeds.COLOR_SOCIAL)
+        embed.add_field(name="Tier", value=f"{tier_e} **{tier}**", inline=True)
+        embed.add_field(name="Level", value=f"**{level}**", inline=True)
+        embed.add_field(name="Server Rank", value=f"**#{rank_position}**" if rank_position else "Unranked", inline=True)
+        embed.add_field(name="Total XP", value=f"{stats['xp']:,} XP", inline=False)
+        embed.add_field(name="Next Level in", value=f"`{bar}` {needed_for_next - current_into:,} XP to go", inline=False)
+
+        tier_clean = "".join(c for c in tier if c.isalnum()).lower()
+        shield_path = os.path.join(os.path.dirname(os.path.dirname(__file__)), "assets", "icons", "tiers", f"{tier_clean}.png")
+        if os.path.exists(shield_path):
+            file = discord.File(shield_path, filename="tier_shield.png")
+            embed.set_thumbnail(url="attachment://tier_shield.png")
+            embed.set_author(name=f"{target.display_name}'s Rank Progression", icon_url=target.display_avatar.url)
+            await ctx.send(file=file, embed=embed)
+        else:
+            embed.set_thumbnail(url=target.display_avatar.url)
+            await ctx.send(embed=embed)
 
     async def _render_leaderboard(
         self, ctx: commands.Context, period: str, subject: Optional[str],
@@ -374,7 +386,8 @@ class Stats(commands.Cog, name="Stats"):
             u_stats = await self.db.get_or_create_user_stats(user_id, ctx.guild.id)
             _, _, lvl = xp_utils.xp_progress(u_stats.get("xp", 0))
             t_name = xp_utils.tier_for_level(lvl, effective_tiers)
-            clean_t = t_name.replace(" Tier", "").strip()
+            clean_t = "".join(c for c in t_name if c.isalnum() or c.isspace()).replace("Tier", "").strip()
+            tier_key = clean_t.lower().replace(" ", "")
 
             return {
                 "rank": rank_num,
@@ -384,7 +397,7 @@ class Stats(commands.Cog, name="Stats"):
                 "score": format_duration(seconds),
                 "avatar_bytes": avatar_bytes,
                 "is_author": (user_id == ctx.author.id),
-                "icon": "chronos_streak",
+                "icon": f"tier_{tier_key}",
             }
 
         entries = list(await asyncio.gather(*[

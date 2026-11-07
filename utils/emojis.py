@@ -135,3 +135,28 @@ def item(item_id: str, guild: Optional[discord.Guild] = None) -> str:
     elif clean.startswith("title_"):
         return title_scroll(guild)
     return "📦"
+
+
+TIER_EMOJI_FALLBACKS = {
+    "iron": "⚙️",
+    "bronze": "🥉",
+    "silver": "🥈",
+    "gold": "🥇",
+    "platinum": "🔹",
+    "diamond": "💎",
+    "ascendant": "🍃",
+    "immortal": "💀",
+    "radiant": "☀️",
+    "air1": "🚀",
+    "air_1": "🚀",
+}
+
+
+def tier(tier_name: str, guild: Optional[discord.Guild] = None) -> str:
+    """Return the custom tier shield emoji for a tier name with Unicode fallback."""
+    clean = "".join(c for c in tier_name if c.isalnum()).lower()
+    fallback = TIER_EMOJI_FALLBACKS.get(clean, "🛡️")
+    e = _find_emoji((f"tier_{clean}", clean), guild)
+    if e:
+        return str(e)
+    return fallback
