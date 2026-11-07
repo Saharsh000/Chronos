@@ -535,8 +535,20 @@ def render_leaderboard_card_sync(
             ry_b = ry + 8
             r_color = rank_colors.get(rn, (120, 125, 135, 255))
             draw.rounded_rectangle([rx, ry_b, rx + rb_w, ry_b + rb_h], radius=10, fill=_P_SIDEBAR, outline=r_color, width=2 if rn <= 3 else 1)
-            rank_str = f"#{rn}"
-            draw.text((rx + rb_w // 2, ry_b + 12), rank_str, font=_get_font(20, bold=True), fill=r_color if rn <= 3 else _P_DARK, anchor="mt")
+            if rn in (1, 2, 3):
+                # Authentic pixel-art medal for podium ranks
+                _paste_pixel_icon(img, f"medal_{rn}", rx + (rb_w - 38) // 2, ry_b + (rb_h - 38) // 2, 38)
+            else:
+                rank_str = f"#{rn}"
+                draw.text((rx + rb_w // 2, ry_b + 12), rank_str, font=_get_font(20, bold=True), fill=_P_DARK, anchor="mt")
+
+            # Detect tier from subtitle for badge/fallback
+            sub_str = str(row.get("sub", "")).lower()
+            tier_icon = None
+            for t_name in ["air1", "air 1", "radiant", "immortal", "ascendant", "diamond", "platinum", "gold", "silver", "bronze", "iron"]:
+                if t_name in sub_str:
+                    tier_icon = f"tier_{t_name.replace(' ', '')}"
+                    break
 
             # Avatar or icon
             av_x = rx + rb_w + 10
@@ -550,16 +562,15 @@ def render_leaderboard_card_sync(
                         av_pasted = True
                 except Exception:
                     pass
-            if not av_pasted:
-                row_icon = row.get("icon")
-                if not row_icon or row_icon == "chronocoin":
-                    sub_str = str(row.get("sub", "")).lower()
-                    for t_name in ["air1", "air 1", "radiant", "immortal", "ascendant", "diamond", "platinum", "gold", "silver", "bronze", "iron"]:
-                        if t_name in sub_str:
-                            row_icon = f"tier_{t_name.replace(' ', '')}"
-                            break
-                    if not row_icon:
-                        row_icon = "chronocoin"
+            if av_pasted:
+                # Overlay mini tier shield badge on avatar corner
+                if tier_icon:
+                    bx = av_x + 32
+                    by = ry + 38
+                    draw.rounded_rectangle([bx, by, bx + 20, by + 20], radius=5, fill=_P_BG, outline=_P_BORDER, width=1)
+                    _paste_pixel_icon(img, tier_icon, bx + 1, by + 1, 18)
+            else:
+                row_icon = row.get("icon") or tier_icon or "chronocoin"
                 _paste_pixel_icon(img, row_icon, av_x + 6, ry + 14, 40)
 
             # Name & Subtitle
