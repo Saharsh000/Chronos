@@ -43,16 +43,17 @@ ACCENT_ORANGE = (249, 115, 22, 255)    # Orange-500
 ACCENT_ROSE = (244, 63, 94, 255)       # Rose-500
 
 TIER_COLORS = {
-    "iron": (148, 163, 184),
-    "bronze": (205, 127, 50),
-    "silver": (192, 192, 192),
-    "gold": (245, 158, 11),
-    "platinum": (56, 189, 248),
-    "diamond": (129, 140, 248),
-    "ascendant": (16, 185, 129),
-    "immortal": (236, 72, 153),
-    "radiant": (251, 191, 36),
-    "air 1": (244, 63, 94),
+    "iron": (86, 97, 112),         # Cast Iron Slate (Dark Neutral)
+    "bronze": (194, 94, 26),       # Rustic Copper (Warm Orange-Brown)
+    "silver": (220, 230, 242),     # Mirror Chrome Silver (Bright Light Neutral)
+    "gold": (245, 179, 0),         # Imperial Yellow Gold (Pure Yellow)
+    "platinum": (37, 99, 235),     # Royal Sapphire Blue (Deep Blue)
+    "diamond": (46, 230, 205),     # Minecraft Aqua (Cyan)
+    "ascendant": (34, 197, 94),    # Emerald Leaf Green (Vibrant Green)
+    "immortal": (147, 51, 234),    # Void Amethyst (Deep Purple)
+    "radiant": (239, 68, 68),      # Solar Crimson (Scorching Scarlet Red)
+    "air 1": (217, 70, 239),       # Cosmic Prismatic (Hot Neon Magenta / Indigo)
+    "air1": (217, 70, 239),
 }
 
 # Regex to strip emojis and non-standard symbols that cause tofu rectangles (▯) in TTF fonts
