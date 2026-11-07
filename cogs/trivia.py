@@ -18,6 +18,7 @@ Supports:
 from __future__ import annotations
 
 import asyncio
+import io
 import logging
 import random
 import re
@@ -49,6 +50,7 @@ from services.cja import (
 from utils import embeds
 from utils import emojis
 from utils.time_format import format_duration
+from utils.stats_card import render_leaderboard_card_sync
 
 log = logging.getLogger("trivia")
 
@@ -1737,7 +1739,7 @@ class Trivia(commands.Cog, name="Trivia"):
         view.message = msg
 
     async def _send_leaderboard(self, ctx: commands.Context) -> None:
-        """Display the server trivia leaderboard with JEE AIR ladder climb."""
+        """Display the server trivia leaderboard with JEE AIR ladder climb and visual card."""
         rows = await self.db.get_trivia_leaderboard(ctx.guild.id, limit=10)
         if not rows:
             await ctx.send(embed=embeds.info_embed(
@@ -1772,6 +1774,7 @@ class Trivia(commands.Cog, name="Trivia"):
         author_rank, total_players = await self.db.get_user_trivia_rank(ctx.author.id, ctx.guild.id)
         author_stats = await self.db.get_or_create_trivia_stats(ctx.author.id, ctx.guild.id)
         author_tier = get_trivia_tier(author_stats["total_marks"])
+        author_score = f"{author_stats['total_marks']:+,} M"
 
         climb_lines = [
             f"**Current Standing:** Rank `#{author_rank}` of `{total_players}` candidates",
@@ -1794,7 +1797,69 @@ class Trivia(commands.Cog, name="Trivia"):
 
         embed.add_field(name="🧗 Your Climb Progress", value="\n".join(climb_lines), inline=False)
         embeds.set_footer(embed, f"{ctx.prefix}trivia r to play • {ctx.prefix}trivia me for full candidate profile")
-        await ctx.send(embed=embed)
+
+        # Top 6 entries for visual card
+        top_6 = rows[:6]
+
+        async def _fetch_trivia_entry(rank_num: int, r: dict[str, Any]) -> dict[str, Any]:
+            user_id = r["user_id"]
+            member = ctx.guild.get_member(user_id)
+            name = member.display_name if member else f"User {user_id}"
+            avatar_bytes = None
+            if member:
+                try:
+                    avatar_bytes = await member.display_avatar.with_format("png").with_size(64).read()
+                except Exception:
+                    avatar_bytes = None
+
+            att = r.get("questions_attempted", 0)
+            cor = r.get("questions_correct", 0)
+            acc = (cor / att * 100) if att > 0 else 0
+            tier = get_trivia_tier(r.get("total_marks", 0))
+
+            return {
+                "rank": rank_num,
+                "user_id": user_id,
+                "name": name,
+                "sub": f"{tier['badge']} · {acc:.0f}% acc ({cor}/{att})",
+                "score": f"{r['total_marks']:+,} M",
+                "avatar_bytes": avatar_bytes,
+                "is_author": (user_id == ctx.author.id),
+                "icon": "mystery_box",
+            }
+
+        entries = list(await asyncio.gather(*[
+            _fetch_trivia_entry(i + 1, row) for i, row in enumerate(top_6)
+        ]))
+
+        loop = asyncio.get_running_loop()
+        card_file = None
+        try:
+            card_bytes = await loop.run_in_executor(
+                None,
+                render_leaderboard_card_sync,
+                "JEE AIR LADDER",
+                "JEE Main & Advanced",
+                ctx.guild.name,
+                "trivia",
+                entries,
+                author_rank,
+                author_score,
+                ctx.author.id,
+                None,
+                "mystery_box",
+                total_players,
+                "chronos_xp",
+            )
+            card_file = discord.File(io.BytesIO(card_bytes), filename="trivia_leaderboard.png")
+            embed.set_image(url="attachment://trivia_leaderboard.png")
+        except Exception as e:
+            log.error("Failed to render visual trivia leaderboard card", exc_info=e)
+
+        if card_file:
+            await ctx.send(file=card_file, embed=embed)
+        else:
+            await ctx.send(embed=embed)
 
     async def _send_user_stats(self, ctx: commands.Context) -> None:
         """Display personal trivia metrics and ladder climb for the author."""

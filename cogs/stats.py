@@ -13,10 +13,12 @@ math against stored timestamps.
 """
 from __future__ import annotations
 
+import asyncio
 import datetime as dt
+import io
 import logging
 import time
-from typing import Optional
+from typing import Optional, Union
 
 import discord
 from discord.ext import commands
@@ -29,6 +31,7 @@ from utils import xp as xp_utils
 from utils.achievements import ACHIEVEMENTS
 from utils.subjects import SUBJECT_ALIASES, SUBJECT_INFO, SUBJECTS
 from utils.time_format import discord_timestamp, format_duration
+from utils.stats_card import render_leaderboard_card_sync
 
 log = logging.getLogger("stats")
 
@@ -331,48 +334,112 @@ class Stats(commands.Cog, name="Stats"):
 
     async def _render_leaderboard(
         self, ctx: commands.Context, period: str, subject: Optional[str],
-    ) -> discord.Embed:
-        """Build the leaderboard embed for one period. Called on the
+    ) -> Union[tuple[discord.Embed, discord.File], discord.Embed]:
+        """Build the visual leaderboard card and embed for one period. Called on the
         initial send and again each time a period button is pressed
         (see utils/views.py LeaderboardView)."""
         totals = await self._totals(ctx.guild.id, period, subject)
         ranking = sorted(totals.items(), key=lambda kv: kv[1], reverse=True)
+        active_ranking = [(uid, s) for (uid, s) in ranking if s > 0]
 
-        title = f"\U0001F3C6 Leaderboard \u2014 {PERIOD_LABELS[period]}"
+        period_label = PERIOD_LABELS.get(period, period.title())
+        title_text = f"🏆 Leaderboard — {period_label}"
+        subtitle = period_label
         if subject:
             info = SUBJECT_INFO[subject]
-            title += f" \u00B7 {info['emoji']} {info['label']}"
+            title_text += f" · {info['emoji']} {info['label']}"
+            subtitle = f"{period_label} · {info['label']}"
 
-        if not ranking or ranking[0][1] <= 0:
+        if not active_ranking:
             return embeds.base_embed(
-                title=title,
+                title=title_text,
                 description="No study time has been logged yet for this filter.",
                 color=embeds.COLOR_MUTED,
             )
 
-        medals = ["\U0001F947", "\U0001F948", "\U0001F949"]
-        lines = []
-        for i, (user_id, seconds) in enumerate(ranking[:10]):
-            if seconds <= 0:
-                break
+        effective_tiers = await self.db.get_effective_tiers(ctx.guild.id)
+        top_6 = active_ranking[:6]
+
+        # Fetch avatar bytes and user stats concurrently for top 6
+        async def _fetch_entry(rank_num: int, user_id: int, seconds: int) -> dict[str, Any]:
             member = ctx.guild.get_member(user_id)
-            name = member.display_name if member else f"Unknown User ({user_id})"
-            prefix = medals[i] if i < 3 else f"`#{i + 1:>2}`"
-            you = " \u2190 *you*" if user_id == ctx.author.id else ""
-            lines.append(f"{prefix} **{name}** \u2014 {format_duration(seconds)}{you}")
+            name = member.display_name if member else f"User {user_id}"
+            avatar_bytes = None
+            if member:
+                try:
+                    avatar_bytes = await member.display_avatar.with_format("png").with_size(64).read()
+                except Exception:
+                    avatar_bytes = None
 
-        embed = embeds.base_embed(title=title, description="\n".join(lines), color=embeds.COLOR_LEVELUP)
+            u_stats = await self.db.get_or_create_user_stats(user_id, ctx.guild.id)
+            _, _, lvl = xp_utils.xp_progress(u_stats.get("xp", 0))
+            t_name = xp_utils.tier_for_level(lvl, effective_tiers)
+            clean_t = t_name.replace(" Tier", "").strip()
 
-        author_position = next((i + 1 for i, (uid, _) in enumerate(ranking) if uid == ctx.author.id), None)
-        if author_position and author_position > 10:
-            embeds.set_footer(
-                embed,
-                f"Your rank: #{author_position}",
-                format_duration(totals[ctx.author.id]),
+            return {
+                "rank": rank_num,
+                "user_id": user_id,
+                "name": name,
+                "sub": f"Level {lvl} · {clean_t} Tier",
+                "score": format_duration(seconds),
+                "avatar_bytes": avatar_bytes,
+                "is_author": (user_id == ctx.author.id),
+                "icon": "chronos_streak",
+            }
+
+        entries = list(await asyncio.gather(*[
+            _fetch_entry(i + 1, uid, sec) for i, (uid, sec) in enumerate(top_6)
+        ]))
+
+        author_position = next((i + 1 for i, (uid, _) in enumerate(active_ranking) if uid == ctx.author.id), None)
+        author_score = format_duration(totals.get(ctx.author.id, 0)) if ctx.author.id in totals else None
+
+        loop = asyncio.get_running_loop()
+        try:
+            card_bytes = await loop.run_in_executor(
+                None,
+                render_leaderboard_card_sync,
+                "LEADERBOARD",
+                subtitle,
+                ctx.guild.name,
+                period,
+                entries,
+                author_position,
+                author_score,
+                ctx.author.id,
+                subject,
+                "chronos_streak",
+                len(active_ranking),
+                "chronos_streak",
             )
-        else:
-            embeds.set_footer(embed, "Live rankings \u00B7 Choose another period below")
-        return embed
+            file = discord.File(io.BytesIO(card_bytes), filename="leaderboard.png")
+            embed = embeds.base_embed(
+                title=title_text,
+                description=f"Showing top academic contenders in **{ctx.guild.name}**",
+                color=embeds.COLOR_LEVELUP,
+            )
+            embed.set_image(url="attachment://leaderboard.png")
+            if author_position:
+                embeds.set_footer(
+                    embed,
+                    f"Your rank: #{author_position} ({author_score}) · Click a period button below to switch",
+                )
+            else:
+                embeds.set_footer(embed, "Live rankings · Click a period button below to switch views")
+            return embed, file
+        except Exception as e:
+            log.error("Failed to render visual leaderboard card", exc_info=e)
+            medals = ["🥇", "🥈", "🥉"]
+            lines = []
+            for i, (user_id, seconds) in enumerate(active_ranking[:10]):
+                member = ctx.guild.get_member(user_id)
+                name = member.display_name if member else f"Unknown User ({user_id})"
+                prefix = medals[i] if i < 3 else f"`#{i + 1:>2}`"
+                you = " ← *you*" if user_id == ctx.author.id else ""
+                lines.append(f"{prefix} **{name}** — {format_duration(seconds)}{you}")
+
+            embed = embeds.base_embed(title=title_text, description="\n".join(lines), color=embeds.COLOR_LEVELUP)
+            return embed
 
     @commands.command(name="leaderboard", aliases=["lb", "top"])
     async def leaderboard_cmd(self, ctx: commands.Context, *args: str) -> None:
@@ -401,12 +468,16 @@ class Stats(commands.Cog, name="Stats"):
                 ))
                 return
 
-        async def render(selected_period: str) -> discord.Embed:
+        async def render(selected_period: str) -> Union[tuple[discord.Embed, discord.File], discord.Embed]:
             return await self._render_leaderboard(ctx, selected_period, subject)
 
         view = LeaderboardView(author_id=ctx.author.id, initial_period=period, render=render)
-        embed = await self._render_leaderboard(ctx, period, subject)
-        view.message = await ctx.send(embed=embed, view=view)
+        res = await self._render_leaderboard(ctx, period, subject)
+        if isinstance(res, tuple):
+            embed, file = res
+            view.message = await ctx.send(file=file, embed=embed, view=view)
+        else:
+            view.message = await ctx.send(embed=res, view=view)
 
 
 async def setup(bot: commands.Bot) -> None:

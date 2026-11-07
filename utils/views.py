@@ -175,8 +175,12 @@ class PeriodButton(discord.ui.Button):
         view: LeaderboardView = self.view  # type: ignore[assignment]
         view.period = self.period
         view.sync()
-        embed = await view.render(self.period)
-        await interaction.response.edit_message(embed=embed, view=view)
+        res = await view.render(self.period)
+        if isinstance(res, tuple):
+            embed, file = res
+            await interaction.response.edit_message(embed=embed, attachments=[file], view=view)
+        else:
+            await interaction.response.edit_message(embed=res, view=view)
 
 
 class LeaderboardView(ChronosView):
