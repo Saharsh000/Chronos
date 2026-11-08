@@ -136,10 +136,6 @@ def item(item_id: str, guild: Optional[discord.Guild] = None) -> str:
         return coin_boost(guild)
     elif clean in ("candy", "halloween_candy", "spooky_candy"):
         return candy(guild)
-    elif clean in ("pokeball", "pet_ball"):
-        return pokeball(guild)
-    elif clean in ("rare_candy", "pet_treat"):
-        return rare_candy(guild)
     elif clean.startswith("title_"):
         return title_scroll(guild)
     return "📦"
@@ -197,24 +193,6 @@ def trophy(guild: Optional[discord.Guild] = None) -> str:
     """Return the unique Grandmaster Trophy Chalice emoji."""
     e = _find_emoji(("trophy", "achievement_trophy", "chalice"), guild)
     return str(e) if e else "🏆"
-
-
-def pokeball(guild: Optional[discord.Guild] = None) -> str:
-    """Return the unique Pokéball pet catch sphere emoji."""
-    e = _find_emoji(("pokeball", "pet_ball"), guild)
-    return str(e) if e else "🔴"
-
-
-def rare_candy(guild: Optional[discord.Guild] = None) -> str:
-    """Return the unique Rare Candy pet level boost sweet emoji."""
-    e = _find_emoji(("rare_candy", "pet_treat", "pet_candy"), guild)
-    return str(e) if e else "🍬"
-
-
-def heart(guild: Optional[discord.Guild] = None) -> str:
-    """Return the unique Heart Container pet affection & stamina emoji."""
-    e = _find_emoji(("heart", "stamina", "pet_heart"), guild)
-    return str(e) if e else "❤️"
 
 
 def medal(rank: int, guild: Optional[discord.Guild] = None) -> str:

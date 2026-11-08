@@ -1253,20 +1253,6 @@ ITEM_METADATA = {
         "action": ".candyshop to exchange for rare rewards",
         "color": (249, 115, 22, 255),
     },
-    "pokeball": {
-        "name": "Pokéball",
-        "icon": "pokeball",
-        "type": "PET CAPTURE",
-        "action": "Store companion pets in satchel",
-        "color": (239, 68, 68, 255),
-    },
-    "rare_candy": {
-        "name": "Rare Candy",
-        "icon": "rare_candy",
-        "type": "PET LEVEL BOOST",
-        "action": ".feed rare candy to level up pet instantly",
-        "color": (59, 130, 246, 255),
-    },
     "title_scholar": {
         "name": "Title: The Scholar",
         "icon": "title_scroll",
