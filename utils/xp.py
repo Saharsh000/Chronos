@@ -13,16 +13,16 @@ from typing import Optional
 
 # Named tiers a user progresses through as their level climbs.
 TIERS: list[tuple[int, str]] = [
-    (0, "\u2699\uFE0F Iron"),        # ⚙️
-    (5, "\U0001F949 Bronze"),        # 🥉
-    (10, "\U0001F948 Silver"),       # 🥈
-    (20, "\U0001F947 Gold"),         # 🥇
-    (35, "\U0001F539 Platinum"),     # 🔹
-    (50, "\U0001F48E Diamond"),      # 💎
-    (75, "\U0001F343 Ascendant"),    # 🍃
-    (100, "\U0001F480 Immortal"),    # 💀
-    (150, "\u2600\uFE0F Radiant"),   # ☀️
-    (200, "\U0001F680 AIR 1"),       # 🚀
+    (0, "Iron"),
+    (5, "Bronze"),
+    (10, "Silver"),
+    (20, "Gold"),
+    (35, "Platinum"),
+    (50, "Diamond"),
+    (75, "Ascendant"),
+    (100, "Immortal"),
+    (150, "Radiant"),
+    (200, "AIR 1"),
 ]
 
 _MAX_LEVEL_LOOKUP = 1000

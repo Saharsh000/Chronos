@@ -170,10 +170,13 @@ def _export_png(img: Image.Image) -> bytes:
 def _paste_pixel_icon(img: Image.Image, icon_name: str, x: int, y: int, size: int) -> bool:
     """Safely paste a pixel-art icon (Minecraft items, food sprites, tier shields, etc.) with nearest-neighbor scaling."""
     base_dir = os.path.join(os.path.dirname(os.path.dirname(__file__)), "assets", "icons")
-    clean_name = icon_name.replace("food/", "").replace("tiers/", "").replace("tier_", "")
+    # Clean emoji or non-alphanumeric characters to prevent lookup failure
+    sanitized_name = _sanitize_text(icon_name).lower().strip()
+    sanitized_name = re.sub(r"[^a-z0-9_/-]", "", sanitized_name)
+    clean_name = sanitized_name.replace("food/", "").replace("tiers/", "").replace("tier_", "")
     candidates = [
-        os.path.join(base_dir, f"{icon_name}_128.png"),
-        os.path.join(base_dir, f"{icon_name}.png"),
+        os.path.join(base_dir, f"{sanitized_name}_128.png"),
+        os.path.join(base_dir, f"{sanitized_name}.png"),
         os.path.join(base_dir, "tiers", f"{clean_name}.png"),
         os.path.join(base_dir, f"tier_{clean_name}.png"),
         os.path.join(base_dir, "food", f"{clean_name}.png"),
@@ -239,8 +242,10 @@ def render_overview_card_sync(
     draw.rounded_rectangle([av_x, av_y, av_x + av_box, av_y + av_box], radius=14, fill=_P_BG, outline=_P_BORDER, width=1)
 
     clean_disp = _sanitize_text(display_name) or "Aspirant"
-    clean_tier = tier_name.replace(" Tier", "").strip().title() if tier_name else "Iron"
-    tier_key = clean_tier.lower().replace(" ", "")
+    clean_tier = _sanitize_text(tier_name).replace("Tier", "").strip().title() or "Iron"
+    tier_key = clean_tier.lower().replace(" ", "_")
+    if tier_key == "air1":
+        tier_key = "air_1"
 
     av_pasted = False
     if avatar_bytes:
@@ -2148,7 +2153,11 @@ def render_session_summary_card_sync(
     # User Header
     av_size = 50
     draw.rounded_rectangle([cx, hy, cx + av_size, hy + av_size], radius=12, fill=sidebar_color, outline=border_color, width=1)
-    tier_icon = f"tier_{tier_name.lower().replace(' ', '_')}"
+    clean_tier = _sanitize_text(tier_name).replace("Tier", "").strip().title() or "Iron"
+    tier_key = clean_tier.lower().replace(" ", "_")
+    if tier_key == "air1":
+        tier_key = "air_1"
+    tier_icon = f"tier_{tier_key}"
     av_pasted = False
     if avatar_bytes:
         try:
@@ -2170,7 +2179,7 @@ def render_session_summary_card_sync(
     clean_name = _sanitize_text(display_name)[:22] or "Scholar"
     draw.text((name_x, hy + 2), f"{clean_name}'s Session", font=_get_font(28, bold=True), fill=_P_DARK)
     dur_full = format_duration(duration_seconds, always_show_seconds=False) if duration_seconds >= 60 else format_duration(duration_seconds)
-    status_sub = f"Focus finalized · {tier_name} Tier · {dur_full} total"
+    status_sub = f"Focus finalized · {clean_tier} Tier · {dur_full} total"
     draw.text((name_x, hy + 34), status_sub, font=_get_font(14, bold=False), fill=_P_MUTED)
 
     div_y = hy + 66
@@ -2225,7 +2234,7 @@ def render_session_summary_card_sync(
 
     # Tier shield + Level text
     _paste_pixel_icon(img, tier_icon, cx + 18, prog_y + py_offset + 12, 40)
-    draw.text((cx + 68, prog_y + py_offset + 10), f"Level {new_level} · {tier_name} Tier", font=_get_font(18, bold=True), fill=_P_DARK)
+    draw.text((cx + 68, prog_y + py_offset + 10), f"Level {new_level} · {clean_tier} Tier", font=_get_font(18, bold=True), fill=_P_DARK)
 
     xp_pct = min(1.0, max(0.0, current_xp / max(1, next_level_xp)))
     draw.text((cx + prog_w - 20, prog_y + py_offset + 12), f"{current_xp:,} / {next_level_xp:,} XP ({int(xp_pct*100)}%)", font=_get_font(13, bold=True), fill=_P_MUTED, anchor="rt")

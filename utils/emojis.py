@@ -204,26 +204,12 @@ def medal(rank: int, guild: Optional[discord.Guild] = None) -> str:
     return f"#{rank}"
 
 
-TIER_EMOJI_FALLBACKS = {
-    "iron": "⚙️",
-    "bronze": "🥉",
-    "silver": "🥈",
-    "gold": "🥇",
-    "platinum": "🔹",
-    "diamond": "💎",
-    "ascendant": "🍃",
-    "immortal": "💀",
-    "radiant": "☀️",
-    "air1": "🚀",
-    "air_1": "🚀",
-}
-
-
 def tier(tier_name: str, guild: Optional[discord.Guild] = None) -> str:
-    """Return the custom tier shield emoji for a tier name with Unicode fallback."""
+    """Return the custom tier shield emoji for a tier name.
+    If the custom guild emoji is uploaded, returns it; otherwise returns empty string
+    to prevent low-quality unicode emojis in embed texts."""
     clean = "".join(c for c in tier_name if c.isalnum()).lower()
-    fallback = TIER_EMOJI_FALLBACKS.get(clean, "🛡️")
     e = _find_emoji((f"tier_{clean}", clean), guild)
     if e:
         return str(e)
-    return fallback
+    return ""

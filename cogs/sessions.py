@@ -209,9 +209,11 @@ class Sessions(commands.Cog, name="Sessions"):
                 embed.add_field(name="Subject", value=f"{info['emoji']} {info['label']}", inline=True)
 
         if result["leveled_up"]:
+            t_emoji = emojis.tier(tier_name, ctx.guild)
+            t_str = f"{t_emoji} **{tier_name}**" if t_emoji else f"**{tier_name}**"
             embed.add_field(
-                name="\U0001F389 Level Up!",
-                value=f"Level {result['old_level']} \u2192 **Level {result['new_level']}** \u2014 {tier_name}",
+                name="🎉 Level Up!",
+                value=f"Level {result['old_level']} → **Level {result['new_level']}** — {t_str}",
                 inline=False,
             )
         embeds.set_footer(embed, f"{ctx.prefix}stats to see your updated profile")
@@ -322,9 +324,11 @@ class Sessions(commands.Cog, name="Sessions"):
             return
         effective_tiers = await self.db.get_effective_tiers(credit["guild_id"])
         tier = tier_for_level(credit["new_level"], effective_tiers)
+        t_emoji = emojis.tier(tier, self.bot.get_guild(credit["guild_id"]))
+        t_str = f"{t_emoji} **{tier}**" if t_emoji else f"**{tier}**"
         embed = embeds.base_embed(
-            title="\U0001F389 Level Up!",
-            description=f"<@{credit['user_id']}> reached **Level {credit['new_level']}** \u2014 {tier}!",
+            title="🎉 Level Up!",
+            description=f"<@{credit['user_id']}> reached **Level {credit['new_level']}** — {t_str}!",
             color=embeds.COLOR_LEVELUP,
         )
         try:
