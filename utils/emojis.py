@@ -128,13 +128,102 @@ def item(item_id: str, guild: Optional[discord.Guild] = None) -> str:
         return mystery_box(guild)
     elif clean == "streak_freeze":
         return streak_freeze(guild)
-    elif clean == "xp_boost" or clean == "sugar_rush":
+    elif clean == "sugar_rush":
+        return sugar_rush(guild)
+    elif clean == "xp_boost":
         return xp_boost(guild)
     elif clean == "coin_boost":
         return coin_boost(guild)
+    elif clean in ("candy", "halloween_candy", "spooky_candy"):
+        return candy(guild)
+    elif clean in ("pokeball", "pet_ball"):
+        return pokeball(guild)
+    elif clean in ("rare_candy", "pet_treat"):
+        return rare_candy(guild)
     elif clean.startswith("title_"):
         return title_scroll(guild)
     return "📦"
+
+
+def candy(guild: Optional[discord.Guild] = None) -> str:
+    """Return the unique Halloween Candy Corn emoji."""
+    e = _find_emoji(("halloween_candy", "candy", "spooky_candy"), guild)
+    return str(e) if e else "🍬"
+
+
+def sugar_rush(guild: Optional[discord.Guild] = None) -> str:
+    """Return the unique Sugar Rush 2x boost potion emoji."""
+    e = _find_emoji(("sugar_rush", "sugarrush"), guild)
+    return str(e) if e else "⚡"
+
+
+def physics(guild: Optional[discord.Guild] = None) -> str:
+    """Return the unique Physics Quantum Orbital Atom emoji."""
+    e = _find_emoji(("physics", "subject_physics", "atom"), guild)
+    return str(e) if e else "⚛️"
+
+
+def chemistry(guild: Optional[discord.Guild] = None) -> str:
+    """Return the unique Chemistry Alchemical Bubble Flask emoji."""
+    e = _find_emoji(("chemistry", "subject_chemistry", "flask"), guild)
+    return str(e) if e else "🧪"
+
+
+def maths(guild: Optional[discord.Guild] = None) -> str:
+    """Return the unique Maths Golden Drafting Compass emoji."""
+    e = _find_emoji(("maths", "subject_maths", "compass"), guild)
+    return str(e) if e else "📐"
+
+
+def pomodoro(guild: Optional[discord.Guild] = None) -> str:
+    """Return the unique Pomodoro / Chrono Pocket Clock emoji."""
+    e = _find_emoji(("pomodoro", "focus_clock", "chrono_clock", "clock"), guild)
+    return str(e) if e else "⏱️"
+
+
+def book(guild: Optional[discord.Guild] = None) -> str:
+    """Return the unique Study Book / Gilded Grimoire emoji."""
+    e = _find_emoji(("study_book", "notes", "notebook", "book"), guild)
+    return str(e) if e else "📖"
+
+
+def crown(guild: Optional[discord.Guild] = None) -> str:
+    """Return the unique Champion Gilded Crown emoji."""
+    e = _find_emoji(("crown", "champion_crown", "rank_crown"), guild)
+    return str(e) if e else "👑"
+
+
+def trophy(guild: Optional[discord.Guild] = None) -> str:
+    """Return the unique Grandmaster Trophy Chalice emoji."""
+    e = _find_emoji(("trophy", "achievement_trophy", "chalice"), guild)
+    return str(e) if e else "🏆"
+
+
+def pokeball(guild: Optional[discord.Guild] = None) -> str:
+    """Return the unique Pokéball pet catch sphere emoji."""
+    e = _find_emoji(("pokeball", "pet_ball"), guild)
+    return str(e) if e else "🔴"
+
+
+def rare_candy(guild: Optional[discord.Guild] = None) -> str:
+    """Return the unique Rare Candy pet level boost sweet emoji."""
+    e = _find_emoji(("rare_candy", "pet_treat", "pet_candy"), guild)
+    return str(e) if e else "🍬"
+
+
+def heart(guild: Optional[discord.Guild] = None) -> str:
+    """Return the unique Heart Container pet affection & stamina emoji."""
+    e = _find_emoji(("heart", "stamina", "pet_heart"), guild)
+    return str(e) if e else "❤️"
+
+
+def medal(rank: int, guild: Optional[discord.Guild] = None) -> str:
+    """Return the authentic Minecraft pixel medal emoji for top 3 ranks."""
+    fallbacks = {1: "🥇", 2: "🥈", 3: "🥉"}
+    if rank in (1, 2, 3):
+        e = _find_emoji((f"medal_{rank}", f"rank_{rank}"), guild)
+        return str(e) if e else fallbacks[rank]
+    return f"#{rank}"
 
 
 TIER_EMOJI_FALLBACKS = {

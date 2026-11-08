@@ -443,7 +443,36 @@ def render_leaderboard_card_sync(
     icon_x = m + 4 + (sw - icon_box) // 2
     icon_y = m + 16
     draw.rounded_rectangle([icon_x, icon_y, icon_x + icon_box, icon_y + icon_box], radius=14, fill=_P_BG, outline=_P_BORDER, width=1)
-    h_icon = hero_icon or ("chronos_streak" if "TRIVIA" not in title.upper() else "mystery_box")
+    if not hero_icon:
+        if subject:
+            sub_clean = subject.lower().strip()
+            if "phys" in sub_clean:
+                h_icon = "physics"
+            elif "chem" in sub_clean:
+                h_icon = "chemistry"
+            elif "math" in sub_clean:
+                h_icon = "maths"
+            else:
+                h_icon = "chronos_streak"
+        elif "TRIVIA" in title.upper() or period_key == "trivia":
+            h_icon = "trophy"
+        else:
+            h_icon = "chronos_streak"
+    else:
+        h_icon = hero_icon
+
+    if score_unit_icon == "chronos_streak":
+        if subject:
+            sub_clean = subject.lower().strip()
+            if "phys" in sub_clean:
+                score_unit_icon = "physics"
+            elif "chem" in sub_clean:
+                score_unit_icon = "chemistry"
+            elif "math" in sub_clean:
+                score_unit_icon = "maths"
+        elif "TRIVIA" in title.upper() or period_key == "trivia":
+            score_unit_icon = "trophy"
+
     _paste_pixel_icon(img, h_icon, icon_x + 6, icon_y + 6, 60)
 
     # Sidebar Title & Subtitle
@@ -860,17 +889,18 @@ def render_subjects_card_sync(
     pcm_y = bar_box_y + bar_box_h + 20
 
     pcm_items = [
-        ("PHYSICS", ACCENT_CYAN, phy_sec, phy_pct, subject_details.get("physics", {})),
-        ("CHEMISTRY", ACCENT_GREEN, chem_sec, chem_pct, subject_details.get("chemistry", {})),
-        ("MATHEMATICS", ACCENT_PURPLE, mat_sec, mat_pct, subject_details.get("maths", {})),
+        ("PHYSICS", ACCENT_CYAN, phy_sec, phy_pct, subject_details.get("physics", {}), "physics"),
+        ("CHEMISTRY", ACCENT_GREEN, chem_sec, chem_pct, subject_details.get("chemistry", {}), "chemistry"),
+        ("MATHEMATICS", ACCENT_PURPLE, mat_sec, mat_pct, subject_details.get("maths", {}), "maths"),
     ]
 
-    for idx, (s_name, s_color, s_sec, s_pct, s_data) in enumerate(pcm_items):
+    for idx, (s_name, s_color, s_sec, s_pct, s_data, s_icon) in enumerate(pcm_items):
         px = 50 + idx * (pcm_w + 28)
         draw.rounded_rectangle([px, pcm_y, px + pcm_w, pcm_y + pcm_h], radius=16, fill=CARD_BG, outline=CARD_BORDER, width=1)
         draw.line([(px + 20, pcm_y), (px + pcm_w - 20, pcm_y)], fill=s_color, width=3)
         _draw_badge_dot(draw, px + 24, pcm_y + 24, s_color, radius=3)
         draw.text((px + 36, pcm_y + 18), s_name, font=_get_font(13, bold=True), fill=s_color)
+        _paste_pixel_icon(img, s_icon, px + pcm_w - 44, pcm_y + 12, 32)
 
         draw.text((px + 22, pcm_y + 48), _format_time(s_sec), font=_get_font(34, bold=True), fill=TEXT_WHITE)
         _draw_progress_bar(draw, px + 22, pcm_y + 98, pcm_w - 44, 8, s_pct, s_color, radius=4)
@@ -1204,10 +1234,38 @@ ITEM_METADATA = {
     },
     "sugar_rush": {
         "name": "Sugar Rush",
-        "icon": "xp_boost",
-        "type": "BOOST CHARGES",
+        "icon": "sugar_rush",
+        "type": "2X STUDY BOOST",
         "action": ".use sugar rush to activate 2x XP (60m)",
-        "color": ACCENT_ROSE,
+        "color": (217, 70, 239, 255),
+    },
+    "halloween_candy": {
+        "name": "Halloween Candy",
+        "icon": "halloween_candy",
+        "type": "EVENT CANDY",
+        "action": ".candyshop to exchange for rare rewards",
+        "color": (249, 115, 22, 255),
+    },
+    "candy": {
+        "name": "Halloween Candy",
+        "icon": "halloween_candy",
+        "type": "EVENT CANDY",
+        "action": ".candyshop to exchange for rare rewards",
+        "color": (249, 115, 22, 255),
+    },
+    "pokeball": {
+        "name": "Pokéball",
+        "icon": "pokeball",
+        "type": "PET CAPTURE",
+        "action": "Store companion pets in satchel",
+        "color": (239, 68, 68, 255),
+    },
+    "rare_candy": {
+        "name": "Rare Candy",
+        "icon": "rare_candy",
+        "type": "PET LEVEL BOOST",
+        "action": ".feed rare candy to level up pet instantly",
+        "color": (59, 130, 246, 255),
     },
     "title_scholar": {
         "name": "Title: The Scholar",
@@ -1633,7 +1691,7 @@ def render_candy_shop_card_sync(
             sub = "Event-exclusive pet companion"
             owned = "pumpkaboo" in owned_pets
         elif key == "sugar_rush":
-            icon = "xp_boost"
+            icon = "sugar_rush"
             sub = f"2x XP boost (60m) · Owned: x{sugar_rush_qty}"
             owned = False
         else:
@@ -1648,18 +1706,18 @@ def render_candy_shop_card_sync(
             "name": item["name"] + own_tag,
             "subtitle": sub,
             "right_text": f"{item['candy_price']:,}",
-            "curr_icon": "mystery_box",
+            "curr_icon": "halloween_candy",
             "right_color": _P_CANDY,
         })
 
     # Sidebar
     _poke_draw_sidebar(
         img, draw,
-        hero_icon="mystery_box",
+        hero_icon="halloween_candy",
         title="CANDY BAZAAR",
         subtitle=f"Halloween 2026 · {len(shop_rows)} items",
         categories=[("ALL REWARDS", len(shop_rows), True)],
-        wallet_lines=[("mystery_box", f"{user_candy:,} Candy", _P_CANDY)],
+        wallet_lines=[("halloween_candy", f"{user_candy:,} Candy", _P_CANDY)],
     )
 
     _poke_draw_item_rows(
@@ -1896,7 +1954,7 @@ def render_inventory_card_sync(
         categories=cats,
         wallet_lines=[
             ("chronocoin", f"{coins:,} Coins", _P_GOLD_PILL),
-            ("mystery_box", f"{candy:,} Candy", _P_CANDY),
+            ("halloween_candy", f"{candy:,} Candy", _P_CANDY),
         ],
     )
 
