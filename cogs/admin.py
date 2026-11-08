@@ -3,7 +3,9 @@ for `.make` (it creates channels) and Manage Server for the rest.
 """
 from __future__ import annotations
 
+import asyncio
 import logging
+import os
 
 import discord
 from discord.ext import commands
@@ -122,12 +124,94 @@ class Admin(commands.Cog, name="Admin"):
 
         await ctx.send(embed=embed)
 
+    @commands.command(name="syncemojis", aliases=["uploademojis", "emojisync"])
+    @commands.guild_only()
+    @commands.has_permissions(manage_guild_expressions=True)
+    async def sync_emojis_cmd(self, ctx: commands.Context) -> None:
+        """Automatically upload all Chronos custom pixel-art emojis to this server in one click."""
+        me = ctx.guild.me
+        if not me.guild_permissions.manage_guild_expressions and not me.guild_permissions.manage_emojis:
+            await ctx.send(embed=embeds.error_embed(
+                "I am missing the **Manage Emojis and Stickers** permission in this server to upload emojis automatically."
+            ))
+            return
+
+        emojis_dir = os.path.join(os.path.dirname(os.path.dirname(__file__)), "assets", "discord_emojis")
+        if not os.path.exists(emojis_dir):
+            await ctx.send(embed=embeds.error_embed("Emoji pack directory not found on bot."))
+            return
+
+        status_msg = await ctx.send(embed=embeds.info_embed(
+            "⏳ Syncing Emojis...",
+            "Reading emoji pack and uploading missing custom emojis to your server. Please wait..."
+        ))
+
+        existing_names = {e.name.lower(): e for e in ctx.guild.emojis}
+        added: list[str] = []
+        already_present: list[str] = []
+        failed: list[str] = []
+
+        files = sorted(os.listdir(emojis_dir))
+        for filename in files:
+            if not filename.endswith(".png"):
+                continue
+            name = os.path.splitext(filename)[0].lower()
+            if name in existing_names:
+                already_present.append(f"`{name}`")
+                continue
+
+            if len(ctx.guild.emojis) >= ctx.guild.emoji_limit:
+                failed.append(f"`{name}` (server emoji limit reached)")
+                break
+
+            file_path = os.path.join(emojis_dir, filename)
+            try:
+                with open(file_path, "rb") as f:
+                    img_bytes = f.read()
+                new_emoji = await ctx.guild.create_custom_emoji(
+                    name=name,
+                    image=img_bytes,
+                    reason="Chronos custom emoji automated sync",
+                )
+                added.append(str(new_emoji))
+                await asyncio.sleep(0.5)
+            except discord.HTTPException as ex:
+                log.warning(f"Failed to upload emoji {name}: {ex}")
+                failed.append(f"`{name}`")
+
+        embed = embeds.base_embed(
+            title="✨ Custom Emojis Synchronized",
+            description=f"Server Emoji Slots: **{len(ctx.guild.emojis)} / {ctx.guild.emoji_limit}**",
+            color=embeds.COLOR_SUCCESS if added or already_present else embeds.COLOR_ERROR,
+        )
+        if added:
+            embed.add_field(
+                name=f"✅ Newly Uploaded ({len(added)})",
+                value=" ".join(added[:30]),
+                inline=False,
+            )
+        if already_present:
+            embed.add_field(
+                name=f"ℹ️ Already Present ({len(already_present)})",
+                value=", ".join(already_present[:15]) + (f" and {len(already_present) - 15} more..." if len(already_present) > 15 else ""),
+                inline=False,
+            )
+        if failed:
+            embed.add_field(
+                name=f"⚠️ Skipped / Failed ({len(failed)})",
+                value=", ".join(failed[:10]),
+                inline=False,
+            )
+        embeds.set_footer(embed, "Chronos now renders authentic pixel-art emojis everywhere!")
+        await status_msg.edit(embed=embed)
+
     @set_checkin.error
     @make_rooms.error
     @show_config.error
+    @sync_emojis_cmd.error
     async def admin_error(self, ctx: commands.Context, error: commands.CommandError) -> None:
         if isinstance(error, commands.MissingPermissions):
-            perm = "Administrator" if ctx.command.name == "make" else "Manage Server"
+            perm = "Administrator" if ctx.command.name == "make" else ("Manage Emojis" if "emoji" in ctx.command.name else "Manage Server")
             await ctx.send(embed=embeds.error_embed(f"You need the **{perm}** permission to do that."))
         elif isinstance(error, commands.ChannelNotFound):
             await ctx.send(embed=embeds.error_embed("I couldn't find that channel. Try mentioning it, e.g. `#general`."))

@@ -40,11 +40,11 @@ def _stage(name: str, sprite: str, level: int, badge: str) -> dict[str, Any]:
 # and pet embeds consistently.
 # --------------------------------------------------------------------- #
 TIER_INFO: dict[str, dict[str, Any]] = {
-    "common":    {"label": "Common",    "base_price": 500,   "color": 0x8895B3, "emoji": "\u26AA"},
-    "uncommon":  {"label": "Uncommon",  "base_price": 1200,  "color": 0x34D399, "emoji": "\U0001F7E2"},
-    "rare":      {"label": "Rare",      "base_price": 2500,  "color": 0x22D3EE, "emoji": "\U0001F535"},
-    "epic":      {"label": "Epic",      "base_price": 5000,  "color": 0xA78BFA, "emoji": "\U0001F7E3"},
-    "legendary": {"label": "Legendary", "base_price": 50000, "color": 0xFBBF24, "emoji": "\U0001F7E1"},
+    "common":    {"label": "Common",    "base_price": 750,   "color": 0x8895B3, "emoji": "\u26AA"},
+    "uncommon":  {"label": "Uncommon",  "base_price": 1750,  "color": 0x34D399, "emoji": "\U0001F7E2"},
+    "rare":      {"label": "Rare",      "base_price": 3600,  "color": 0x22D3EE, "emoji": "\U0001F535"},
+    "epic":      {"label": "Epic",      "base_price": 7200,  "color": 0xA78BFA, "emoji": "\U0001F7E3"},
+    "legendary": {"label": "Legendary", "base_price": 65000, "color": 0xFBBF24, "emoji": "\U0001F7E1"},
     "event":     {"label": "Seasonal Event", "base_price": 0, "color": 0xFF7518, "emoji": "\U0001F383"},
 }
 TIER_ORDER: list[str] = ["common", "uncommon", "rare", "epic", "legendary"]

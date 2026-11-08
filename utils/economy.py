@@ -22,21 +22,21 @@ SHOP_ITEMS: dict[str, dict[str, Any]] = {
     "mystery_box": {
         "name": "Mystery Box",
         "emoji": "\U0001F381",  # 🎁
-        "price": 150,
+        "price": 220,
         "type": "consumable",
         "description": "A box of random goodies - Chronocoins, XP, or even a rare item. Open with `.openbox`.",
     },
     "streak_freeze": {
         "name": "Streak Freeze",
         "emoji": "\U0001F9CA",  # 🧊
-        "price": 250,
+        "price": 350,
         "type": "consumable",
         "description": "Automatically protects your study streak the next time you miss exactly one day.",
     },
     "xp_boost": {
         "name": "XP Boost",
         "emoji": "\u26A1",  # ⚡
-        "price": 300,
+        "price": 450,
         "type": "boost",
         "effect_id": "xp_boost",
         "duration_minutes": 60,
@@ -46,7 +46,7 @@ SHOP_ITEMS: dict[str, dict[str, Any]] = {
     "coin_boost": {
         "name": "Chronocoin Boost",
         "emoji": "\U0001F4B0",  # 💰
-        "price": 300,
+        "price": 450,
         "type": "boost",
         "effect_id": "coin_boost",
         "duration_minutes": 60,
@@ -56,7 +56,7 @@ SHOP_ITEMS: dict[str, dict[str, Any]] = {
     "title_scholar": {
         "name": "Title: The Scholar",
         "emoji": "\U0001F3F7\uFE0F",  # 🏷️
-        "price": 400,
+        "price": 600,
         "type": "title",
         "title_text": "The Scholar",
         "description": "Unlocks a custom title to display on your `.stats` profile.",
@@ -64,7 +64,7 @@ SHOP_ITEMS: dict[str, dict[str, Any]] = {
     "title_grinder": {
         "name": "Title: The Grinder",
         "emoji": "\U0001F3F7\uFE0F",
-        "price": 400,
+        "price": 600,
         "type": "title",
         "title_text": "The Grinder",
         "description": "Unlocks a custom title to display on your `.stats` profile.",
@@ -72,7 +72,7 @@ SHOP_ITEMS: dict[str, dict[str, Any]] = {
     "title_insomniac": {
         "name": "Title: Insomniac",
         "emoji": "\U0001F3F7\uFE0F",
-        "price": 400,
+        "price": 600,
         "type": "title",
         "title_text": "Insomniac",
         "description": "Unlocks a custom title to display on your `.stats` profile.",
@@ -80,7 +80,7 @@ SHOP_ITEMS: dict[str, dict[str, Any]] = {
     "title_legend": {
         "name": "Title: Legend",
         "emoji": "\U0001F3F7\uFE0F",
-        "price": 1000,
+        "price": 1500,
         "type": "title",
         "title_text": "Legend",
         "description": "A prestige title for the truly dedicated.",

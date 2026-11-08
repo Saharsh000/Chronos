@@ -195,6 +195,29 @@ def _paste_pixel_icon(img: Image.Image, icon_name: str, x: int, y: int, size: in
 
 
 # ==============================================================================
+# POKEONE-STYLE WARM PARCHMENT CONSTANTS & PALETTE (920x580)
+# ==============================================================================
+POKE_W = 920
+POKE_H = 580
+
+_P_BG        = (246, 243, 231, 255)   # Cream parchment base
+_P_SIDEBAR   = (236, 231, 213, 255)   # Left sidebar panel
+_P_ROW       = (240, 235, 218, 255)   # Item row alternate fill
+_P_ROW_ALT   = (246, 243, 231, 255)   # Item row base (matches BG)
+_P_BORDER    = (214, 207, 187, 255)   # Crisp parchment dividers
+_P_DARK      = (38, 42, 48, 255)      # Primary dark charcoal text
+_P_MUTED     = (120, 125, 135, 255)   # Muted secondary text
+_P_ACCENT    = (204, 75, 62, 255)     # Active/selected category capsule (warm crimson)
+_P_GOLD_PILL = (185, 130, 20, 255)    # Rich amber gold price text
+_P_CANDY     = (190, 60, 120, 255)    # Candy pink accent
+_P_GREEN     = (60, 140, 90, 255)     # Forest green accent
+_P_SIDEBAR_W = 240                    # Wide spacious sidebar
+_P_CONTENT_X = 280                    # Content area left edge
+_P_MARGIN    = 16                     # Outer margin
+_P_ITEMS_PER_PAGE = 6                 # Exactly 6 massive, comfortable rows per page
+
+
+# ==============================================================================
 # CARD 1: OVERVIEW DASHBOARD (Page 1) — PokeOne-Style Warm Parchment
 # ==============================================================================
 def render_overview_card_sync(
@@ -690,7 +713,7 @@ def render_leaderboard_card_sync(
 
 
 # ==============================================================================
-# CARD 2: WEEKLY PERFORMANCE & 7-DAY BAR CHART (Page 2)
+# CARD 2: WEEKLY PERFORMANCE & 7-DAY BAR CHART (Page 2) — PokeOne Parchment
 # ==============================================================================
 def render_weekly_card_sync(
     display_name: str,
@@ -699,147 +722,151 @@ def render_weekly_card_sync(
     weekly_breakdown: dict[str, Any],
     avatar_bytes: Optional[bytes] = None,
 ) -> bytes:
-    """Synchronously renders the high-res 1200x680 weekly activity bar chart card PNG."""
-    img = Image.new("RGBA", (CARD_WIDTH, CARD_HEIGHT), BG_COLOR)
+    """Synchronously renders the 920x580 PokeOne-style weekly activity bar chart card PNG."""
+    img = Image.new("RGBA", (POKE_W, POKE_H), _P_BG)
     draw = ImageDraw.Draw(img)
+    m = _P_MARGIN
+    sw = _P_SIDEBAR_W
+    cx = _P_CONTENT_X
 
-    clean_tier = tier_name.split()[-1].lower() if tier_name else "iron"
-    tier_rgb = TIER_COLORS.get(clean_tier, (148, 163, 184))
-    tier_rgba = (*tier_rgb, 255)
+    # Outer border
+    draw.rounded_rectangle([m, m, POKE_W - m, POKE_H - m], radius=20, fill=None, outline=_P_BORDER, width=2)
+    # Sidebar container
+    draw.rounded_rectangle([m + 4, m + 4, m + sw, POKE_H - m - 4], radius=18, fill=_P_SIDEBAR)
+    draw.line([(m + sw, m + 14), (m + sw, POKE_H - m - 14)], fill=_P_BORDER, width=2)
 
-    draw.rounded_rectangle([20, 20, CARD_WIDTH - 20, CARD_HEIGHT - 20], radius=20, fill=None, outline=(30, 41, 59, 255), width=2)
-    draw.line([(50, 20), (CARD_WIDTH - 50, 20)], fill=ACCENT_CYAN, width=4)
+    # Hero icon container
+    icon_box = 76
+    icon_x = m + 4 + (sw - icon_box) // 2
+    icon_y = m + 18
+    draw.rounded_rectangle([icon_x, icon_y, icon_x + icon_box, icon_y + icon_box], radius=16, fill=_P_BG, outline=_P_BORDER, width=1)
+    _paste_pixel_icon(img, "chrono_clock", icon_x + 8, icon_y + 8, 60)
 
-    # Header
-    av_size = 64
-    av_x, av_y = 50, 44
-    if avatar_bytes:
-        try:
-            with Image.open(io.BytesIO(avatar_bytes)) as raw_av:
-                circle_av = _make_circular_avatar(raw_av, av_size)
-                img.paste(circle_av, (av_x, av_y), circle_av)
-                draw.ellipse([av_x - 2, av_y - 2, av_x + av_size + 2, av_y + av_size + 2], outline=tier_rgba, width=2)
-        except Exception:
-            draw.ellipse([av_x, av_y, av_x + av_size, av_y + av_size], fill=CARD_BG, outline=tier_rgba, width=2)
-    else:
-        draw.ellipse([av_x, av_y, av_x + av_size, av_y + av_size], fill=CARD_BG, outline=tier_rgba, width=2)
+    # Sidebar Title & Subtitle
+    clean_disp = _sanitize_text(display_name) or "Scholar"
+    clean_tier = _sanitize_text(tier_name).replace("Tier", "").strip().title() or "Iron"
+    ty = icon_y + icon_box + 12
+    draw.text((m + 4 + sw // 2, ty), clean_disp.upper()[:16], font=_get_font(23, bold=True), fill=_P_DARK, anchor="mt")
+    ty += 30
+    draw.text((m + 4 + sw // 2, ty), "WEEKLY FOCUS", font=_get_font(15, bold=True), fill=_P_ACCENT, anchor="mt")
+    ty += 32
 
-    f_title = _get_font(26, bold=True)
-    f_sub = _get_font(14, bold=False)
-    draw.text((av_x + av_size + 20, av_y + 4), "WEEKLY PERFORMANCE & STUDY ACTIVITY", font=f_title, fill=TEXT_WHITE)
-    clean_disp = _sanitize_text(display_name) or "Candidate"
-    draw.text((av_x + av_size + 20, av_y + 36), f"7-Day Focus Distribution · {clean_disp} · India Standard Time (IST)", font=f_sub, fill=TEXT_MUTED)
+    tot_sec = weekly_breakdown.get("total_week_seconds", 0)
+    avg_sec = weekly_breakdown.get("daily_avg_seconds", 0)
+    act_days = weekly_breakdown.get("active_days_count", 0)
+    peak_name = weekly_breakdown.get("peak_day_name", "None")
+    peak_sec = weekly_breakdown.get("peak_day_seconds", 0)
 
-    # Page indicator pill
-    draw.rounded_rectangle([CARD_WIDTH - 220, av_y + 12, CARD_WIDTH - 50, av_y + 44], radius=8, fill=CARD_BG, outline=ACCENT_CYAN, width=1)
-    draw.text((CARD_WIDTH - 202, av_y + 19), "PAGE 2/4 · ACTIVITY", font=_get_font(12, bold=True), fill=ACCENT_CYAN)
+    pill_x = m + 18
+    pill_w = sw - 28
+    pills = [
+        ("WEEK TOTAL", _format_time(tot_sec), True),
+        ("DAILY AVERAGE", f"{_format_time(avg_sec)}/day", False),
+        ("BEST DAY", f"{peak_name} ({_format_time(peak_sec)})", False),
+    ]
+    for label, val, is_act in pills:
+        pill_h = 44
+        if is_act:
+            draw.rounded_rectangle([pill_x, ty, pill_x + pill_w, ty + pill_h], radius=10, fill=_P_ACCENT)
+            draw.text((pill_x + 14, ty + 8), label, font=_get_font(11, bold=True), fill=(255, 255, 255, 200))
+            draw.text((pill_x + 14, ty + 22), val, font=_get_font(16, bold=True), fill=(255, 255, 255, 255))
+        else:
+            draw.rounded_rectangle([pill_x, ty, pill_x + pill_w, ty + pill_h], radius=10, fill=_P_BG, outline=_P_BORDER, width=1)
+            draw.text((pill_x + 14, ty + 8), label, font=_get_font(11, bold=True), fill=_P_MUTED)
+            draw.text((pill_x + 14, ty + 22), val, font=_get_font(16, bold=True), fill=_P_DARK)
+        ty += pill_h + 10
 
-    # 7-Day Vertical Bar Chart Area
-    chart_x, chart_y = 50, 135
-    chart_w = 720
-    chart_h = 485
-    draw.rounded_rectangle([chart_x, chart_y, chart_x + chart_w, chart_y + chart_h], radius=16, fill=CARD_BG, outline=CARD_BORDER, width=1)
-    _draw_badge_dot(draw, chart_x + 24, chart_y + 24, ACCENT_CYAN, radius=4)
-    draw.text((chart_x + 36, chart_y + 17), "DAILY STUDY HOURS (THIS WEEK)", font=_get_font(13, bold=True), fill=ACCENT_CYAN)
+    # Bottom Pill
+    wy = POKE_H - m - 16 - 44
+    draw.rounded_rectangle([pill_x, wy, pill_x + pill_w, wy + 42], radius=10, fill=_P_BG, outline=_P_BORDER, width=1)
+    _paste_pixel_icon(img, "chronos_streak", pill_x + 10, wy + 9, 24)
+    draw.text((pill_x + 40, wy + 12), f"{act_days}/7 Active Study Days", font=_get_font(13, bold=True), fill=_P_GOLD_PILL)
+
+    # Right Content Panel
+    hy = m + 10
+    draw.text((cx, hy), f"{clean_disp}'s Weekly Activity", font=_get_font(32, bold=True), fill=_P_DARK)
+    sub_title = f"7-Day Study Distribution · {_format_time(tot_sec)} logged this week · IST"
+    draw.text((cx, hy + 38), sub_title, font=_get_font(15, bold=False), fill=_P_MUTED)
+    draw.text((POKE_W - m - 14, hy + 4), "PAGE 2/4", font=_get_font(18, bold=True), fill=_P_MUTED, anchor="rt")
+    draw.text((POKE_W - m - 14, hy + 34), "ACTIVITY", font=_get_font(14, bold=False), fill=_P_MUTED, anchor="rt")
+
+    div_y = hy + 64
+    draw.line([(cx, div_y), (POKE_W - m - 10, div_y)], fill=_P_BORDER, width=2)
+
+    # 7-Day Vertical Bar Chart Container
+    chart_y = div_y + 14
+    chart_w = POKE_W - m - 10 - cx
+    chart_h = 300
+    draw.rounded_rectangle([cx, chart_y, cx + chart_w, chart_y + chart_h], radius=14, fill=_P_ROW, outline=_P_BORDER, width=1)
+    draw.text((cx + 18, chart_y + 14), "DAILY FOCUS HOURS (PAST 7 DAYS)", font=_get_font(12, bold=True), fill=_P_MUTED)
 
     days_data = weekly_breakdown.get("days", [])
-    max_seconds = max([d["seconds"] for d in days_data] + [14400])  # scale to at least 4 hours
-    plot_bottom = chart_y + chart_h - 75
-    plot_top = chart_y + 70
+    max_seconds = max([d["seconds"] for d in days_data] + [14400])
+    plot_bottom = chart_y + chart_h - 55
+    plot_top = chart_y + 55
     plot_height = plot_bottom - plot_top
 
-    # Horizontal grid lines
-    f_grid = _get_font(11, bold=False)
-    for step_h in (1, 2, 3, 4, 6):
+    # Horizontal guide lines
+    for step_h in (1, 2, 4):
         step_sec = step_h * 3600
         if step_sec <= max_seconds * 1.15:
-            grid_y = int(plot_bottom - (step_sec / max_seconds) * plot_height)
-            draw.line([(chart_x + 30, grid_y), (chart_x + chart_w - 30, grid_y)], fill=GRID_COLOR, width=1)
-            draw.text((chart_x + 32, grid_y - 14), f"{step_h}h", font=f_grid, fill=(100, 116, 139, 255))
+            gy = int(plot_bottom - (step_sec / max_seconds) * plot_height)
+            draw.line([(cx + 40, gy), (cx + chart_w - 20, gy)], fill=_P_BORDER, width=1)
+            draw.text((cx + 18, gy - 7), f"{step_h}h", font=_get_font(10, bold=False), fill=_P_MUTED)
 
-    # Draw 7 Columns
-    col_w = 56
+    col_w = 48
     spacing = (chart_w - 80 - (col_w * 7)) // 6
-    f_bar_lbl = _get_font(12, bold=True)
-    f_day_lbl = _get_font(13, bold=True)
-
     for i, d in enumerate(days_data[:7]):
-        bx = chart_x + 40 + i * (col_w + spacing)
+        bx = cx + 55 + i * (col_w + spacing)
         sec = d["seconds"]
         is_today = d.get("is_today", False)
         bh = max(6, int((sec / max_seconds) * plot_height)) if sec > 0 else 4
         by = plot_bottom - bh
 
-        # Bar column fill
         if sec > 0:
-            bar_color = ACCENT_GOLD if is_today else ACCENT_CYAN
+            bar_color = _P_GOLD_PILL if is_today else _P_ACCENT
             draw.rounded_rectangle([bx, by, bx + col_w, plot_bottom], radius=6, fill=bar_color)
-            # Duration label above bar
-            time_txt = _format_time(sec)
-            draw.text((bx + (col_w // 2) - (len(time_txt) * 3), by - 18), time_txt, font=f_bar_lbl, fill=TEXT_WHITE)
+            t_str = _format_time(sec)
+            draw.text((bx + col_w // 2, by - 16), t_str, font=_get_font(11, bold=True), fill=_P_DARK, anchor="mt")
         else:
-            draw.rounded_rectangle([bx, plot_bottom - 6, bx + col_w, plot_bottom], radius=3, fill=(45, 55, 72, 255))
-            draw.text((bx + (col_w // 2) - 8, plot_bottom - 20), "0m", font=_get_font(10, bold=False), fill=TEXT_MUTED)
+            draw.rounded_rectangle([bx, plot_bottom - 6, bx + col_w, plot_bottom], radius=3, fill=_P_BORDER)
+            draw.text((bx + col_w // 2, plot_bottom - 18), "0m", font=_get_font(10, bold=False), fill=_P_MUTED, anchor="mt")
 
-        # Day label below baseline
-        day_str = d["day_name"]
-        day_color = ACCENT_GOLD if is_today else TEXT_SUB
-        draw.text((bx + (col_w // 2) - 14, plot_bottom + 12), day_str, font=f_day_lbl, fill=day_color)
+        day_color = _P_GOLD_PILL if is_today else _P_DARK
+        draw.text((bx + col_w // 2, plot_bottom + 10), d["day_name"], font=_get_font(13, bold=True), fill=day_color, anchor="mt")
         if is_today:
-            draw.rounded_rectangle([bx + 6, plot_bottom + 34, bx + col_w - 6, plot_bottom + 48], radius=4, fill=(113, 63, 18, 200))
-            draw.text((bx + 11, plot_bottom + 35), "TODAY", font=_get_font(9, bold=True), fill=ACCENT_GOLD)
+            draw.rounded_rectangle([bx + 4, plot_bottom + 28, bx + col_w - 4, plot_bottom + 42], radius=4, fill=_P_GOLD_PILL)
+            draw.text((bx + col_w // 2, plot_bottom + 30), "TODAY", font=_get_font(9, bold=True), fill=(255, 255, 255, 255), anchor="mt")
 
-    # Right Side Analytics Panels
-    right_x = chart_x + chart_w + 25
-    right_w = CARD_WIDTH - right_x - 50
+    # Bottom Velocity & Consistency Banner
+    banner_y = chart_y + chart_h + 14
+    banner_h = 95
+    draw.rounded_rectangle([cx, banner_y, cx + chart_w, banner_y + banner_h], radius=14, fill=_P_ROW, outline=_P_BORDER, width=1)
 
-    p_h = 108
-    # Panel 1: Weekly Total
-    p1_y = chart_y
-    draw.rounded_rectangle([right_x, p1_y, right_x + right_w, p1_y + p_h], radius=14, fill=CARD_BG, outline=CARD_BORDER, width=1)
-    _draw_badge_dot(draw, right_x + 20, p1_y + 22, ACCENT_CYAN, radius=3)
-    draw.text((right_x + 30, p1_y + 16), "WEEKLY TOTAL", font=_get_font(12, bold=True), fill=ACCENT_CYAN)
-    tot_sec = weekly_breakdown.get("total_week_seconds", 0)
-    draw.text((right_x + 18, p1_y + 40), _format_time(tot_sec), font=_get_font(30, bold=True), fill=TEXT_WHITE)
-    draw.text((right_x + 18, p1_y + 82), "This week's focus time logged", font=_get_font(12, bold=False), fill=TEXT_MUTED)
+    _paste_pixel_icon(img, "chronos_streak", cx + 18, banner_y + 18, 40)
+    consistency_pct = (act_days / 7.0)
+    rating_lbl = "High Study Velocity" if consistency_pct >= 0.7 else "Steady Grind Pace" if consistency_pct >= 0.4 else "Building Daily Pace"
+    draw.text((cx + 70, banner_y + 16), rating_lbl, font=_get_font(18, bold=True), fill=_P_DARK)
+    draw.text((cx + chart_w - 20, banner_y + 18), f"{int(consistency_pct * 100)}% Consistency", font=_get_font(14, bold=True), fill=_P_MUTED, anchor="rt")
 
-    # Panel 2: Daily Average
-    p2_y = p1_y + p_h + 18
-    draw.rounded_rectangle([right_x, p2_y, right_x + right_w, p2_y + p_h], radius=14, fill=CARD_BG, outline=CARD_BORDER, width=1)
-    _draw_badge_dot(draw, right_x + 20, p2_y + 22, ACCENT_PURPLE, radius=3)
-    draw.text((right_x + 30, p2_y + 16), "DAILY AVERAGE", font=_get_font(12, bold=True), fill=ACCENT_PURPLE)
-    avg_sec = weekly_breakdown.get("daily_avg_seconds", 0)
-    draw.text((right_x + 18, p2_y + 40), f"{_format_time(avg_sec)} / day", font=_get_font(30, bold=True), fill=TEXT_WHITE)
-    act_days = weekly_breakdown.get("active_days_count", 0)
-    draw.text((right_x + 18, p2_y + 82), f"Across {act_days}/7 active study days", font=_get_font(12, bold=False), fill=TEXT_MUTED)
+    # Progress bar inside banner
+    pb_x = cx + 70
+    pb_y = banner_y + 44
+    pb_w = chart_w - 90
+    pb_h = 14
+    draw.rounded_rectangle([pb_x, pb_y, pb_x + pb_w, pb_y + pb_h], radius=7, fill=_P_SIDEBAR, outline=_P_BORDER, width=1)
+    if consistency_pct > 0:
+        fill_w = max(14, int(pb_w * consistency_pct))
+        draw.rounded_rectangle([pb_x, pb_y, pb_x + fill_w, pb_y + pb_h], radius=7, fill=_P_ACCENT)
 
-    # Panel 3: Peak Study Day
-    p3_y = p2_y + p_h + 18
-    draw.rounded_rectangle([right_x, p3_y, right_x + right_w, p3_y + p_h], radius=14, fill=CARD_BG, outline=CARD_BORDER, width=1)
-    _draw_badge_dot(draw, right_x + 20, p3_y + 22, ACCENT_GOLD, radius=3)
-    draw.text((right_x + 30, p3_y + 16), "PEAK STUDY DAY", font=_get_font(12, bold=True), fill=ACCENT_GOLD)
-    peak_name = weekly_breakdown.get("peak_day_name", "None")
-    peak_sec = weekly_breakdown.get("peak_day_seconds", 0)
-    draw.text((right_x + 18, p3_y + 40), f"{peak_name} ({_format_time(peak_sec)})", font=_get_font(26, bold=True), fill=ACCENT_GOLD)
-    draw.text((right_x + 18, p3_y + 82), "Personal record day for the week", font=_get_font(12, bold=False), fill=TEXT_MUTED)
+    tip_txt = f"Studied on {act_days} of the past 7 days. Consistency builds deep retention for JEE."
+    draw.text((cx + 70, banner_y + 68), tip_txt, font=_get_font(12, bold=False), fill=_P_MUTED)
 
-    # Panel 4: Consistency Rating
-    p4_y = p3_y + p_h + 18
-    draw.rounded_rectangle([right_x, p4_y, right_x + right_w, p4_y + p_h], radius=14, fill=CARD_BG, outline=CARD_BORDER, width=1)
-    _draw_badge_dot(draw, right_x + 20, p4_y + 22, ACCENT_GREEN, radius=3)
-    draw.text((right_x + 30, p4_y + 16), "STUDY VELOCITY", font=_get_font(12, bold=True), fill=ACCENT_GREEN)
-    consistency_pct = (act_days / 7)
-    rating_lbl = "High Velocity" if consistency_pct >= 0.7 else "Steady Grind" if consistency_pct >= 0.4 else "Building Pace"
-    draw.text((right_x + 18, p4_y + 40), rating_lbl, font=_get_font(24, bold=True), fill=TEXT_WHITE)
-    _draw_progress_bar(draw, right_x + 18, p4_y + 76, right_w - 36, 6, consistency_pct, ACCENT_GREEN, radius=3)
-    draw.text((right_x + 18, p4_y + 88), f"{int(consistency_pct * 100)}% weekly consistency score", font=_get_font(11, bold=False), fill=TEXT_MUTED)
+    # Bottom footer line
+    draw.line([(cx, POKE_H - m - 18), (POKE_W - m - 10, POKE_H - m - 18)], fill=_P_BORDER, width=1)
+    draw.text((cx + 6, POKE_H - m - 15), "Chronos Study OS · Study smarter, one session at a time", font=_get_font(11, bold=False), fill=_P_MUTED)
 
-    # Footer
-    f_foot = _get_font(12, bold=False)
-    draw.text((50, 642), "CHRONOS STUDY OS · IST TIMEZONE", font=f_foot, fill=(71, 85, 105, 255))
-    draw.text((CARD_WIDTH - 280, 642), "WEEKLY ACTIVITY LOG · PAGE 2/4", font=f_foot, fill=(71, 85, 105, 255))
-
-    return _export_png(img)
+    return _poke_export(img)
 
 
 # ==============================================================================
@@ -852,150 +879,172 @@ def render_subjects_card_sync(
     subject_details: dict[str, dict[str, Any]],
     avatar_bytes: Optional[bytes] = None,
 ) -> bytes:
-    """Synchronously renders the high-res 1200x680 subject breakdown & PCM distribution card PNG."""
-    img = Image.new("RGBA", (CARD_WIDTH, CARD_HEIGHT), BG_COLOR)
+    """Synchronously renders the 920x580 PokeOne-style subject breakdown & PCM distribution card PNG."""
+    img = Image.new("RGBA", (POKE_W, POKE_H), _P_BG)
     draw = ImageDraw.Draw(img)
+    m = _P_MARGIN
+    sw = _P_SIDEBAR_W
+    cx = _P_CONTENT_X
 
-    clean_tier = tier_name.split()[-1].lower() if tier_name else "iron"
-    tier_rgb = TIER_COLORS.get(clean_tier, (148, 163, 184))
-    tier_rgba = (*tier_rgb, 255)
+    # Outer border
+    draw.rounded_rectangle([m, m, POKE_W - m, POKE_H - m], radius=20, fill=None, outline=_P_BORDER, width=2)
+    # Sidebar container
+    draw.rounded_rectangle([m + 4, m + 4, m + sw, POKE_H - m - 4], radius=18, fill=_P_SIDEBAR)
+    draw.line([(m + sw, m + 14), (m + sw, POKE_H - m - 14)], fill=_P_BORDER, width=2)
 
-    draw.rounded_rectangle([20, 20, CARD_WIDTH - 20, CARD_HEIGHT - 20], radius=20, fill=None, outline=(30, 41, 59, 255), width=2)
-    draw.line([(50, 20), (CARD_WIDTH - 50, 20)], fill=ACCENT_PURPLE, width=4)
+    # Hero icon container
+    icon_box = 76
+    icon_x = m + 4 + (sw - icon_box) // 2
+    icon_y = m + 18
+    draw.rounded_rectangle([icon_x, icon_y, icon_x + icon_box, icon_y + icon_box], radius=16, fill=_P_BG, outline=_P_BORDER, width=1)
+    _paste_pixel_icon(img, "atom", icon_x + 8, icon_y + 8, 60)
 
-    # Header
-    av_size = 64
-    av_x, av_y = 50, 44
-    if avatar_bytes:
-        try:
-            with Image.open(io.BytesIO(avatar_bytes)) as raw_av:
-                circle_av = _make_circular_avatar(raw_av, av_size)
-                img.paste(circle_av, (av_x, av_y), circle_av)
-                draw.ellipse([av_x - 2, av_y - 2, av_x + av_size + 2, av_y + av_size + 2], outline=tier_rgba, width=2)
-        except Exception:
-            draw.ellipse([av_x, av_y, av_x + av_size, av_y + av_size], fill=CARD_BG, outline=tier_rgba, width=2)
-    else:
-        draw.ellipse([av_x, av_y, av_x + av_size, av_y + av_size], fill=CARD_BG, outline=tier_rgba, width=2)
+    # Sidebar Title & Subtitle
+    clean_disp = _sanitize_text(display_name) or "Scholar"
+    clean_tier = _sanitize_text(tier_name).replace("Tier", "").strip().title() or "Iron"
+    ty = icon_y + icon_box + 12
+    draw.text((m + 4 + sw // 2, ty), clean_disp.upper()[:16], font=_get_font(23, bold=True), fill=_P_DARK, anchor="mt")
+    ty += 30
+    draw.text((m + 4 + sw // 2, ty), "PCM MASTERY", font=_get_font(15, bold=True), fill=(2, 132, 199, 255), anchor="mt")
+    ty += 32
 
-    f_title = _get_font(26, bold=True)
-    f_sub = _get_font(14, bold=False)
-    draw.text((av_x + av_size + 20, av_y + 4), "SUBJECT MASTERY & TIME DISTRIBUTION", font=f_title, fill=TEXT_WHITE)
-    clean_disp = _sanitize_text(display_name) or "Candidate"
-    draw.text((av_x + av_size + 20, av_y + 36), f"PCM Split & JEE Focus Breakdown · {clean_disp}", font=f_sub, fill=TEXT_MUTED)
-
-    draw.rounded_rectangle([CARD_WIDTH - 220, av_y + 12, CARD_WIDTH - 50, av_y + 44], radius=8, fill=CARD_BG, outline=ACCENT_PURPLE, width=1)
-    draw.text((CARD_WIDTH - 202, av_y + 19), "PAGE 3/4 · SUBJECTS", font=_get_font(12, bold=True), fill=ACCENT_PURPLE)
-
-    # Calculate Totals
     phy_sec = subject_details.get("physics", {}).get("total_seconds", 0)
     chem_sec = subject_details.get("chemistry", {}).get("total_seconds", 0)
-    mat_sec = subject_details.get("maths", {}).get("total_seconds", 0)
-    gen_sec = subject_details.get("general", {}).get("total_seconds", 0)
-    total_sec = max(1, phy_sec + chem_sec + mat_sec + gen_sec)
+    mat_sec = subject_details.get("mathematics", subject_details.get("maths", {})).get("total_seconds", 0)
+    tot_pcm = phy_sec + chem_sec + mat_sec
 
-    phy_pct = phy_sec / total_sec
-    chem_pct = chem_sec / total_sec
-    mat_pct = mat_sec / total_sec
-    gen_pct = gen_sec / total_sec
+    top_name_s = "Physics" if phy_sec >= max(chem_sec, mat_sec) and tot_pcm > 0 else "Chemistry" if chem_sec >= mat_sec and tot_pcm > 0 else "Maths" if tot_pcm > 0 else "None"
+    tot_sessions = sum(d.get("session_count", 0) for d in subject_details.values())
 
-    # Top Section: Horizontal Segmented Bar
-    bar_box_x, bar_box_y = 50, 135
-    bar_box_w, bar_box_h = CARD_WIDTH - 100, 105
-    draw.rounded_rectangle([bar_box_x, bar_box_y, bar_box_x + bar_box_w, bar_box_y + bar_box_h], radius=16, fill=CARD_BG, outline=CARD_BORDER, width=1)
-    _draw_badge_dot(draw, bar_box_x + 24, bar_box_y + 24, ACCENT_PURPLE, radius=4)
-    draw.text((bar_box_x + 36, bar_box_y + 17), "OVERALL PCM TIME DISTRIBUTION", font=_get_font(13, bold=True), fill=ACCENT_PURPLE)
+    pill_x = m + 18
+    pill_w = sw - 28
+    pills = [
+        ("TOTAL PCM FOCUS", _format_time(tot_pcm), True),
+        ("TOP SUBJECT", top_name_s, False),
+        ("TOTAL SESSIONS", f"{tot_sessions} Logged", False),
+    ]
+    for label, val, is_act in pills:
+        pill_h = 44
+        if is_act:
+            draw.rounded_rectangle([pill_x, ty, pill_x + pill_w, ty + pill_h], radius=10, fill=(2, 132, 199, 255))
+            draw.text((pill_x + 14, ty + 8), label, font=_get_font(11, bold=True), fill=(255, 255, 255, 200))
+            draw.text((pill_x + 14, ty + 22), val, font=_get_font(16, bold=True), fill=(255, 255, 255, 255))
+        else:
+            draw.rounded_rectangle([pill_x, ty, pill_x + pill_w, ty + pill_h], radius=10, fill=_P_BG, outline=_P_BORDER, width=1)
+            draw.text((pill_x + 14, ty + 8), label, font=_get_font(11, bold=True), fill=_P_MUTED)
+            draw.text((pill_x + 14, ty + 22), val, font=_get_font(16, bold=True), fill=_P_DARK)
+        ty += pill_h + 10
 
-    # Segmented Bar
-    seg_x, seg_y = bar_box_x + 24, bar_box_y + 48
-    seg_w, seg_h = bar_box_w - 48, 22
-    draw.rounded_rectangle([seg_x, seg_y, seg_x + seg_w, seg_y + seg_h], radius=8, fill=BAR_BG)
+    # Bottom Pill
+    wy = POKE_H - m - 16 - 44
+    draw.rounded_rectangle([pill_x, wy, pill_x + pill_w, wy + 42], radius=10, fill=_P_BG, outline=_P_BORDER, width=1)
+    _paste_pixel_icon(img, "trophy", pill_x + 10, wy + 9, 24)
+    draw.text((pill_x + 40, wy + 12), "Tripartite JEE Focus", font=_get_font(13, bold=True), fill=_P_DARK)
 
-    # Segments
-    curr_x = seg_x
-    if phy_pct > 0:
-        w_p = int(seg_w * phy_pct)
-        draw.rounded_rectangle([curr_x, seg_y, curr_x + w_p, seg_y + seg_h], radius=8, fill=ACCENT_CYAN)
-        curr_x += w_p
-    if chem_pct > 0:
-        w_c = int(seg_w * chem_pct)
-        draw.rounded_rectangle([curr_x, seg_y, curr_x + w_c, seg_y + seg_h], radius=8, fill=ACCENT_GREEN)
-        curr_x += w_c
-    if mat_pct > 0:
-        w_m = int(seg_w * mat_pct)
-        draw.rounded_rectangle([curr_x, seg_y, curr_x + w_m, seg_y + seg_h], radius=8, fill=ACCENT_PURPLE)
-        curr_x += w_m
-    if gen_pct > 0:
-        w_g = seg_x + seg_w - curr_x
-        if w_g > 0:
-            draw.rounded_rectangle([curr_x, seg_y, curr_x + w_g, seg_y + seg_h], radius=8, fill=ACCENT_GOLD)
+    # Right Content Panel
+    hy = m + 10
+    draw.text((cx, hy), f"{clean_disp}'s Subject Split", font=_get_font(32, bold=True), fill=_P_DARK)
+    sub_title = "PCM Split & JEE Focus Breakdown · Tripartite Syllabus Balance"
+    draw.text((cx, hy + 38), sub_title, font=_get_font(15, bold=False), fill=_P_MUTED)
+    draw.text((POKE_W - m - 14, hy + 4), "PAGE 3/4", font=_get_font(18, bold=True), fill=_P_MUTED, anchor="rt")
+    draw.text((POKE_W - m - 14, hy + 34), "SUBJECTS", font=_get_font(14, bold=False), fill=_P_MUTED, anchor="rt")
 
-    # Legend under bar
-    f_leg = _get_font(12, bold=True)
-    leg_y = bar_box_y + 78
-    draw.text((seg_x, leg_y), f"Physics: {int(phy_pct * 100)}%", font=f_leg, fill=ACCENT_CYAN)
-    draw.text((seg_x + 260, leg_y), f"Chemistry: {int(chem_pct * 100)}%", font=f_leg, fill=ACCENT_GREEN)
-    draw.text((seg_x + 530, leg_y), f"Mathematics: {int(mat_pct * 100)}%", font=f_leg, fill=ACCENT_PURPLE)
-    draw.text((seg_x + 820, leg_y), f"General: {int(gen_pct * 100)}%", font=f_leg, fill=ACCENT_GOLD)
+    div_y = hy + 64
+    draw.line([(cx, div_y), (POKE_W - m - 10, div_y)], fill=_P_BORDER, width=2)
 
-    # 3 Detailed PCM Cards
-    pcm_w = (CARD_WIDTH - 100 - 56) // 3
-    pcm_h = 245
-    pcm_y = bar_box_y + bar_box_h + 20
+    # 3 Big Subject Panels
+    grid_y = div_y + 14
+    cw = (POKE_W - m - 10 - cx - 20) // 3
+    ch = 195
 
-    pcm_items = [
-        ("PHYSICS", ACCENT_CYAN, phy_sec, phy_pct, subject_details.get("physics", {}), "physics"),
-        ("CHEMISTRY", ACCENT_GREEN, chem_sec, chem_pct, subject_details.get("chemistry", {}), "chemistry"),
-        ("MATHEMATICS", ACCENT_PURPLE, mat_sec, mat_pct, subject_details.get("maths", {}), "maths"),
+    subj_info = [
+        ("PHYSICS", phy_sec, "physics", (2, 132, 199, 255), (238, 245, 250, 255)),
+        ("CHEMISTRY", chem_sec, "chemistry", (22, 163, 74, 255), (239, 248, 241, 255)),
+        ("MATHEMATICS", mat_sec, "maths", (217, 119, 6, 255), (252, 247, 235, 255)),
     ]
 
-    for idx, (s_name, s_color, s_sec, s_pct, s_data, s_icon) in enumerate(pcm_items):
-        px = 50 + idx * (pcm_w + 28)
-        draw.rounded_rectangle([px, pcm_y, px + pcm_w, pcm_y + pcm_h], radius=16, fill=CARD_BG, outline=CARD_BORDER, width=1)
-        draw.line([(px + 20, pcm_y), (px + pcm_w - 20, pcm_y)], fill=s_color, width=3)
-        _draw_badge_dot(draw, px + 24, pcm_y + 24, s_color, radius=3)
-        draw.text((px + 36, pcm_y + 18), s_name, font=_get_font(13, bold=True), fill=s_color)
-        _paste_pixel_icon(img, s_icon, px + pcm_w - 44, pcm_y + 12, 32)
+    phy_pct = (phy_sec / tot_pcm) if tot_pcm > 0 else 0.0
+    chem_pct = (chem_sec / tot_pcm) if tot_pcm > 0 else 0.0
+    mat_pct = (mat_sec / tot_pcm) if tot_pcm > 0 else 0.0
 
-        draw.text((px + 22, pcm_y + 48), _format_time(s_sec), font=_get_font(34, bold=True), fill=TEXT_WHITE)
-        _draw_progress_bar(draw, px + 22, pcm_y + 98, pcm_w - 44, 8, s_pct, s_color, radius=4)
+    for idx, (s_name, s_sec, s_icon, s_accent, s_card_bg) in enumerate(subj_info):
+        bx = cx + idx * (cw + 10)
+        draw.rounded_rectangle([bx, grid_y, bx + cw, grid_y + ch], radius=14, fill=s_card_bg, outline=_P_BORDER, width=1)
+        draw.line([(bx + 16, grid_y), (bx + cw - 16, grid_y)], fill=s_accent, width=3)
 
-        sess_count = s_data.get("session_count", 0)
-        draw.text((px + 22, pcm_y + 120), f"Sessions: {sess_count} Logged", font=_get_font(13, bold=False), fill=TEXT_SUB)
-        avg_s = s_data.get("avg_seconds", 0)
-        draw.text((px + 22, pcm_y + 148), f"Avg Session: {avg_s // 60}m", font=_get_font(13, bold=False), fill=TEXT_MUTED)
-        draw.text((px + 22, pcm_y + 176), f"Syllabus Share: {int(s_pct * 100)}%", font=_get_font(13, bold=False), fill=s_color)
+        draw.text((bx + 16, grid_y + 14), s_name, font=_get_font(12, bold=True), fill=_P_MUTED)
+        _paste_pixel_icon(img, s_icon, bx + cw - 46, grid_y + 10, 32)
 
-    # Bottom JEE Preparation Balance Analysis
-    bot_y = pcm_y + pcm_h + 20
-    bot_h = 105
-    draw.rounded_rectangle([50, bot_y, CARD_WIDTH - 50, bot_y + bot_h], radius=16, fill=CARD_BG, outline=CARD_BORDER, width=1)
-    _draw_badge_dot(draw, 74, bot_y + 24, ACCENT_GOLD, radius=4)
-    draw.text((86, bot_y + 17), "JEE SYLLABUS BALANCE EVALUATION", font=_get_font(13, bold=True), fill=ACCENT_GOLD)
+        t_str = _format_time(s_sec)
+        draw.text((bx + 16, grid_y + 50), t_str, font=_get_font(28, bold=True), fill=_P_DARK)
 
-    # Determine balance evaluation
+        pct = (s_sec / tot_pcm) if tot_pcm > 0 else 0.0
+        draw.text((bx + 16, grid_y + 92), f"{int(pct * 100)}% of PCM Study", font=_get_font(14, bold=True), fill=s_accent)
+
+        pb_x = bx + 16
+        pb_y = grid_y + 120
+        pb_w = cw - 32
+        draw.rounded_rectangle([pb_x, pb_y, pb_x + pb_w, pb_y + 10], radius=5, fill=_P_SIDEBAR, outline=_P_BORDER, width=1)
+        if pct > 0:
+            fill_w = max(10, int(pb_w * pct))
+            draw.rounded_rectangle([pb_x, pb_y, pb_x + fill_w, pb_y + 10], radius=5, fill=s_accent)
+
+        s_key = s_name.lower()
+        s_cnt = subject_details.get(s_key, subject_details.get("maths" if s_key == "mathematics" else s_key, {})).get("session_count", 0)
+        draw.text((bx + 16, grid_y + 144), f"{s_cnt} sessions logged", font=_get_font(11, bold=False), fill=_P_MUTED)
+
+    # Balance Evaluation Container
+    bal_y = grid_y + ch + 16
+    bal_w = POKE_W - m - 10 - cx
+    bal_h = 135
+    draw.rounded_rectangle([cx, bal_y, cx + bal_w, bal_y + bal_h], radius=14, fill=_P_ROW, outline=_P_BORDER, width=1)
+
+    _paste_pixel_icon(img, "chalice", cx + 18, bal_y + 20, 42)
+    draw.text((cx + 70, bal_y + 14), "JEE SYLLABUS EQUILIBRIUM", font=_get_font(18, bold=True), fill=_P_DARK)
+
     shares = [phy_pct, chem_pct, mat_pct]
     max_share = max(shares)
     min_share = min(shares)
+
     if (max_share - min_share) <= 0.18 and min_share > 0.15:
-        balance_txt = "Well-Balanced Preparation: Your study time is evenly distributed across Physics, Chemistry, and Mathematics."
-        advice_txt = "Keep up this consistent equilibrium to maximize overall JEE All India Rank (AIR)."
-        b_color = ACCENT_GREEN
+        b_title = "Well-Balanced Triple-Crown Preparation"
+        b_desc = "Hours are evenly spread across P·C·M. Keep this equilibrium to maximize your overall AIR rank."
+        b_color = (22, 163, 74, 255)
     else:
         top_name = "Physics" if max_share == phy_pct else "Chemistry" if max_share == chem_pct else "Mathematics"
         low_name = "Physics" if min_share == phy_pct else "Chemistry" if min_share == chem_pct else "Mathematics"
-        balance_txt = f"{top_name} Specialist ({int(max_share * 100)}% share): Prioritizing strengths while {low_name} ({int(min_share * 100)}%) has less focus."
-        advice_txt = f"Tip: Dedicate at least two upcoming sessions to {low_name} to maintain tripartite cutoff stability."
-        b_color = ACCENT_ORANGE
+        b_title = f"{top_name} Priority ({int(max_share * 100)}% share)"
+        b_desc = f"{top_name} dominates your sessions; {low_name} at {int(min_share * 100)}%. Add {low_name} sessions for tripartite cutoff."
+        b_color = (217, 119, 6, 255)
 
-    draw.text((74, bot_y + 44), balance_txt, font=_get_font(14, bold=True), fill=b_color)
-    draw.text((74, bot_y + 70), advice_txt, font=_get_font(13, bold=False), fill=TEXT_MUTED)
+    draw.text((cx + 70, bal_y + 44), b_title, font=_get_font(15, bold=True), fill=b_color)
+    draw.text((cx + 70, bal_y + 70), b_desc, font=_get_font(12, bold=False), fill=_P_MUTED)
 
-    # Footer
-    f_foot = _get_font(12, bold=False)
-    draw.text((50, 642), "CHRONOS STUDY OS · IST TIMEZONE", font=f_foot, fill=(71, 85, 105, 255))
-    draw.text((CARD_WIDTH - 280, 642), "PCM SYLLABUS SPLIT · PAGE 3/4", font=f_foot, fill=(71, 85, 105, 255))
+    # Combined 3-Segment PCM Bar
+    bar_x = cx + 70
+    bar_y_pos = bal_y + 100
+    bar_w = bal_w - 90
+    bar_h = 14
+    draw.rounded_rectangle([bar_x, bar_y_pos, bar_x + bar_w, bar_y_pos + bar_h], radius=7, fill=_P_SIDEBAR, outline=_P_BORDER, width=1)
+    if tot_pcm > 0:
+        p_w = int(bar_w * phy_pct)
+        c_w = int(bar_w * chem_pct)
+        m_w = bar_w - p_w - c_w
+        cur_x = bar_x
+        if p_w > 0:
+            draw.rectangle([cur_x, bar_y_pos, cur_x + p_w, bar_y_pos + bar_h], fill=(2, 132, 199, 255))
+            cur_x += p_w
+        if c_w > 0:
+            draw.rectangle([cur_x, bar_y_pos, cur_x + c_w, bar_y_pos + bar_h], fill=(22, 163, 74, 255))
+            cur_x += c_w
+        if m_w > 0:
+            draw.rectangle([cur_x, bar_y_pos, cur_x + m_w, bar_y_pos + bar_h], fill=(217, 119, 6, 255))
 
-    return _export_png(img)
+    # Bottom footer line
+    draw.line([(cx, POKE_H - m - 18), (POKE_W - m - 10, POKE_H - m - 18)], fill=_P_BORDER, width=1)
+    draw.text((cx + 6, POKE_H - m - 15), "Chronos Study OS · Study smarter, one session at a time", font=_get_font(11, bold=False), fill=_P_MUTED)
+
+    return _poke_export(img)
 
 
 # ==============================================================================
@@ -1010,169 +1059,156 @@ def render_trivia_card_sync(
     tier_info: dict[str, Any],
     avatar_bytes: Optional[bytes] = None,
 ) -> bytes:
-    """Synchronously renders the high-res 1200x680 JEE trivia & AIR rank scorecard PNG."""
-    img = Image.new("RGBA", (CARD_WIDTH, CARD_HEIGHT), BG_COLOR)
+    """Synchronously renders the 920x580 PokeOne-style JEE trivia & AIR rank scorecard PNG."""
+    img = Image.new("RGBA", (POKE_W, POKE_H), _P_BG)
     draw = ImageDraw.Draw(img)
+    m = _P_MARGIN
+    sw = _P_SIDEBAR_W
+    cx = _P_CONTENT_X
 
-    clean_tier = tier_name.split()[-1].lower() if tier_name else "iron"
-    tier_rgb = TIER_COLORS.get(clean_tier, (148, 163, 184))
-    tier_rgba = (*tier_rgb, 255)
+    # Outer border
+    draw.rounded_rectangle([m, m, POKE_W - m, POKE_H - m], radius=20, fill=None, outline=_P_BORDER, width=2)
+    # Sidebar container
+    draw.rounded_rectangle([m + 4, m + 4, m + sw, POKE_H - m - 4], radius=18, fill=_P_SIDEBAR)
+    draw.line([(m + sw, m + 14), (m + sw, POKE_H - m - 14)], fill=_P_BORDER, width=2)
 
-    draw.rounded_rectangle([20, 20, CARD_WIDTH - 20, CARD_HEIGHT - 20], radius=20, fill=None, outline=(30, 41, 59, 255), width=2)
-    draw.line([(50, 20), (CARD_WIDTH - 50, 20)], fill=ACCENT_GOLD, width=4)
+    # Hero icon container
+    icon_box = 76
+    icon_x = m + 4 + (sw - icon_box) // 2
+    icon_y = m + 18
+    draw.rounded_rectangle([icon_x, icon_y, icon_x + icon_box, icon_y + icon_box], radius=16, fill=_P_BG, outline=_P_BORDER, width=1)
+    _paste_pixel_icon(img, "crown", icon_x + 8, icon_y + 8, 60)
 
-    # Header
-    av_size = 64
-    av_x, av_y = 50, 44
-    if avatar_bytes:
-        try:
-            with Image.open(io.BytesIO(avatar_bytes)) as raw_av:
-                circle_av = _make_circular_avatar(raw_av, av_size)
-                img.paste(circle_av, (av_x, av_y), circle_av)
-                draw.ellipse([av_x - 2, av_y - 2, av_x + av_size + 2, av_y + av_size + 2], outline=tier_rgba, width=2)
-        except Exception:
-            draw.ellipse([av_x, av_y, av_x + av_size, av_y + av_size], fill=CARD_BG, outline=tier_rgba, width=2)
-    else:
-        draw.ellipse([av_x, av_y, av_x + av_size, av_y + av_size], fill=CARD_BG, outline=tier_rgba, width=2)
-
-    f_title = _get_font(26, bold=True)
-    f_sub = _get_font(14, bold=False)
-    draw.text((av_x + av_size + 20, av_y + 4), "JEE TRIVIA & ACADEMIC SCORECARD", font=f_title, fill=TEXT_WHITE)
-    clean_disp = _sanitize_text(display_name) or "Candidate"
-    draw.text((av_x + av_size + 20, av_y + 36), f"Competitive Candidate Evaluation · {clean_disp} · JEE Theory Mastery", font=f_sub, fill=TEXT_MUTED)
-
-    draw.rounded_rectangle([CARD_WIDTH - 220, av_y + 12, CARD_WIDTH - 50, av_y + 44], radius=8, fill=CARD_BG, outline=ACCENT_GOLD, width=1)
-    draw.text((CARD_WIDTH - 202, av_y + 19), "PAGE 4/4 · TRIVIA", font=_get_font(12, bold=True), fill=ACCENT_GOLD)
-
-    # Left Side: AIR Ladder & Rank Showcase Box
-    showcase_x, showcase_y = 50, 135
-    showcase_w = 460
-    showcase_h = 485
-    draw.rounded_rectangle([showcase_x, showcase_y, showcase_x + showcase_w, showcase_y + showcase_h], radius=16, fill=CARD_BG, outline=CARD_BORDER, width=1)
-    _draw_badge_dot(draw, showcase_x + 24, showcase_y + 24, ACCENT_GOLD, radius=4)
-    draw.text((showcase_x + 36, showcase_y + 17), "ALL INDIA RANK STANDING", font=_get_font(13, bold=True), fill=ACCENT_GOLD)
-
-    # Rank Badge & Tier
-    rank_pos, total_cand = rank_info
-    r_str = f"SERVER RANK #{rank_pos} OF {total_cand}" if rank_pos > 0 else "UNRANKED"
-    draw.rounded_rectangle([showcase_x + 24, showcase_y + 50, showcase_x + showcase_w - 24, showcase_y + 86], radius=8, fill=(30, 41, 59, 200))
-    draw.text((showcase_x + 36, showcase_y + 58), r_str, font=_get_font(13, bold=True), fill=ACCENT_GOLD)
-
-    tier_title = _sanitize_text(tier_info.get("title", "Aspirant"))
-    draw.text((showcase_x + 24, showcase_y + 105), tier_title, font=_get_font(30, bold=True), fill=TEXT_WHITE)
-
-    marks = trivia_stats.get("total_marks", 0)
-    marks_str = f"{marks:+,} Marks"
-    draw.text((showcase_x + 24, showcase_y + 155), marks_str, font=_get_font(44, bold=True), fill=ACCENT_GOLD)
-
-    # Climb progress bar to next tier
-    next_m = tier_info.get("next_marks")
-    draw.text((showcase_x + 24, showcase_y + 230), "LADDER CLIMB TO NEXT TIER", font=_get_font(12, bold=True), fill=TEXT_MUTED)
-    if next_m is not None:
-        curr_min = tier_info.get("min_marks", tier_info.get("cur_min", 0))
-        needed = next_m - curr_min
-        into = max(0, marks - curr_min)
-        climb_pct = min(1.0, max(0.0, into / needed)) if needed > 0 else 1.0
-        _draw_progress_bar(draw, showcase_x + 24, showcase_y + 252, showcase_w - 48, 10, climb_pct, ACCENT_GOLD, radius=5)
-        climb_lbl = f"{into}/{needed} marks to {tier_info.get('next_title', 'Next Tier')} ({int(climb_pct * 100)}%)"
-        draw.text((showcase_x + 24, showcase_y + 272), climb_lbl, font=_get_font(12, bold=False), fill=TEXT_SUB)
-    else:
-        _draw_progress_bar(draw, showcase_x + 24, showcase_y + 252, showcase_w - 48, 10, 1.0, ACCENT_GOLD, radius=5)
-        draw.text((showcase_x + 24, showcase_y + 272), "MAX TIER ACHIEVED · SUPREME ASPIRANT", font=_get_font(12, bold=False), fill=ACCENT_GOLD)
-
-    # Evaluative summary
-    draw.rounded_rectangle([showcase_x + 24, showcase_y + 320, showcase_x + showcase_w - 24, showcase_y + showcase_h - 24], radius=12, fill=PANEL_BG, outline=PANEL_BORDER, width=1)
-    draw.text((showcase_x + 40, showcase_y + 338), "COMPETITIVE EVALUATION", font=_get_font(11, bold=True), fill=ACCENT_CYAN)
-    draw.text((showcase_x + 40, showcase_y + 364), "• 100% Verified Theory Solves", font=_get_font(13, bold=False), fill=TEXT_WHITE)
-    draw.text((showcase_x + 40, showcase_y + 392), "• Negative Marking Penalty Active", font=_get_font(13, bold=False), fill=TEXT_WHITE)
-    draw.text((showcase_x + 40, showcase_y + 420), "• Full JEE Advanced Syllabus Coverage", font=_get_font(13, bold=False), fill=TEXT_MUTED)
-
-    # Right Side: 4 Metric Cards
-    right_x = showcase_x + showcase_w + 25
-    right_w = CARD_WIDTH - right_x - 50
-    card_half_w = (right_w - 20) // 2
-    card_half_h = (showcase_h - 20) // 2
+    # Sidebar Title & Subtitle
+    clean_disp = _sanitize_text(display_name) or "Scholar"
+    clean_tier = _sanitize_text(tier_name).replace("Tier", "").strip().title() or "Iron"
+    ty = icon_y + icon_box + 12
+    draw.text((m + 4 + sw // 2, ty), clean_disp.upper()[:16], font=_get_font(23, bold=True), fill=_P_DARK, anchor="mt")
+    ty += 30
+    draw.text((m + 4 + sw // 2, ty), "JEE TRIVIA", font=_get_font(15, bold=True), fill=_P_GOLD_PILL, anchor="mt")
+    ty += 32
 
     att = trivia_stats.get("questions_attempted", 0)
     cor = trivia_stats.get("questions_correct", 0)
     acc = (cor / att * 100) if att > 0 else 0.0
-
-    # Metric 1: Solve Accuracy
-    m1_x, m1_y = right_x, showcase_y
-    draw.rounded_rectangle([m1_x, m1_y, m1_x + card_half_w, m1_y + card_half_h], radius=16, fill=CARD_BG, outline=CARD_BORDER, width=1)
-    _draw_badge_dot(draw, m1_x + 20, m1_y + 22, ACCENT_GREEN, radius=3)
-    draw.text((m1_x + 30, m1_y + 16), "SOLVE ACCURACY", font=_get_font(12, bold=True), fill=ACCENT_GREEN)
-    draw.text((m1_x + 18, m1_y + 44), f"{acc:.1f}%", font=_get_font(38, bold=True), fill=TEXT_WHITE)
-    _draw_progress_bar(draw, m1_x + 18, m1_y + 98, card_half_w - 36, 8, acc / 100.0, ACCENT_GREEN, radius=4)
-    draw.text((m1_x + 18, m1_y + 120), f"{cor} Solved / {att} Attempted", font=_get_font(13, bold=False), fill=TEXT_SUB)
-    draw.text((m1_x + 18, m1_y + 148), "Calculated across PCM theory", font=_get_font(12, bold=False), fill=TEXT_MUTED)
-
-    # Metric 2: Streak Multiplier
-    m2_x, m2_y = right_x + card_half_w + 20, showcase_y
-    draw.rounded_rectangle([m2_x, m2_y, m2_x + card_half_w, m2_y + card_half_h], radius=16, fill=CARD_BG, outline=CARD_BORDER, width=1)
-    _draw_badge_dot(draw, m2_x + 20, m2_y + 22, ACCENT_ORANGE, radius=3)
-    draw.text((m2_x + 30, m2_y + 16), "CURRENT STREAK", font=_get_font(12, bold=True), fill=ACCENT_ORANGE)
-    cur_strk = trivia_stats.get("current_streak", 0)
-    draw.text((m2_x + 18, m2_y + 44), f"{cur_strk} Streak", font=_get_font(38, bold=True), fill=TEXT_WHITE)
-    _paste_pixel_icon(img, "chronos_streak", m2_x + card_half_w - 55, m2_y + 46, 34)
-    best_strk = trivia_stats.get("best_streak", 0)
-    draw.text((m2_x + 18, m2_y + 120), f"Personal Best: {best_strk} in a row", font=_get_font(13, bold=False), fill=TEXT_SUB)
-    draw.text((m2_x + 18, m2_y + 148), "Hot streak reward active", font=_get_font(12, bold=False), fill=TEXT_MUTED)
-
-    # Metric 3: Rewards Earned
-    m3_x, m3_y = right_x, showcase_y + card_half_h + 20
-    draw.rounded_rectangle([m3_x, m3_y, m3_x + card_half_w, m3_y + card_half_h], radius=16, fill=CARD_BG, outline=CARD_BORDER, width=1)
-    _draw_badge_dot(draw, m3_x + 20, m3_y + 22, ACCENT_GOLD, radius=3)
-    draw.text((m3_x + 30, m3_y + 16), "TRIVIA REWARDS", font=_get_font(12, bold=True), fill=ACCENT_GOLD)
+    marks = trivia_stats.get("total_marks", 0)
     c_won = trivia_stats.get("total_coins_won", 0)
-    draw.text((m3_x + 18, m3_y + 44), f"+{c_won:,}", font=_get_font(38, bold=True), fill=ACCENT_GOLD)
-    _paste_pixel_icon(img, "chronocoin", m3_x + card_half_w - 55, m3_y + 46, 36)
-    draw.text((m3_x + 18, m3_y + 120), "Chronocoins earned from theory", font=_get_font(13, bold=False), fill=TEXT_SUB)
-    draw.text((m3_x + 18, m3_y + 148), "Redeemable in Chronos shop", font=_get_font(12, bold=False), fill=TEXT_MUTED)
 
-    # Metric 4: Theory Focus
-    m4_x, m4_y = right_x + card_half_w + 20, showcase_y + card_half_h + 20
-    draw.rounded_rectangle([m4_x, m4_y, m4_x + card_half_w, m4_y + card_half_h], radius=16, fill=CARD_BG, outline=CARD_BORDER, width=1)
-    _draw_badge_dot(draw, m4_x + 20, m4_y + 22, ACCENT_PURPLE, radius=3)
-    draw.text((m4_x + 30, m4_y + 16), "EXAM STATUS", font=_get_font(12, bold=True), fill=ACCENT_PURPLE)
-    draw.text((m4_x + 18, m4_y + 44), "Active Grinder", font=_get_font(28, bold=True), fill=TEXT_WHITE)
-    draw.text((m4_x + 18, m4_y + 105), "• Standard NTA Scoring (+4/-1)", font=_get_font(12, bold=False), fill=TEXT_SUB)
-    draw.text((m4_x + 18, m4_y + 130), "• Full LaTeX Render Support", font=_get_font(12, bold=False), fill=TEXT_SUB)
-    draw.text((m4_x + 18, m4_y + 155), "• Interactive Practice Mode", font=_get_font(12, bold=False), fill=TEXT_MUTED)
+    pill_x = m + 18
+    pill_w = sw - 28
+    pills = [
+        ("NET MARKS", f"{marks:+,} Marks", True),
+        ("ACCURACY", f"{acc:.1f}%", False),
+        ("COINS WON", f"+{c_won:,}", False),
+    ]
+    for label, val, is_act in pills:
+        pill_h = 44
+        if is_act:
+            draw.rounded_rectangle([pill_x, ty, pill_x + pill_w, ty + pill_h], radius=10, fill=_P_GOLD_PILL)
+            draw.text((pill_x + 14, ty + 8), label, font=_get_font(11, bold=True), fill=(255, 255, 255, 200))
+            draw.text((pill_x + 14, ty + 22), val, font=_get_font(16, bold=True), fill=(255, 255, 255, 255))
+        else:
+            draw.rounded_rectangle([pill_x, ty, pill_x + pill_w, ty + pill_h], radius=10, fill=_P_BG, outline=_P_BORDER, width=1)
+            draw.text((pill_x + 14, ty + 8), label, font=_get_font(11, bold=True), fill=_P_MUTED)
+            draw.text((pill_x + 14, ty + 22), val, font=_get_font(16, bold=True), fill=_P_DARK)
+        ty += pill_h + 10
 
-    # Footer
-    f_foot = _get_font(12, bold=False)
-    draw.text((50, 642), "CHRONOS STUDY OS · IST TIMEZONE", font=f_foot, fill=(71, 85, 105, 255))
-    draw.text((CARD_WIDTH - 280, 642), "JEE TRIVIA MASTERY · PAGE 4/4", font=f_foot, fill=(71, 85, 105, 255))
+    # Bottom Pill
+    wy = POKE_H - m - 16 - 44
+    draw.rounded_rectangle([pill_x, wy, pill_x + pill_w, wy + 42], radius=10, fill=_P_BG, outline=_P_BORDER, width=1)
+    _paste_pixel_icon(img, "chronocoin", pill_x + 10, wy + 9, 24)
+    draw.text((pill_x + 40, wy + 12), f"+{c_won:,} Trivia Coins Won", font=_get_font(13, bold=True), fill=_P_GOLD_PILL)
 
-    return _export_png(img)
+    # Right Content Panel
+    hy = m + 10
+    draw.text((cx, hy), f"{clean_disp}'s JEE Trivia", font=_get_font(32, bold=True), fill=_P_DARK)
+    tier_title = _sanitize_text(tier_info.get("title", "Aspirant"))
+    sub_title = f"JEE Main & Advanced Standing · {tier_title} · NTA +4/-1 Marking"
+    draw.text((cx, hy + 38), sub_title, font=_get_font(15, bold=False), fill=_P_MUTED)
+    draw.text((POKE_W - m - 14, hy + 4), "PAGE 4/4", font=_get_font(18, bold=True), fill=_P_MUTED, anchor="rt")
+    draw.text((POKE_W - m - 14, hy + 34), "TRIVIA", font=_get_font(14, bold=False), fill=_P_MUTED, anchor="rt")
+
+    div_y = hy + 64
+    draw.line([(cx, div_y), (POKE_W - m - 10, div_y)], fill=_P_BORDER, width=2)
+
+    # 3 Big Stat Cards (Solve Accuracy, Win Streak, Trivia Coins)
+    grid_y = div_y + 14
+    cw = (POKE_W - m - 10 - cx - 20) // 3
+    ch = 135
+
+    cur_strk = trivia_stats.get("current_streak", 0)
+    best_strk = trivia_stats.get("best_streak", 0)
+
+    cards = [
+        ("ACCURACY", f"{acc:.1f}%", "trophy", f"{cor} Solved / {att} Tried", (22, 163, 74, 255)),
+        ("HOT STREAK", f"{cur_strk} Hot", "chronos_streak", f"Best: {best_strk} in a row", (245, 158, 11, 255)),
+        ("TRIVIA COINS", f"+{c_won:,}", "chronocoin", "Theory rewards won", (217, 119, 6, 255)),
+    ]
+
+    for idx, (label, val, c_icon, sub, color) in enumerate(cards):
+        bx = cx + idx * (cw + 10)
+        draw.rounded_rectangle([bx, grid_y, bx + cw, grid_y + ch], radius=14, fill=_P_ROW, outline=_P_BORDER, width=1)
+        draw.line([(bx + 16, grid_y), (bx + cw - 16, grid_y)], fill=color, width=3)
+        draw.text((bx + 16, grid_y + 14), label, font=_get_font(12, bold=True), fill=_P_MUTED)
+        _paste_pixel_icon(img, c_icon, bx + cw - 42, grid_y + 10, 28)
+        draw.text((bx + 16, grid_y + 44), val, font=_get_font(30, bold=True), fill=_P_DARK)
+        draw.text((bx + 16, grid_y + 92), sub, font=_get_font(12, bold=False), fill=color)
+
+    # Ladder Progression Container
+    prog_y = grid_y + ch + 16
+    prog_w = POKE_W - m - 10 - cx
+    prog_h = 135
+    draw.rounded_rectangle([cx, prog_y, cx + prog_w, prog_y + prog_h], radius=14, fill=_P_ROW, outline=_P_BORDER, width=1)
+
+    _paste_pixel_icon(img, "crown", cx + 18, prog_y + 20, 42)
+    draw.text((cx + 70, prog_y + 14), f"{tier_title} · {marks:+,} Net Marks", font=_get_font(18, bold=True), fill=_P_DARK)
+
+    next_m = tier_info.get("next_marks")
+    if next_m is not None:
+        curr_min = tier_info.get("min_marks", tier_info.get("cur_min", 0))
+        needed = max(1, next_m - curr_min)
+        into = max(0, marks - curr_min)
+        climb_pct = min(1.0, max(0.0, into / needed))
+        next_t_name = _sanitize_text(tier_info.get("next_title", "Next Tier"))
+        prog_txt = f"{into}/{needed} marks to {next_t_name} ({int(climb_pct * 100)}%)"
+    else:
+        climb_pct = 1.0
+        prog_txt = "MAX TIER REACHED · AIR TOPPER"
+
+    draw.text((cx + prog_w - 20, prog_y + 16), prog_txt, font=_get_font(13, bold=True), fill=_P_MUTED, anchor="rt")
+
+    pb_x = cx + 70
+    pb_y = prog_y + 44
+    pb_w = prog_w - 90
+    pb_h = 14
+    draw.rounded_rectangle([pb_x, pb_y, pb_x + pb_w, pb_y + pb_h], radius=7, fill=_P_SIDEBAR, outline=_P_BORDER, width=1)
+    if climb_pct > 0:
+        fill_w = max(14, int(pb_w * climb_pct))
+        draw.rounded_rectangle([pb_x, pb_y, pb_x + fill_w, pb_y + pb_h], radius=7, fill=_P_GOLD_PILL)
+
+    tip_txt = "NTA Grading Active: +4 for correct, -1 for incorrect. Pure JEE Main & Advanced curriculum."
+    draw.text((cx + 70, prog_y + 68), tip_txt, font=_get_font(12, bold=False), fill=_P_MUTED)
+
+    # Rank info line
+    rank_pos, total_cand = rank_info
+    if rank_pos > 0:
+        rank_txt = f"Server Rank #{rank_pos} of {total_cand} candidates"
+    else:
+        rank_txt = "Rank pending — attempt theory questions to earn a rank"
+    draw.text((cx + 70, prog_y + 92), rank_txt, font=_get_font(12, bold=False), fill=_P_MUTED)
+
+    # Bottom footer line
+    draw.line([(cx, POKE_H - m - 18), (POKE_W - m - 10, POKE_H - m - 18)], fill=_P_BORDER, width=1)
+    draw.text((cx + 6, POKE_H - m - 15), "Chronos Study OS · Study smarter, one session at a time", font=_get_font(11, bold=False), fill=_P_MUTED)
+
+    return _poke_export(img)
 
 
 # ==============================================================================
 # SHOP CARD & INVENTORY SATCHEL CARD GENERATORS — PokeOne-style Parchment
 # ==============================================================================
-# Canvas is 920x580 (crisp 16:10 format, no EXPORT_SCALE downscaling penalty).
 # Extra-large typography (24px names, 32px headers) guarantees instant readability
 # on Discord mobile & desktop at 1:1 natural zoom.
-POKE_W = 920
-POKE_H = 580
-
-# Warm cream parchment palette (authentic PokeOne satchel aesthetic)
-_P_BG        = (246, 243, 231, 255)   # Cream parchment base
-_P_SIDEBAR   = (236, 231, 213, 255)   # Left sidebar panel
-_P_ROW       = (240, 235, 218, 255)   # Item row alternate fill
-_P_ROW_ALT   = (246, 243, 231, 255)   # Item row base (matches BG)
-_P_BORDER    = (214, 207, 187, 255)   # Crisp parchment dividers
-_P_DARK      = (38, 42, 48, 255)      # Primary dark charcoal text
-_P_MUTED     = (120, 125, 135, 255)   # Muted secondary text
-_P_ACCENT    = (204, 75, 62, 255)     # Active/selected category capsule (warm crimson)
-_P_GOLD_PILL = (185, 130, 20, 255)    # Rich amber gold price text
-_P_CANDY     = (190, 60, 120, 255)    # Candy pink accent
-_P_GREEN     = (60, 140, 90, 255)     # Forest green accent
-_P_SIDEBAR_W = 240                    # Wide spacious sidebar
-_P_CONTENT_X = 280                    # Content area left edge
-_P_MARGIN    = 16                     # Outer margin
-_P_ITEMS_PER_PAGE = 6                 # Exactly 6 massive, comfortable rows per page
 
 SHOP_ITEMS_DATA = [
     {
@@ -1180,7 +1216,7 @@ SHOP_ITEMS_DATA = [
         "num": 1,
         "name": "Mystery Box",
         "type": "CONSUMABLE",
-        "price": 150,
+        "price": 220,
         "icon": "mystery_box",
         "color": ACCENT_PURPLE,
         "desc": "Box of random rewards: Coins, XP, or rare items. Open with .openbox.",
@@ -1190,7 +1226,7 @@ SHOP_ITEMS_DATA = [
         "num": 2,
         "name": "Streak Freeze",
         "type": "CONSUMABLE",
-        "price": 250,
+        "price": 350,
         "icon": "streak_freeze",
         "color": ACCENT_CYAN,
         "desc": "Automatically shields your study streak when you miss exactly one day.",
@@ -1200,7 +1236,7 @@ SHOP_ITEMS_DATA = [
         "num": 3,
         "name": "XP Boost",
         "type": "60M BOOST (2X)",
-        "price": 300,
+        "price": 450,
         "icon": "xp_boost",
         "color": ACCENT_GREEN,
         "desc": ".use to double study XP for 60 minutes. Stacks as inventory charges.",
@@ -1210,7 +1246,7 @@ SHOP_ITEMS_DATA = [
         "num": 4,
         "name": "Chronocoin Boost",
         "type": "60M BOOST (2X)",
-        "price": 300,
+        "price": 450,
         "icon": "coin_boost",
         "color": ACCENT_GOLD,
         "desc": ".use to double Chronocoins earned from studying for 60 minutes.",
@@ -1220,7 +1256,7 @@ SHOP_ITEMS_DATA = [
         "num": 5,
         "name": "Title: The Scholar",
         "type": "PRESTIGE TITLE",
-        "price": 400,
+        "price": 600,
         "icon": "title_scroll",
         "color": (217, 119, 6, 255),
         "desc": "Unlocks custom title 'The Scholar' to display on your .stats profile.",
@@ -1230,7 +1266,7 @@ SHOP_ITEMS_DATA = [
         "num": 6,
         "name": "Title: The Grinder",
         "type": "PRESTIGE TITLE",
-        "price": 400,
+        "price": 600,
         "icon": "title_scroll",
         "color": (217, 119, 6, 255),
         "desc": "Unlocks custom title 'The Grinder' to display on your .stats profile.",
@@ -1240,7 +1276,7 @@ SHOP_ITEMS_DATA = [
         "num": 7,
         "name": "Title: Insomniac",
         "type": "PRESTIGE TITLE",
-        "price": 400,
+        "price": 600,
         "icon": "title_scroll",
         "color": (217, 119, 6, 255),
         "desc": "Unlocks custom title 'Insomniac' to display on your .stats profile.",
@@ -1250,7 +1286,7 @@ SHOP_ITEMS_DATA = [
         "num": 8,
         "name": "Title: Legend",
         "type": "PRESTIGE TITLE",
-        "price": 1000,
+        "price": 1500,
         "icon": "title_scroll",
         "color": ACCENT_GOLD,
         "desc": "A supreme prestige title for the most dedicated study grinders.",
