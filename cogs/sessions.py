@@ -16,6 +16,8 @@ correct again the instant the bot restarts (see `_reconcile_sessions`).
 """
 from __future__ import annotations
 
+import asyncio
+import io
 import logging
 import time
 from typing import Optional
@@ -26,9 +28,10 @@ from discord.ext import commands, tasks
 import config
 from utils import embeds
 from utils import emojis
+from utils.stats_card import render_session_summary_card_sync
 from utils.subjects import SUBJECT_ALIASES, SUBJECT_HINT, SUBJECT_INFO, detect_subject, normalize_subject_key
 from utils.time_format import discord_timestamp, format_duration
-from utils.xp import tier_for_level
+from utils.xp import tier_for_level, xp_progress
 
 log = logging.getLogger("sessions")
 
@@ -154,6 +157,40 @@ class Sessions(commands.Cog, name="Sessions"):
         if result["leveled_up"]:
             log.info(f"LEVEL UP      | user={result['user_id']} -> level {result['new_level']}")
 
+        user_stats = await self.db.get_or_create_user_stats(ctx.author.id, ctx.guild.id)
+        effective_tiers = await self.db.get_effective_tiers(ctx.guild.id)
+        cur_xp, next_xp, _ = xp_progress(user_stats.get("xp", 0))
+        tier_name = tier_for_level(result["new_level"], effective_tiers)
+
+        avatar_bytes = None
+        try:
+            avatar_bytes = await ctx.author.display_avatar.read()
+        except Exception:
+            pass
+
+        loop = asyncio.get_running_loop()
+        card_file = None
+        try:
+            card_bytes = await loop.run_in_executor(
+                None,
+                render_session_summary_card_sync,
+                ctx.author.display_name,
+                result["duration"],
+                result["xp_earned"],
+                result["coins_earned"],
+                result.get("subject"),
+                result["old_level"],
+                result["new_level"],
+                cur_xp,
+                next_xp,
+                tier_name,
+                user_stats.get("current_streak", 1),
+                avatar_bytes,
+            )
+            card_file = discord.File(io.BytesIO(card_bytes), filename="session_summary.png")
+        except Exception:
+            log.exception("Failed to render session summary card image")
+
         coin_e = emojis.coin(ctx.guild)
         xp_e = emojis.xp(ctx.guild)
         embed = embeds.base_embed(
@@ -161,22 +198,27 @@ class Sessions(commands.Cog, name="Sessions"):
             description=f"You focused for **{format_duration(result['duration'])}**. Nice work.",
             color=embeds.COLOR_SUCCESS,
         )
-        embed.add_field(name="⏱️ Focus time", value=format_duration(result["duration"]), inline=True)
-        embed.add_field(name=f"{xp_e} XP gained", value=f"+{result['xp_earned']} XP", inline=True)
-        embed.add_field(name=f"{coin_e} Chronocoins earned", value=f"+{result['coins_earned']} {coin_e}", inline=True)
-        if result.get("subject"):
-            info = SUBJECT_INFO[result["subject"]]
-            embed.add_field(name="Subject", value=f"{info['emoji']} {info['label']}", inline=True)
+        if card_file:
+            embed.set_image(url="attachment://session_summary.png")
+        else:
+            embed.add_field(name="⏱️ Focus time", value=format_duration(result["duration"]), inline=True)
+            embed.add_field(name=f"{xp_e} XP gained", value=f"+{result['xp_earned']} XP", inline=True)
+            embed.add_field(name=f"{coin_e} Chronocoins earned", value=f"+{result['coins_earned']} {coin_e}", inline=True)
+            if result.get("subject"):
+                info = SUBJECT_INFO[result["subject"]]
+                embed.add_field(name="Subject", value=f"{info['emoji']} {info['label']}", inline=True)
+
         if result["leveled_up"]:
-            effective_tiers = await self.db.get_effective_tiers(ctx.guild.id)
-            tier = tier_for_level(result["new_level"], effective_tiers)
             embed.add_field(
                 name="\U0001F389 Level Up!",
-                value=f"Level {result['old_level']} \u2192 **Level {result['new_level']}** \u2014 {tier}",
+                value=f"Level {result['old_level']} \u2192 **Level {result['new_level']}** \u2014 {tier_name}",
                 inline=False,
             )
         embeds.set_footer(embed, f"{ctx.prefix}stats to see your updated profile")
-        await ctx.send(embed=embed)
+        if card_file:
+            await ctx.send(file=card_file, embed=embed)
+        else:
+            await ctx.send(embed=embed)
 
         if result.get("streak_broken_from", 0) > 0:
             broken_from = result["streak_broken_from"]

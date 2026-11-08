@@ -16,6 +16,7 @@ import os
 import re
 from typing import Any, Optional
 from PIL import Image, ImageDraw, ImageFont
+from utils.time_format import format_duration
 
 CARD_WIDTH = 1200
 CARD_HEIGHT = 680
@@ -425,24 +426,72 @@ def render_leaderboard_card_sync(
     total_members: Optional[int] = None,
     score_unit_icon: str = "chronos_streak",
 ) -> bytes:
-    """Synchronously renders a 920x580 PokeOne-style warm parchment leaderboard card PNG."""
-    img = Image.new("RGBA", (POKE_W, POKE_H), _P_BG)
+    """Synchronously renders a 920x580 PokeOne-style warm parchment leaderboard card PNG with subject-specific hues."""
+    # Subject Hues
+    sub_clean = (subject or "").lower().strip()
+    if "phys" in sub_clean:
+        bg_color = (238, 245, 250, 255)
+        sidebar_color = (225, 238, 246, 255)
+        border_color = (180, 215, 235, 255)
+        accent_color = (2, 132, 199, 255)
+        row_color = (244, 249, 252, 255)
+        row_alt_color = (235, 244, 249, 255)
+        you_color = (220, 238, 248, 255)
+        gold_color = (2, 132, 199, 255)
+    elif "chem" in sub_clean:
+        bg_color = (239, 248, 241, 255)
+        sidebar_color = (227, 244, 230, 255)
+        border_color = (182, 228, 192, 255)
+        accent_color = (22, 163, 74, 255)
+        row_color = (245, 251, 246, 255)
+        row_alt_color = (236, 248, 239, 255)
+        you_color = (222, 245, 228, 255)
+        gold_color = (21, 128, 61, 255)
+    elif "math" in sub_clean:
+        bg_color = (252, 247, 235, 255)
+        sidebar_color = (248, 239, 220, 255)
+        border_color = (235, 215, 175, 255)
+        accent_color = (217, 119, 6, 255)
+        row_color = (250, 244, 230, 255)
+        row_alt_color = (245, 237, 218, 255)
+        you_color = (248, 232, 200, 255)
+        gold_color = (180, 83, 9, 255)
+    elif "TRIVIA" in title.upper() or period_key == "trivia":
+        bg_color = (248, 242, 252, 255)
+        sidebar_color = (240, 230, 248, 255)
+        border_color = (216, 190, 238, 255)
+        accent_color = (147, 51, 234, 255)
+        row_color = (250, 246, 253, 255)
+        row_alt_color = (243, 235, 249, 255)
+        you_color = (238, 224, 248, 255)
+        gold_color = (126, 34, 206, 255)
+    else:
+        bg_color = _P_BG
+        sidebar_color = _P_SIDEBAR
+        border_color = _P_BORDER
+        accent_color = _P_ACCENT
+        row_color = _P_ROW
+        row_alt_color = _P_ROW_ALT
+        you_color = (248, 238, 215, 255)
+        gold_color = _P_GOLD_PILL
+
+    img = Image.new("RGBA", (POKE_W, POKE_H), bg_color)
     draw = ImageDraw.Draw(img)
     m = _P_MARGIN
     sw = _P_SIDEBAR_W
 
     # Outer border
-    draw.rounded_rectangle([m, m, POKE_W - m, POKE_H - m], radius=20, fill=None, outline=_P_BORDER, width=2)
+    draw.rounded_rectangle([m, m, POKE_W - m, POKE_H - m], radius=20, fill=None, outline=border_color, width=2)
 
     # Sidebar container
-    draw.rounded_rectangle([m + 4, m + 4, m + sw, POKE_H - m - 4], radius=18, fill=_P_SIDEBAR)
-    draw.line([(m + sw, m + 14), (m + sw, POKE_H - m - 14)], fill=_P_BORDER, width=2)
+    draw.rounded_rectangle([m + 4, m + 4, m + sw, POKE_H - m - 4], radius=18, fill=sidebar_color)
+    draw.line([(m + sw, m + 14), (m + sw, POKE_H - m - 14)], fill=border_color, width=2)
 
     # Hero icon container
     icon_box = 72
     icon_x = m + 4 + (sw - icon_box) // 2
     icon_y = m + 16
-    draw.rounded_rectangle([icon_x, icon_y, icon_x + icon_box, icon_y + icon_box], radius=14, fill=_P_BG, outline=_P_BORDER, width=1)
+    draw.rounded_rectangle([icon_x, icon_y, icon_x + icon_box, icon_y + icon_box], radius=14, fill=bg_color, outline=border_color, width=1)
     if not hero_icon:
         if subject:
             sub_clean = subject.lower().strip()
@@ -505,22 +554,22 @@ def render_leaderboard_card_sync(
     for label, is_act in cats:
         pill_h = 42
         if is_act:
-            draw.rounded_rectangle([pill_x, ty, pill_x + pill_w, ty + pill_h], radius=10, fill=_P_ACCENT)
+            draw.rounded_rectangle([pill_x, ty, pill_x + pill_w, ty + pill_h], radius=10, fill=accent_color)
             draw.text((pill_x + pill_w // 2, ty + 11), label, font=_get_font(16, bold=True), fill=(255, 255, 255, 255), anchor="mt")
         else:
-            draw.rounded_rectangle([pill_x, ty, pill_x + pill_w, ty + pill_h], radius=10, fill=_P_BG, outline=_P_BORDER, width=1)
+            draw.rounded_rectangle([pill_x, ty, pill_x + pill_w, ty + pill_h], radius=10, fill=bg_color, outline=border_color, width=1)
             draw.text((pill_x + pill_w // 2, ty + 11), label, font=_get_font(16, bold=True), fill=_P_DARK, anchor="mt")
         ty += pill_h + 8
 
     # Author Standing Pill at bottom
     wy = POKE_H - m - 16 - 44
-    draw.rounded_rectangle([pill_x, wy, pill_x + pill_w, wy + 42], radius=10, fill=_P_BG, outline=_P_BORDER, width=1)
+    draw.rounded_rectangle([pill_x, wy, pill_x + pill_w, wy + 42], radius=10, fill=bg_color, outline=border_color, width=1)
     _paste_pixel_icon(img, score_unit_icon, pill_x + 10, wy + 9, 24)
     if author_rank:
         auth_txt = f"Your Rank: #{author_rank}" + (f" ({author_score})" if author_score else "")
     else:
         auth_txt = "Rank outside top list"
-    draw.text((pill_x + 38, wy + 11), auth_txt[:26], font=_get_font(13, bold=True), fill=_P_GOLD_PILL)
+    draw.text((pill_x + 38, wy + 11), auth_txt[:26], font=_get_font(13, bold=True), fill=gold_color)
 
     # Right Panel Header
     cx = _P_CONTENT_X
@@ -534,7 +583,7 @@ def render_leaderboard_card_sync(
     draw.text((POKE_W - m - 14, hy + 34), tot_txt, font=_get_font(14, bold=False), fill=_P_MUTED, anchor="rt")
 
     div_y = hy + 64
-    draw.line([(cx, div_y), (POKE_W - m - 10, div_y)], fill=_P_BORDER, width=2)
+    draw.line([(cx, div_y), (POKE_W - m - 10, div_y)], fill=border_color, width=2)
 
     # Rows (6 rows)
     row_h = 68
@@ -551,8 +600,8 @@ def render_leaderboard_card_sync(
         if i < len(entries):
             row = entries[i]
             is_you = row.get("is_author", False) or (author_id and row.get("user_id") == author_id)
-            bg = (248, 238, 215, 255) if is_you else (_P_ROW if i % 2 == 0 else _P_ROW_ALT)
-            border = _P_ACCENT if is_you else None
+            bg = you_color if is_you else (row_color if i % 2 == 0 else row_alt_color)
+            border = accent_color if is_you else None
 
             draw.rounded_rectangle([cx, ry, POKE_W - m - 10, ry + row_h], radius=12, fill=bg, outline=border, width=2 if is_you else 0)
 
@@ -563,7 +612,7 @@ def render_leaderboard_card_sync(
             rx = cx + 8
             ry_b = ry + 8
             r_color = rank_colors.get(rn, (120, 125, 135, 255))
-            draw.rounded_rectangle([rx, ry_b, rx + rb_w, ry_b + rb_h], radius=10, fill=_P_SIDEBAR, outline=r_color, width=2 if rn <= 3 else 1)
+            draw.rounded_rectangle([rx, ry_b, rx + rb_w, ry_b + rb_h], radius=10, fill=sidebar_color, outline=r_color, width=2 if rn <= 3 else 1)
             if rn in (1, 2, 3):
                 # Authentic pixel-art medal for podium ranks
                 _paste_pixel_icon(img, f"medal_{rn}", rx + (rb_w - 38) // 2, ry_b + (rb_h - 38) // 2, 38)
@@ -581,7 +630,7 @@ def render_leaderboard_card_sync(
 
             # Avatar or icon
             av_x = rx + rb_w + 10
-            draw.rounded_rectangle([av_x, ry + 8, av_x + 52, ry + 60], radius=10, fill=_P_SIDEBAR, outline=_P_BORDER, width=1)
+            draw.rounded_rectangle([av_x, ry + 8, av_x + 52, ry + 60], radius=10, fill=sidebar_color, outline=border_color, width=1)
             av_pasted = False
             if row.get("avatar_bytes"):
                 try:
@@ -596,7 +645,7 @@ def render_leaderboard_card_sync(
                 if tier_icon:
                     bx = av_x + 32
                     by = ry + 38
-                    draw.rounded_rectangle([bx, by, bx + 20, by + 20], radius=5, fill=_P_BG, outline=_P_BORDER, width=1)
+                    draw.rounded_rectangle([bx, by, bx + 20, by + 20], radius=5, fill=bg_color, outline=border_color, width=1)
                     _paste_pixel_icon(img, tier_icon, bx + 1, by + 1, 18)
             else:
                 row_icon = row.get("icon") or tier_icon or "chronocoin"
@@ -609,7 +658,7 @@ def render_leaderboard_card_sync(
                 name_str += " (You)"
             if len(name_str) > 24:
                 name_str = name_str[:22] + ".."
-            draw.text((name_x, ry + 10), name_str, font=_get_font(23, bold=True), fill=_P_ACCENT if is_you else _P_DARK)
+            draw.text((name_x, ry + 10), name_str, font=_get_font(23, bold=True), fill=accent_color if is_you else _P_DARK)
 
             sub_txt = _sanitize_text(str(row.get("sub", "")))
             if len(sub_txt) > 42:
@@ -619,17 +668,17 @@ def render_leaderboard_card_sync(
             # Right side: Score & Icon
             sc_font = _get_font(24, bold=True)
             sc_val = str(row.get("score", ""))
-            draw.text((POKE_W - m - 46, ry + 20), sc_val, font=sc_font, fill=_P_GOLD_PILL, anchor="rt")
+            draw.text((POKE_W - m - 46, ry + 20), sc_val, font=sc_font, fill=gold_color, anchor="rt")
             _paste_pixel_icon(img, score_unit_icon, POKE_W - m - 40, ry + 22, 24)
         else:
             # Empty slot
-            draw.rounded_rectangle([cx, ry, POKE_W - m - 10, ry + row_h], radius=12, fill=_P_ROW_ALT)
+            draw.rounded_rectangle([cx, ry, POKE_W - m - 10, ry + row_h], radius=12, fill=row_alt_color)
             draw.text((cx + 220, ry + 24), "[ EMPTY LEADERBOARD SLOT ]", font=_get_font(16, bold=True), fill=(160, 165, 175, 255))
 
         ry += row_h + row_gap
 
     # Footer
-    draw.line([(cx, POKE_H - m - 18), (POKE_W - m - 10, POKE_H - m - 18)], fill=_P_BORDER, width=1)
+    draw.line([(cx, POKE_H - m - 18), (POKE_W - m - 10, POKE_H - m - 18)], fill=border_color, width=1)
     draw.text((cx + 6, POKE_H - m - 15), "Chronos · Study smarter, one session at a time", font=_get_font(11, bold=False), fill=_P_MUTED)
 
     return _poke_export(img)
@@ -1986,7 +2035,224 @@ def render_inventory_card_sync(
 
 
 # ==============================================================================
-# 7. CHRONOTES INDEX CARD (1200x680)
+# 7. SESSION SUMMARY CARD (920x580) — PokeOne-Style Warm Parchment
+# ==============================================================================
+def render_session_summary_card_sync(
+    display_name: str,
+    duration_seconds: int,
+    xp_earned: int,
+    coins_earned: int,
+    subject: Optional[str] = None,
+    old_level: int = 1,
+    new_level: int = 1,
+    current_xp: int = 0,
+    next_level_xp: int = 1000,
+    tier_name: str = "Iron",
+    streak_days: int = 1,
+    avatar_bytes: Optional[bytes] = None,
+) -> bytes:
+    """Synchronously renders a massive 920x580 PokeOne-style session summary card PNG."""
+    sub_clean = (subject or "").lower().strip()
+    if "phys" in sub_clean:
+        bg_color = (238, 245, 250, 255)
+        sidebar_color = (225, 238, 246, 255)
+        border_color = (180, 215, 235, 255)
+        accent_color = (2, 132, 199, 255)
+        row_color = (244, 249, 252, 255)
+        hero_icon = "physics"
+        sub_name = "PHYSICS"
+    elif "chem" in sub_clean:
+        bg_color = (239, 248, 241, 255)
+        sidebar_color = (227, 244, 230, 255)
+        border_color = (182, 228, 192, 255)
+        accent_color = (22, 163, 74, 255)
+        row_color = (245, 251, 246, 255)
+        hero_icon = "chemistry"
+        sub_name = "CHEMISTRY"
+    elif "math" in sub_clean:
+        bg_color = (252, 247, 235, 255)
+        sidebar_color = (248, 239, 220, 255)
+        border_color = (235, 215, 175, 255)
+        accent_color = (217, 119, 6, 255)
+        row_color = (250, 244, 230, 255)
+        hero_icon = "maths"
+        sub_name = "MATHEMATICS"
+    else:
+        bg_color = (247, 243, 233, 255)
+        sidebar_color = (240, 234, 219, 255)
+        border_color = (220, 214, 198, 255)
+        accent_color = (194, 65, 12, 255)
+        row_color = (245, 239, 226, 255)
+        hero_icon = "pomodoro"
+        sub_name = "GENERAL STUDY"
+
+    img = Image.new("RGBA", (POKE_W, POKE_H), bg_color)
+    draw = ImageDraw.Draw(img)
+    m = _P_MARGIN
+    sw = _P_SIDEBAR_W
+
+    # Outer border
+    draw.rounded_rectangle([m, m, POKE_W - m, POKE_H - m], radius=20, fill=None, outline=border_color, width=2)
+
+    # Sidebar container
+    draw.rounded_rectangle([m + 4, m + 4, m + sw, POKE_H - m - 4], radius=18, fill=sidebar_color)
+    draw.line([(m + sw, m + 14), (m + sw, POKE_H - m - 14)], fill=border_color, width=2)
+
+    # Hero icon container
+    icon_box = 76
+    icon_x = m + 4 + (sw - icon_box) // 2
+    icon_y = m + 18
+    draw.rounded_rectangle([icon_x, icon_y, icon_x + icon_box, icon_y + icon_box], radius=16, fill=bg_color, outline=border_color, width=1)
+    _paste_pixel_icon(img, hero_icon, icon_x + 8, icon_y + 8, 60)
+
+    # Sidebar Title & Subtitle
+    ty = icon_y + icon_box + 12
+    draw.text((m + 4 + sw // 2, ty), "SESSION END", font=_get_font(23, bold=True), fill=_P_DARK, anchor="mt")
+    ty += 30
+    draw.text((m + 4 + sw // 2, ty), sub_name, font=_get_font(15, bold=True), fill=accent_color, anchor="mt")
+    ty += 32
+
+    # Sidebar Pills
+    pill_x = m + 18
+    pill_w = sw - 28
+    dur_str = format_duration(duration_seconds, always_show_seconds=False) if duration_seconds >= 60 else format_duration(duration_seconds)
+    pills = [
+        ("FOCUS DURATION", dur_str, True),
+        ("STUDY XP", f"+{xp_earned} XP", False),
+        ("CHRONOCOINS", f"+{coins_earned} Coins", False),
+    ]
+
+    for label, val, is_act in pills:
+        pill_h = 44
+        if is_act:
+            draw.rounded_rectangle([pill_x, ty, pill_x + pill_w, ty + pill_h], radius=10, fill=accent_color)
+            draw.text((pill_x + 14, ty + 8), label, font=_get_font(11, bold=True), fill=(255, 255, 255, 200))
+            draw.text((pill_x + 14, ty + 22), val, font=_get_font(16, bold=True), fill=(255, 255, 255, 255))
+        else:
+            draw.rounded_rectangle([pill_x, ty, pill_x + pill_w, ty + pill_h], radius=10, fill=bg_color, outline=border_color, width=1)
+            draw.text((pill_x + 14, ty + 8), label, font=_get_font(11, bold=True), fill=_P_MUTED)
+            draw.text((pill_x + 14, ty + 22), val, font=_get_font(16, bold=True), fill=_P_DARK)
+        ty += pill_h + 10
+
+    # Streak Pill at Bottom
+    wy = POKE_H - m - 16 - 44
+    draw.rounded_rectangle([pill_x, wy, pill_x + pill_w, wy + 42], radius=10, fill=bg_color, outline=border_color, width=1)
+    _paste_pixel_icon(img, "chronos_streak", pill_x + 10, wy + 9, 24)
+    streak_txt = f"{streak_days} Day Streak Active" if streak_days == 1 else f"{streak_days} Days Streak"
+    draw.text((pill_x + 40, wy + 12), streak_txt, font=_get_font(13, bold=True), fill=(194, 65, 12, 255))
+
+    # Right Content Panel
+    cx = _P_CONTENT_X
+    hy = m + 14
+
+    # User Header
+    av_size = 50
+    draw.rounded_rectangle([cx, hy, cx + av_size, hy + av_size], radius=12, fill=sidebar_color, outline=border_color, width=1)
+    tier_icon = f"tier_{tier_name.lower().replace(' ', '_')}"
+    av_pasted = False
+    if avatar_bytes:
+        try:
+            av_im = Image.open(io.BytesIO(avatar_bytes))
+            av_circ = _make_circular_avatar(av_im, size=av_size - 4)
+            img.paste(av_circ, (cx + 2, hy + 2), av_circ)
+            av_pasted = True
+            bx = cx + 32
+            by = hy + 32
+            draw.rounded_rectangle([bx, by, bx + 20, by + 20], radius=5, fill=bg_color, outline=border_color, width=1)
+            _paste_pixel_icon(img, tier_icon, bx + 1, by + 1, 18)
+        except Exception:
+            av_pasted = False
+    if not av_pasted:
+        _paste_pixel_icon(img, tier_icon, cx + 5, hy + 5, 40)
+
+    # Name & Subtitle
+    name_x = cx + av_size + 14
+    clean_name = _sanitize_text(display_name)[:22] or "Scholar"
+    draw.text((name_x, hy + 2), f"{clean_name}'s Session", font=_get_font(28, bold=True), fill=_P_DARK)
+    dur_full = format_duration(duration_seconds, always_show_seconds=False) if duration_seconds >= 60 else format_duration(duration_seconds)
+    status_sub = f"Focus finalized · {tier_name} Tier · {dur_full} total"
+    draw.text((name_x, hy + 34), status_sub, font=_get_font(14, bold=False), fill=_P_MUTED)
+
+    div_y = hy + 66
+    draw.line([(cx, div_y), (POKE_W - m - 10, div_y)], fill=border_color, width=2)
+
+    # 3 Big Stat Cards (Focus Duration, XP Earned, Chronocoins)
+    grid_y = div_y + 14
+    cw = (POKE_W - m - 10 - cx - 20) // 3
+    ch = 135
+
+    cards = [
+        ("FOCUS TIME", dur_full, "pomodoro", "Minutes Added", accent_color),
+        ("XP EARNED", f"+{xp_earned:,}", "chronos_xp", "Study Progression", (34, 197, 94, 255)),
+        ("CHRONOCOINS", f"+{coins_earned:,}", "chronocoin", "Wallet Reward", (217, 119, 6, 255)),
+    ]
+
+    for idx, (label, val, c_icon, sub, color) in enumerate(cards):
+        bx = cx + idx * (cw + 10)
+        draw.rounded_rectangle([bx, grid_y, bx + cw, grid_y + ch], radius=14, fill=row_color, outline=border_color, width=1)
+        draw.line([(bx + 16, grid_y), (bx + cw - 16, grid_y)], fill=color, width=3)
+
+        # Header in card
+        draw.text((bx + 16, grid_y + 14), label, font=_get_font(12, bold=True), fill=_P_MUTED)
+        _paste_pixel_icon(img, c_icon, bx + cw - 42, grid_y + 10, 28)
+
+        # Huge Value
+        draw.text((bx + 16, grid_y + 44), val, font=_get_font(30, bold=True), fill=_P_DARK)
+        # Sub
+        draw.text((bx + 16, grid_y + 92), sub, font=_get_font(12, bold=False), fill=color)
+
+    # Level Up or Progression Container
+    prog_y = grid_y + ch + 16
+    prog_w = POKE_W - m - 10 - cx
+    prog_h = 135
+    draw.rounded_rectangle([cx, prog_y, cx + prog_w, prog_y + prog_h], radius=14, fill=row_color, outline=border_color, width=1)
+
+    leveled_up = new_level > old_level
+    if leveled_up:
+        # Celebration banner (NO emojis to prevent tofu boxes)
+        banner_h = 32
+        draw.rounded_rectangle([cx + 12, prog_y + 12, cx + prog_w - 12, prog_y + 12 + banner_h], radius=8, fill=(245, 158, 11, 255))
+        draw.text(
+            (cx + prog_w // 2, prog_y + 18),
+            f"* LEVEL UP! Level {old_level} -> Level {new_level}! *",
+            font=_get_font(15, bold=True),
+            fill=(255, 255, 255, 255),
+            anchor="mt",
+        )
+        py_offset = banner_h + 10
+    else:
+        py_offset = 8
+
+    # Tier shield + Level text
+    _paste_pixel_icon(img, tier_icon, cx + 18, prog_y + py_offset + 12, 40)
+    draw.text((cx + 68, prog_y + py_offset + 10), f"Level {new_level} · {tier_name} Tier", font=_get_font(18, bold=True), fill=_P_DARK)
+
+    xp_pct = min(1.0, max(0.0, current_xp / max(1, next_level_xp)))
+    draw.text((cx + prog_w - 20, prog_y + py_offset + 12), f"{current_xp:,} / {next_level_xp:,} XP ({int(xp_pct*100)}%)", font=_get_font(13, bold=True), fill=_P_MUTED, anchor="rt")
+
+    # Progress bar
+    pb_x = cx + 68
+    pb_y = prog_y + py_offset + 38
+    pb_w = prog_w - 88
+    pb_h = 14
+    draw.rounded_rectangle([pb_x, pb_y, pb_x + pb_w, pb_y + pb_h], radius=7, fill=sidebar_color, outline=border_color, width=1)
+    if xp_pct > 0:
+        fill_w = max(14, int(pb_w * xp_pct))
+        draw.rounded_rectangle([pb_x, pb_y, pb_x + fill_w, pb_y + pb_h], radius=7, fill=accent_color)
+
+    # Footer tip inside container
+    tip_txt = "Keep up the momentum! Study consistently to defend your active streak."
+    draw.text((cx + 68, prog_y + py_offset + 60), tip_txt, font=_get_font(12, bold=False), fill=_P_MUTED)
+
+    # Bottom footer line
+    draw.line([(cx, POKE_H - m - 18), (POKE_W - m - 10, POKE_H - m - 18)], fill=border_color, width=1)
+    draw.text((cx + 6, POKE_H - m - 15), "Chronos Study OS · Study smarter, one session at a time", font=_get_font(11, bold=False), fill=_P_MUTED)
+
+    return _poke_export(img)
+
+
+# ==============================================================================
+# 8. CHRONOTES INDEX CARD (1200x680)
 # ==============================================================================
 def render_note_card_sync(
     title: str,
