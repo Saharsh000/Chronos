@@ -124,6 +124,16 @@ TRIVIA_MAIN_TIME_LIMIT = int(os.getenv("TRIVIA_MAIN_TIME_LIMIT", "60"))
 TRIVIA_ADVANCED_TIME_LIMIT = int(os.getenv("TRIVIA_ADVANCED_TIME_LIMIT", "90"))
 
 
+# --- Web & Chronoweb ---------------------------------------------------------
+WEB_HOST = os.getenv("WEB_HOST", "0.0.0.0")
+PORT = int(os.getenv("PORT", os.getenv("WEB_PORT", "8080")))
+WEB_BASE_URL = os.getenv("WEB_BASE_URL", "https://chronos.fadehost.app").rstrip("/")
+DISCORD_CLIENT_ID = os.getenv("DISCORD_CLIENT_ID", "1548004969574039662")
+DISCORD_CLIENT_SECRET = os.getenv("DISCORD_CLIENT_SECRET", "")
+DISCORD_REDIRECT_URI = os.getenv("DISCORD_REDIRECT_URI", f"{WEB_BASE_URL}/api/auth/discord/callback")
+JWT_SECRET = os.getenv("JWT_SECRET", "chronos-auth-secret-key-2026")
+
+
 def validate() -> None:
     """Fail fast with a clear message if required config is missing/invalid."""
     if not TOKEN:

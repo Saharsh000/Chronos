@@ -126,7 +126,7 @@ class Admin(commands.Cog, name="Admin"):
 
     @commands.command(name="syncemojis", aliases=["uploademojis", "emojisync"])
     @commands.guild_only()
-    @commands.has_permissions(manage_guild_expressions=True)
+    @commands.has_permissions(manage_emojis=True)
     async def sync_emojis_cmd(self, ctx: commands.Context) -> None:
         """Automatically upload all Chronos custom pixel-art emojis to this server in one click."""
         me = ctx.guild.me

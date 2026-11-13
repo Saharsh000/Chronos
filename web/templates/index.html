@@ -1,0 +1,780 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Chronoweb — Gamified Study Companion</title>
+  <link rel="icon" type="image/png" href="/assets/icons/chrono_clock_64.png">
+  
+  <!-- Fonts -->
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&family=JetBrains+Mono:wght@500;700;800&display=swap" rel="stylesheet">
+  
+  <!-- CSS -->
+  <link rel="stylesheet" href="/static/css/style.css">
+
+  <!-- Confetti CDN -->
+  <script src="https://cdn.jsdelivr.net/npm/canvas-confetti@1.9.3/dist/confetti.browser.min.js"></script>
+</head>
+<body>
+
+<div id="app-container">
+
+  <!-- =================================================================== -->
+  <!-- Sidebar Navigation -->
+  <!-- =================================================================== -->
+  <aside class="sidebar" id="sidebar">
+    <div class="sidebar-header">
+      <div class="brand-icon">
+        <img src="/assets/icons/chrono_clock_64.png" class="pixel-icon-lg" alt="Chronos" />
+      </div>
+      <div class="brand-info">
+        <h1>CHRONOS</h1>
+        <span>Study Companion</span>
+      </div>
+    </div>
+
+    <ul class="nav-menu">
+      <li>
+        <a class="nav-item active" data-tab="focus">
+          <span class="nav-icon"><img src="/assets/icons/focus_clock_64.png" class="pixel-icon" alt="" /></span>
+          <span>Focus Hub</span>
+          <span class="nav-badge glow" id="sidebar-live-badge">LIVE</span>
+        </a>
+      </li>
+      <li>
+        <a class="nav-item" data-tab="stats">
+          <span class="nav-icon"><img src="/assets/icons/compass_32.png" class="pixel-icon" alt="" /></span>
+          <span>Passport & Stats</span>
+        </a>
+      </li>
+      <li>
+        <a class="nav-item" data-tab="leaderboard">
+          <span class="nav-icon"><img src="/assets/discord_emojis/trophy.png" class="pixel-icon" alt="" /></span>
+          <span>Leaderboards</span>
+        </a>
+      </li>
+      <li>
+        <a class="nav-item" data-tab="syllabus">
+          <span class="nav-icon"><img src="/assets/icons/study_book.png" class="pixel-icon" alt="" /></span>
+          <span>JEE Syllabus</span>
+        </a>
+      </li>
+      <li>
+        <a class="nav-item" data-tab="pets">
+          <span class="nav-icon"><img src="/assets/icons/potion_flask_32.png" class="pixel-icon" alt="" /></span>
+          <span>Companions</span>
+        </a>
+      </li>
+      <li>
+        <a class="nav-item" data-tab="economy">
+          <span class="nav-icon"><img src="/assets/discord_emojis/chronocoin.png" class="pixel-icon" alt="" /></span>
+          <span>Economy & Shop</span>
+        </a>
+      </li>
+      <li>
+        <a class="nav-item" data-tab="halloween">
+          <span class="nav-icon"><img src="/assets/discord_emojis/halloween_candy.png" class="pixel-icon" alt="" /></span>
+          <span>Halloween Hub</span>
+          <span class="nav-badge" style="background:rgba(255,117,24,0.3); color:#ff7518;">EVENT</span>
+        </a>
+      </li>
+      <li>
+        <a class="nav-item" data-tab="notes">
+          <span class="nav-icon"><img src="/assets/icons/notebook_64.png" class="pixel-icon" alt="" /></span>
+          <span>Chronotes</span>
+        </a>
+      </li>
+      <li>
+        <a class="nav-item" data-tab="trivia">
+          <span class="nav-icon"><img src="/assets/icons/atom_64.png" class="pixel-icon" alt="" /></span>
+          <span>JEE Practice</span>
+        </a>
+      </li>
+      <li>
+        <a class="nav-item" data-tab="achievements">
+          <span class="nav-icon"><img src="/assets/icons/achievement_trophy_64.png" class="pixel-icon" alt="" /></span>
+          <span>Achievements</span>
+        </a>
+      </li>
+    </ul>
+
+    <div class="sidebar-footer">
+      <div class="sync-status">
+        <div class="status-dot"></div>
+        <span>Synced with Discord</span>
+      </div>
+      <button onclick="logout()" style="background:none; border:none; cursor:pointer;" title="Logout">
+        <img src="/assets/icons/compass_24.png" class="pixel-icon-sm" alt="Logout" />
+      </button>
+    </div>
+  </aside>
+
+  <!-- =================================================================== -->
+  <!-- Main Layout -->
+  <!-- =================================================================== -->
+  <div class="main-layout">
+
+    <!-- Topbar -->
+    <header class="topbar">
+      <div class="topbar-left" style="display:flex; align-items:center; gap:12px;">
+        <button id="mobile-menu-btn" class="mobile-menu-btn" onclick="toggleMobileSidebar()" aria-label="Toggle Menu">☰</button>
+        <!-- Floating Active Session Pill -->
+        <div class="active-session-pill" id="active-session-pill" onclick="switchTab('focus')">
+          <div class="live-pill-dot"></div>
+          <span style="font-size:12px; font-weight:700; color:var(--accent-emerald);">STUDYING</span>
+          <span class="live-pill-text" id="live-pill-text">00:00:00</span>
+        </div>
+      </div>
+
+      <div class="topbar-right">
+        <!-- Ambient Sound Player -->
+        <button class="audio-player-btn" id="audio-toggle-btn">
+          <img src="/assets/icons/pomodoro_16.png" class="pixel-icon-xs" alt="" style="margin-right:6px;" /> Ambient: Off
+        </button>
+
+        <!-- Wallet Counters -->
+        <div class="currency-pill coins">
+          <img src="/assets/discord_emojis/chronocoin.png" class="pixel-icon" alt="Coins" />
+          <span id="coins-counter">0</span>
+        </div>
+        <div class="currency-pill candy">
+          <img src="/assets/discord_emojis/halloween_candy.png" class="pixel-icon" alt="Candy" />
+          <span id="candy-counter">0</span>
+        </div>
+
+        <!-- User Chip -->
+        <div class="user-passport-chip" onclick="switchTab('stats')">
+          <img class="user-avatar" id="topbar-user-avatar" src="https://cdn.discordapp.com/embed/avatars/0.png" alt="Avatar" />
+          <div class="user-names">
+            <span class="user-name-title" id="topbar-user-name">Loading...</span>
+            <span class="user-level-badge" id="topbar-user-level">Lv. 0</span>
+          </div>
+        </div>
+      </div>
+    </header>
+
+    <!-- Content Area -->
+    <main class="content-area">
+
+      <!-- =============================================================== -->
+      <!-- VIEW 1: FOCUS HUB -->
+      <!-- =============================================================== -->
+      <section class="view-section active" id="view-focus">
+        <div class="focus-layout">
+          <!-- Timer Column -->
+          <div class="glass-card timer-card glow-purple">
+            <h2 style="font-size:20px; font-weight:700; margin-bottom:14px; color:#fff;">Live Study Session</h2>
+            
+            <!-- Subject Selector Chips -->
+            <div class="subject-chips">
+              <button class="subject-chip active" data-subject="all" onclick="selectSubject('all')">
+                <img src="/assets/icons/compass_24.png" class="pixel-icon-sm" alt="" /> General
+              </button>
+              <button class="subject-chip" data-subject="physics" onclick="selectSubject('physics')">
+                <img src="/assets/discord_emojis/physics.png" class="pixel-icon-sm" alt="" /> Physics
+              </button>
+              <button class="subject-chip" data-subject="chemistry" onclick="selectSubject('chemistry')">
+                <img src="/assets/discord_emojis/chemistry.png" class="pixel-icon-sm" alt="" /> Chemistry
+              </button>
+              <button class="subject-chip" data-subject="maths" onclick="selectSubject('maths')">
+                <img src="/assets/discord_emojis/maths.png" class="pixel-icon-sm" alt="" /> Mathematics
+              </button>
+            </div>
+
+            <!-- Circular Timer Dial -->
+            <div class="timer-dial-container">
+              <svg class="timer-dial-svg" viewBox="0 0 280 280">
+                <defs>
+                  <linearGradient id="timerGradient" x1="0%" y1="0%" x2="100%" y2="100%">
+                    <stop offset="0%" stop-color="#8b5cf6" />
+                    <stop offset="100%" stop-color="#06b6d4" />
+                  </linearGradient>
+                </defs>
+                <circle class="timer-dial-bg" cx="140" cy="140" r="130"></circle>
+                <circle class="timer-dial-progress" id="timer-dial-progress" cx="140" cy="140" r="130"></circle>
+              </svg>
+              <div class="timer-time-display">
+                <span class="timer-digits" id="timer-digits">00:00:00</span>
+                <span class="timer-state-label" id="timer-state-label">FOCUS ACTIVE</span>
+              </div>
+            </div>
+
+            <!-- Start / Stop Action Button -->
+            <div class="timer-actions">
+              <button class="btn btn-primary btn-timer" id="btn-session-toggle" onclick="startStudySession()">
+                <img src="/assets/icons/focus_clock_64.png" class="pixel-icon-sm" alt="" style="margin-right:8px;" /> Start Focus Session
+              </button>
+            </div>
+
+            <!-- Live Session Metric Pills -->
+            <div class="live-session-stats">
+              <div class="live-stat-item">
+                <span class="live-stat-label">
+                  <img src="/assets/discord_emojis/chronos_xp.png" class="pixel-icon-xs" alt="" /> Session XP
+                </span>
+                <span class="live-stat-value" id="live-xp-roll" style="color:var(--accent-purple);">+0</span>
+              </div>
+              <div style="width:1px; background:var(--border-color);"></div>
+              <div class="live-stat-item">
+                <span class="live-stat-label">
+                  <img src="/assets/discord_emojis/chronocoin.png" class="pixel-icon-xs" alt="" /> Coins Roll
+                </span>
+                <span class="live-stat-value" id="live-coins-roll" style="color:var(--accent-gold);">+0</span>
+              </div>
+              <div style="width:1px; background:var(--border-color);"></div>
+              <div class="live-stat-item">
+                <span class="live-stat-label">Check-in Status</span>
+                <span class="live-stat-value" style="color:var(--accent-emerald);">Synchronized</span>
+              </div>
+            </div>
+          </div>
+
+          <!-- Side Widgets Column (VC Pomodoro & Active Studiers) -->
+          <div class="side-widgets">
+            <!-- Pomodoro Sync Card -->
+            <div class="glass-card">
+              <div class="widget-header">
+                <span class="widget-title">
+                  <img src="/assets/discord_emojis/pomodoro.png" class="pixel-icon" alt="" /> Shared Pomodoro
+                </span>
+                <span style="font-size:11px; padding:3px 8px; border-radius:999px; background:rgba(6,182,212,0.15); color:var(--accent-cyan); font-weight:700;">VC SYNC</span>
+              </div>
+              <div style="text-align:center; padding:16px 0;">
+                <div style="font-size:36px; font-weight:800; font-family:var(--font-mono); color:#fff;" id="pomo-time-display">25:00</div>
+                <div style="font-size:13px; color:var(--text-muted); margin-top:4px;" id="pomo-phase-label">Focus Interval (25m)</div>
+              </div>
+            </div>
+
+            <!-- Who is studying right now -->
+            <div class="glass-card">
+              <div class="widget-header">
+                <span class="widget-title">
+                  <img src="/assets/discord_emojis/chronos_streak.png" class="pixel-icon" alt="" /> Active Studiers (.active)
+                </span>
+              </div>
+              <div class="studiers-list" id="studiers-list">
+                <div style="text-align:center; padding:20px; color:var(--text-dim); font-size:13px;">Loading active studiers...</div>
+              </div>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      <!-- =============================================================== -->
+      <!-- VIEW 2: PASSPORT & STATS -->
+      <!-- =============================================================== -->
+      <section class="view-section" id="view-stats">
+        <div class="passport-hero">
+          <!-- Profile Card -->
+          <div class="glass-card passport-card">
+            <div class="passport-avatar-wrapper">
+              <img class="passport-avatar-large" id="stats-avatar" src="https://cdn.discordapp.com/embed/avatars/0.png" alt="Avatar" />
+              <div class="passport-tier-badge" id="stats-tier-name">Tier</div>
+            </div>
+            <div class="passport-name" id="stats-display-name">User</div>
+            <div class="passport-title" id="stats-equipped-title">Study Companion</div>
+            
+            <div class="xp-progress-container">
+              <div class="xp-progress-labels">
+                <span>Level <strong id="stats-level-val">0</strong></span>
+                <span id="stats-xp-progress">0 / 0 XP</span>
+              </div>
+              <div class="xp-bar-bg">
+                <div class="xp-bar-fill" id="stats-xp-fill" style="width: 0%;"></div>
+              </div>
+            </div>
+          </div>
+
+          <!-- Subject Distribution Card -->
+          <div class="glass-card">
+            <h3 style="font-size:18px; font-weight:700; margin-bottom:16px; color:#fff;">Subject Breakdown</h3>
+            <div id="subject-bars-container">
+              <!-- Dynamically populated -->
+            </div>
+          </div>
+        </div>
+
+        <!-- Metrics Grid -->
+        <div class="stats-metrics-grid">
+          <div class="metric-box">
+            <span class="metric-title"><img src="/assets/icons/focus_clock_64.png" class="pixel-icon-sm" alt="" /> Total Focus Time</span>
+            <span class="metric-value" id="stats-total-time" style="color:var(--accent-cyan);">0h 00m</span>
+          </div>
+          <div class="metric-box">
+            <span class="metric-title"><img src="/assets/discord_emojis/chronos_streak.png" class="pixel-icon-sm" alt="" /> Current Study Streak</span>
+            <span class="metric-value" id="stats-streak" style="color:var(--accent-rose);">0 Days</span>
+          </div>
+          <div class="metric-box">
+            <span class="metric-title"><img src="/assets/discord_emojis/trophy.png" class="pixel-icon-sm" alt="" /> Longest Streak</span>
+            <span class="metric-value" id="stats-longest-streak" style="color:var(--accent-gold);">0 Days</span>
+          </div>
+          <div class="metric-box">
+            <span class="metric-title"><img src="/assets/icons/chrono_clock_64.png" class="pixel-icon-sm" alt="" /> Completed Sessions</span>
+            <span class="metric-value" id="stats-sessions-count">0</span>
+          </div>
+          <div class="metric-box">
+            <span class="metric-title"><img src="/assets/discord_emojis/chronocoin.png" class="pixel-icon-sm" alt="" /> Chronocoins Earned</span>
+            <span class="metric-value" id="stats-coins-earned" style="color:var(--accent-gold);">0</span>
+          </div>
+          <div class="metric-box">
+            <span class="metric-title"><img src="/assets/discord_emojis/halloween_candy.png" class="pixel-icon-sm" alt="" /> Seasonal Candy</span>
+            <span class="metric-value" id="stats-candy-earned" style="color:var(--accent-pumpkin);">0</span>
+          </div>
+        </div>
+
+        <!-- Session History Log Table -->
+        <div class="glass-card">
+          <h3 style="font-size:18px; font-weight:700; margin-bottom:16px; color:#fff;">Recent Study Sessions</h3>
+          <div class="table-container">
+            <table class="data-table">
+              <thead>
+                <tr>
+                  <th>Subject</th>
+                  <th>Duration</th>
+                  <th>XP Earned</th>
+                  <th>Completed At</th>
+                  <th>Status</th>
+                </tr>
+              </thead>
+              <tbody id="session-history-tbody">
+                <tr><td colspan="5" style="text-align:center; color:var(--text-dim);">Loading session history...</td></tr>
+              </tbody>
+            </table>
+          </div>
+        </div>
+      </section>
+
+      <!-- =============================================================== -->
+      <!-- VIEW 3: LEADERBOARDS -->
+      <!-- =============================================================== -->
+      <section class="view-section" id="view-leaderboard">
+        <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:20px;">
+          <h2 style="font-size:22px; font-weight:800; color:#fff;">Server Leaderboards</h2>
+          <div class="period-tabs">
+            <button class="period-tab active" data-period="today" onclick="loadLeaderboardView('today')">Today</button>
+            <button class="period-tab" data-period="week" onclick="loadLeaderboardView('week')">This Week</button>
+            <button class="period-tab" data-period="month" onclick="loadLeaderboardView('month')">This Month</button>
+            <button class="period-tab" data-period="alltime" onclick="loadLeaderboardView('alltime')">All Time</button>
+          </div>
+        </div>
+
+        <!-- Top 3 Podium -->
+        <div class="podium-container" id="leaderboard-podium">
+          <!-- Dynamically populated -->
+        </div>
+
+        <!-- Leaderboard Table -->
+        <div class="glass-card">
+          <div class="table-container">
+            <table class="data-table">
+              <thead>
+                <tr>
+                  <th>Rank</th>
+                  <th>Student</th>
+                  <th>Level</th>
+                  <th>Focus Time</th>
+                  <th>Streak</th>
+                </tr>
+              </thead>
+              <tbody id="leaderboard-tbody">
+                <tr><td colspan="5" style="text-align:center; color:var(--text-dim);">Loading rankings...</td></tr>
+              </tbody>
+            </table>
+          </div>
+        </div>
+
+        <!-- Hall of Fame -->
+        <div style="margin-top:28px;">
+          <h3 style="font-size:18px; font-weight:800; color:#fff; margin-bottom:14px; display:flex; align-items:center; gap:8px;">
+            <span><img src="/assets/icons/rank_crown_32.png" class="pixel-icon" alt="" /></span> Guild Hall of Fame
+          </h3>
+          <div class="hall-of-fame-grid" id="hall-of-fame-grid" style="display:grid; grid-template-columns:repeat(auto-fit, minmax(280px, 1fr)); gap:16px;">
+            <!-- Longest Sessions -->
+            <div class="glass-card">
+              <h4 style="font-size:14px; font-weight:700; color:var(--accent-cyan); margin-bottom:12px; display:flex; align-items:center; gap:6px;">
+                <span><img src="/assets/icons/focus_clock_64.png" class="pixel-icon-sm" alt="" /></span> Longest Focus Sessions
+              </h4>
+              <div id="hof-sessions-list" style="display:flex; flex-direction:column; gap:8px;">
+                <span style="color:var(--text-dim); font-size:12px;">Loading records...</span>
+              </div>
+            </div>
+            <!-- Top Streaks -->
+            <div class="glass-card">
+              <h4 style="font-size:14px; font-weight:700; color:var(--accent-rose); margin-bottom:12px; display:flex; align-items:center; gap:6px;">
+                <span><img src="/assets/discord_emojis/chronos_streak.png" class="pixel-icon-sm" alt="" /></span> Longest Study Streaks
+              </h4>
+              <div id="hof-streaks-list" style="display:flex; flex-direction:column; gap:8px;">
+                <span style="color:var(--text-dim); font-size:12px;">Loading records...</span>
+              </div>
+            </div>
+            <!-- Highest Levels -->
+            <div class="glass-card">
+              <h4 style="font-size:14px; font-weight:700; color:var(--accent-gold); margin-bottom:12px; display:flex; align-items:center; gap:6px;">
+                <span><img src="/assets/discord_emojis/trophy.png" class="pixel-icon-sm" alt="" /></span> Highest Mastery Levels
+              </h4>
+              <div id="hof-levels-list" style="display:flex; flex-direction:column; gap:8px;">
+                <span style="color:var(--text-dim); font-size:12px;">Loading records...</span>
+              </div>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      <!-- =============================================================== -->
+      <!-- VIEW 4: JEE SYLLABUS TRACKER -->
+      <!-- =============================================================== -->
+      <section class="view-section" id="view-syllabus">
+        <div class="glass-card" style="margin-bottom:24px; display:flex; justify-content:space-between; align-items:center;">
+          <div>
+            <h2 style="font-size:22px; font-weight:800; color:#fff;">JEE Main & Advanced Syllabus</h2>
+            <p style="font-size:13px; color:var(--text-dim); margin-top:4px;" id="syllabus-completed-count">0 / 56 Chapters Completed</p>
+          </div>
+          <div style="text-align:right;">
+            <div style="font-size:32px; font-weight:800; color:var(--accent-cyan); font-family:var(--font-mono);" id="syllabus-overall-pct">0%</div>
+            <span style="font-size:11px; text-transform:uppercase; color:var(--text-dim); font-weight:700;">Overall Progress</span>
+          </div>
+        </div>
+
+        <div style="display:flex; flex-direction:column; gap:24px;">
+          <!-- Physics -->
+          <div class="glass-card">
+            <h3 style="font-size:18px; font-weight:700; color:var(--accent-cyan); margin-bottom:14px; display:flex; align-items:center; gap:8px;">
+              <img src="/assets/discord_emojis/physics.png" class="pixel-icon" alt="" /> Physics
+            </h3>
+            <div class="syllabus-grid" id="syllabus-grid-physics"></div>
+          </div>
+
+          <!-- Chemistry -->
+          <div class="glass-card">
+            <h3 style="font-size:18px; font-weight:700; color:var(--accent-emerald); margin-bottom:14px; display:flex; align-items:center; gap:8px;">
+              <img src="/assets/discord_emojis/chemistry.png" class="pixel-icon" alt="" /> Chemistry
+            </h3>
+            <div class="syllabus-grid" id="syllabus-grid-chemistry"></div>
+          </div>
+
+          <!-- Mathematics -->
+          <div class="glass-card">
+            <h3 style="font-size:18px; font-weight:700; color:var(--accent-gold); margin-bottom:14px; display:flex; align-items:center; gap:8px;">
+              <img src="/assets/discord_emojis/maths.png" class="pixel-icon" alt="" /> Mathematics
+            </h3>
+            <div class="syllabus-grid" id="syllabus-grid-maths"></div>
+          </div>
+        </div>
+      </section>
+
+      <!-- =============================================================== -->
+      <!-- VIEW 5: COMPANIONS & MENAGERIE -->
+      <!-- =============================================================== -->
+      <section class="view-section" id="view-pets">
+        <div class="pet-hero">
+          <!-- Active Equipped Pet -->
+          <div class="glass-card" id="equipped-pet-hero">
+            <!-- Dynamically populated -->
+          </div>
+
+          <!-- Personal Menagerie -->
+          <div class="glass-card">
+            <h3 style="font-size:18px; font-weight:700; margin-bottom:16px; color:#fff;">Your Companions Menagerie</h3>
+            <div class="pets-grid" id="owned-pets-grid"></div>
+          </div>
+        </div>
+
+        <!-- Adoption Pet Shop -->
+        <div class="glass-card">
+          <h3 style="font-size:18px; font-weight:700; margin-bottom:8px; color:#fff; display:flex; align-items:center; gap:8px;">
+            <img src="/assets/icons/potion_flask_32.png" class="pixel-icon" alt="" /> Companion Adoption Shop
+          </h3>
+          <p style="font-size:13px; color:var(--text-dim); margin-bottom:16px;">Companions accompany your study sessions and gain Pet XP incrementally!</p>
+          <div class="pets-grid" id="pet-shop-catalog"></div>
+        </div>
+
+        <!-- Companion Treats & Nutrition Bakery -->
+        <div class="glass-card" style="margin-top:24px;">
+          <h3 style="font-size:18px; font-weight:700; margin-bottom:8px; color:#fff; display:flex; align-items:center; gap:8px;">
+            <img src="/assets/icons/food/straw_cake_g.png" class="pixel-icon" alt="" /> Companion Nutrition Bakery
+          </h3>
+          <p style="font-size:13px; color:var(--text-dim); margin-bottom:16px;">Purchase nutrition treats with Chronocoins to rapidly level up your companion and trigger evolutions!</p>
+          <div class="pets-grid" id="pet-food-shop-catalog"></div>
+        </div>
+      </section>
+
+      <!-- =============================================================== -->
+      <!-- VIEW 6: ECONOMY & SHOP -->
+      <!-- =============================================================== -->
+      <section class="view-section" id="view-economy">
+        <!-- Balances Grid -->
+        <div class="stats-metrics-grid" style="margin-bottom:24px;">
+          <div class="metric-box">
+            <span class="metric-title"><img src="/assets/discord_emojis/chronocoin.png" class="pixel-icon-sm" alt="" /> Chronocoin Balance</span>
+            <span class="metric-value" id="eco-coins-val" style="color:var(--accent-gold);">0</span>
+          </div>
+          <div class="metric-box">
+            <span class="metric-title"><img src="/assets/discord_emojis/halloween_candy.png" class="pixel-icon-sm" alt="" /> Halloween Candy</span>
+            <span class="metric-value" id="eco-candy-val" style="color:var(--accent-pumpkin);">0</span>
+          </div>
+          <div class="metric-box">
+            <span class="metric-title"><img src="/assets/discord_emojis/trophy.png" class="pixel-icon-sm" alt="" /> Lifetime Earned</span>
+            <span class="metric-value" id="eco-lifetime-val">0</span>
+          </div>
+        </div>
+
+        <!-- Mini-Games / Claims -->
+        <div class="glass-card" style="margin-bottom:24px;">
+          <h3 style="font-size:18px; font-weight:700; margin-bottom:16px; color:#fff;">Daily Tasks & Activities</h3>
+          <div style="display:flex; gap:14px; flex-wrap:wrap;">
+            <button class="btn btn-primary" id="btn-claim-daily" onclick="claimDaily()">
+              <img src="/assets/discord_emojis/mystery_box.png" class="pixel-icon-sm" alt="" style="margin-right:6px;" /> Claim Daily Streak
+            </button>
+            <button class="btn btn-outline" onclick="claimWork()">
+              <img src="/assets/icons/chrono_clock_64.png" class="pixel-icon-sm" alt="" style="margin-right:6px;" /> Work (Quick Grind)
+            </button>
+            <button class="btn btn-outline" onclick="claimBeg()">
+              <img src="/assets/icons/chalice_64.png" class="pixel-icon-sm" alt="" style="margin-right:6px;" /> Beg (Street Flavor)
+            </button>
+            <button class="btn btn-outline" onclick="claimWeekly()">
+              <img src="/assets/discord_emojis/chronocoin.png" class="pixel-icon-sm" alt="" style="margin-right:6px;" /> Weekly Jackpot
+            </button>
+          </div>
+        </div>
+
+        <!-- Player Satchel / Inventory -->
+        <div class="glass-card" style="margin-bottom:24px;">
+          <h3 style="font-size:18px; font-weight:700; margin-bottom:16px; color:#fff; display:flex; align-items:center; gap:8px;">
+            <img src="/assets/icons/study_book.png" class="pixel-icon" alt="" /> Satchel Inventory
+          </h3>
+          <div style="display:grid; grid-template-columns:repeat(auto-fill, minmax(220px, 1fr)); gap:14px;" id="inventory-grid"></div>
+        </div>
+
+        <!-- Shop Catalog -->
+        <div class="glass-card">
+          <h3 style="font-size:18px; font-weight:700; margin-bottom:16px; color:#fff; display:flex; align-items:center; gap:8px;">
+            <img src="/assets/discord_emojis/chronocoin.png" class="pixel-icon" alt="" /> Chronocoin Shop
+          </h3>
+          <div style="display:grid; grid-template-columns:repeat(auto-fill, minmax(240px, 1fr)); gap:16px;" id="shop-items-grid"></div>
+        </div>
+      </section>
+
+      <!-- =============================================================== -->
+      <!-- VIEW 7: HALLOWEEN EVENT -->
+      <!-- =============================================================== -->
+      <section class="view-section" id="view-halloween">
+        <!-- Pumpkin Pass Card -->
+        <div class="glass-card pumpkin-pass-card">
+          <div style="display:flex; justify-content:space-between; align-items:center;">
+            <div>
+              <span style="font-size:11px; text-transform:uppercase; font-weight:800; color:var(--accent-pumpkin); letter-spacing:1px;">SEASONAL STUDY PASS</span>
+              <h2 style="font-size:24px; font-weight:800; color:#fff; margin-top:2px; display:flex; align-items:center; gap:8px;">
+                <img src="/assets/discord_emojis/halloween_candy.png" class="pixel-icon" alt="" /> Jack-o'-Lantern Pass
+              </h2>
+              <div style="font-size:14px; color:var(--text-main); margin-top:6px;" id="pumpkin-pass-stage">Stage 1: Uncarved Pumpkin</div>
+            </div>
+            <div style="text-align:right;">
+              <div style="font-size:28px; font-weight:800; color:var(--accent-pumpkin); font-family:var(--font-mono);" id="pumpkin-pass-xp">0 / 1200 Mins</div>
+              <span style="font-size:11px; color:var(--text-dim);">Study minutes tracked</span>
+            </div>
+          </div>
+        </div>
+
+        <!-- Hallo-Boxes -->
+        <div class="glass-card" style="margin-bottom:24px;">
+          <h3 style="font-size:18px; font-weight:700; margin-bottom:6px; color:#fff; display:flex; align-items:center; gap:8px;">
+            <img src="/assets/discord_emojis/mystery_box.png" class="pixel-icon" alt="" /> Hallo-Boxes (Instant Open)
+          </h3>
+          <p style="font-size:13px; color:var(--text-dim); margin-bottom:16px;">Drop-only loot chests opened instantly with random candy, coins, and rare Halloween pets!</p>
+          <div class="boxes-grid" id="hallo-boxes-grid"></div>
+        </div>
+
+        <!-- Spooky Candy Shop -->
+        <div class="glass-card">
+          <h3 style="font-size:18px; font-weight:700; margin-bottom:16px; color:var(--accent-pumpkin); display:flex; align-items:center; gap:8px;">
+            <img src="/assets/discord_emojis/halloween_candy.png" class="pixel-icon" alt="" /> Spooky Candy Shop
+          </h3>
+          <div style="display:grid; grid-template-columns:repeat(auto-fill, minmax(240px, 1fr)); gap:16px;" id="candy-shop-grid"></div>
+        </div>
+      </section>
+
+      <!-- =============================================================== -->
+      <!-- VIEW 8: CHRONOTES -->
+      <!-- =============================================================== -->
+      <section class="view-section" id="view-notes">
+        <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:20px;">
+          <h2 style="font-size:22px; font-weight:800; color:#fff; display:flex; align-items:center; gap:8px;">
+            <img src="/assets/icons/notebook_64.png" class="pixel-icon" alt="" /> Chronotes Notebook
+          </h2>
+          <button class="btn btn-primary" onclick="openCreateNoteModal()">+ New Note</button>
+        </div>
+        <div style="display:grid; grid-template-columns:repeat(auto-fill, minmax(280px, 1fr)); gap:16px;" id="notes-grid"></div>
+      </section>
+
+      <!-- =============================================================== -->
+      <!-- VIEW 9: JEE TRIVIA -->
+      <!-- =============================================================== -->
+      <section class="view-section" id="view-trivia">
+        <div class="glass-card" style="max-width:700px; margin:0 auto; padding:32px;">
+          <div id="trivia-card-content">
+            <!-- Dynamically populated -->
+          </div>
+        </div>
+      </section>
+
+      <!-- =============================================================== -->
+      <!-- VIEW 10: ACHIEVEMENTS -->
+      <!-- =============================================================== -->
+      <section class="view-section" id="view-achievements">
+        <div class="glass-card" style="margin-bottom:24px; display:flex; justify-content:space-between; align-items:center; flex-wrap:wrap; gap:16px;">
+          <div>
+            <h2 style="font-size:22px; font-weight:800; color:#fff; display:flex; align-items:center; gap:8px;">
+              <img src="/assets/icons/achievement_trophy_64.png" class="pixel-icon" alt="" /> Chronos Achievements
+            </h2>
+            <p style="font-size:13px; color:var(--text-dim); margin-top:4px;" id="achievements-summary-text">Unlock achievements by studying, building streaks, and leveling up</p>
+          </div>
+          <div style="text-align:right; min-width:180px;">
+            <div style="font-size:28px; font-weight:800; color:var(--accent-gold); font-family:var(--font-mono);" id="achievements-pct">0%</div>
+            <div class="xp-bar-bg" style="margin-top:6px; height:8px;">
+              <div class="xp-bar-fill" id="achievements-progress-bar" style="width: 0%; background: linear-gradient(90deg, var(--accent-purple), var(--accent-gold));"></div>
+            </div>
+            <span style="font-size:11px; text-transform:uppercase; color:var(--text-dim); font-weight:700;" id="achievements-count-label">0 / 0 Unlocked</span>
+          </div>
+        </div>
+
+        <!-- Category Filter Tabs -->
+        <div style="display:flex; gap:8px; margin-bottom:20px; overflow-x:auto; padding-bottom:6px;" id="achievements-cat-tabs">
+          <!-- Populated by JS -->
+        </div>
+
+        <!-- Achievements Grid -->
+        <div style="display:grid; grid-template-columns:repeat(auto-fill, minmax(280px, 1fr)); gap:16px;" id="achievements-grid">
+          <!-- Populated by JS -->
+        </div>
+      </section>
+
+    </main>
+  </div>
+</div>
+
+<!-- =================================================================== -->
+<!-- Modals -->
+<!-- =================================================================== -->
+
+<!-- Login Modal -->
+<div class="modal-overlay" id="login-modal">
+  <div class="modal-content" style="text-align:center;">
+    <div style="margin-bottom:12px;">
+      <img src="/assets/icons/chrono_clock_64.png" class="pixel-icon-xl" alt="Chronos" />
+    </div>
+    <h2 style="font-size:24px; font-weight:800; color:#fff;">Welcome to Chronoweb</h2>
+    <p style="font-size:14px; color:var(--text-muted); margin:8px 0 24px;">Sign in with your Discord account to synchronize your study sessions, XP, and streaks live with Chronos.</p>
+    
+    <a href="/api/auth/discord/login" class="btn btn-primary" id="discord-oauth-btn" style="width:100%; padding:14px; font-size:15px; background:#5865F2; box-shadow:0 0 20px rgba(88,101,242,0.4); text-decoration:none;">
+      <svg style="width:20px; height:20px; fill:#fff; margin-right:8px;" viewBox="0 0 127.14 96.36">
+        <path d="M107.7,8.07A105.15,105.15,0,0,0,81.47,0a72.06,72.06,0,0,0-3.36,6.83A97.68,97.68,0,0,0,49,6.83,72.37,72.37,0,0,0,45.64,0,105.89,105.89,0,0,0,19.39,8.09C2.79,32.65-1.71,56.6.54,80.21h0A105.73,105.73,0,0,0,32.71,96.36,77.7,77.7,0,0,0,39.6,85.25a68.42,68.42,0,0,1-10.85-5.18c.91-.66,1.8-1.34,2.66-2a75.57,75.57,0,0,0,64.32,0c.87.71,1.76,1.39,2.66,2a68.68,68.68,0,0,1-10.87,5.19,77,77,0,0,0,6.89,11.1A105.25,105.25,0,0,0,126.6,80.22h0C129.24,52.84,122.09,29.11,107.7,8.07ZM42.45,65.69C36.18,65.69,31,60,31,53s5-12.74,11.43-12.74S54,45.91,53.89,53,48.84,65.69,42.45,65.69Zm42.24,0C78.41,65.69,73.25,60,73.25,53s5-12.74,11.44-12.74S96.23,45.91,96.12,53,91.08,65.69,84.69,65.69Z"/>
+      </svg>
+      Login with Discord
+    </a>
+
+    <!-- Dev / Fast Switcher -->
+    <div style="margin-top:24px; padding-top:20px; border-top:1px solid var(--border-color);">
+      <span style="font-size:12px; color:var(--text-dim); text-transform:uppercase; font-weight:700;">Developer / Fast Sign-In</span>
+      <div style="display:flex; gap:10px; margin-top:10px;">
+        <button class="btn btn-outline" style="flex:1; font-size:12px;" onclick="devLogin('798537896201420811')">Dev (Saharsh)</button>
+        <button class="btn btn-outline" style="flex:1; font-size:12px;" onclick="devLogin('1478012127846465697')">Student User</button>
+      </div>
+      <div id="oauth-hint" style="font-size:11px; color:var(--text-dim); margin-top:12px; display:none;">
+        💡 Discord OAuth secret not set in .env. Fast Sign-In is active for instant testing!
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- Session Completion Celebration Modal -->
+<div class="modal-overlay" id="celebration-modal">
+  <div class="modal-content celebration-modal">
+    <button class="modal-close-btn" onclick="closeModal('celebration-modal')">✕</button>
+    <div class="celebration-badge">
+      <img src="/assets/icons/champion_crown_128.png" class="pixel-icon-xl" alt="Celebration" />
+    </div>
+    <div class="celebration-title">Study Session Complete!</div>
+    <p style="font-size:14px; color:var(--text-muted); margin-top:6px;">Your focus time has been credited to your Discord passport.</p>
+    
+    <img id="celeb-card-img" class="celebration-card-preview" src="" alt="Session Summary Card" style="display:none;" />
+
+    <div style="display:grid; grid-template-columns:repeat(4, 1fr); gap:10px; margin:20px 0;">
+      <div style="background:rgba(255,255,255,0.04); padding:10px; border-radius:var(--radius-md);">
+        <div style="font-size:11px; color:var(--text-dim); display:flex; align-items:center; gap:4px; justify-content:center;">
+          <img src="/assets/icons/focus_clock_64.png" class="pixel-icon-xs" alt="" /> FOCUS
+        </div>
+        <div style="font-size:16px; font-weight:800; color:#fff; margin-top:4px;" id="celeb-duration">0m</div>
+      </div>
+      <div style="background:rgba(255,255,255,0.04); padding:10px; border-radius:var(--radius-md);">
+        <div style="font-size:11px; color:var(--text-dim); display:flex; align-items:center; gap:4px; justify-content:center;">
+          <img src="/assets/discord_emojis/chronos_xp.png" class="pixel-icon-xs" alt="" /> XP GAINED
+        </div>
+        <div style="font-size:16px; font-weight:800; color:var(--accent-purple); margin-top:4px;" id="celeb-xp">+0</div>
+      </div>
+      <div style="background:rgba(255,255,255,0.04); padding:10px; border-radius:var(--radius-md);">
+        <div style="font-size:11px; color:var(--text-dim); display:flex; align-items:center; gap:4px; justify-content:center;">
+          <img src="/assets/discord_emojis/chronocoin.png" class="pixel-icon-xs" alt="" /> COINS
+        </div>
+        <div style="font-size:16px; font-weight:800; color:var(--accent-gold); margin-top:4px;" id="celeb-coins">+0</div>
+      </div>
+      <div style="background:rgba(255,255,255,0.04); padding:10px; border-radius:var(--radius-md);">
+        <div style="font-size:11px; color:var(--text-dim); display:flex; align-items:center; gap:4px; justify-content:center;">
+          <img src="/assets/discord_emojis/chronos_streak.png" class="pixel-icon-xs" alt="" /> STREAK
+        </div>
+        <div style="font-size:16px; font-weight:800; color:var(--accent-rose); margin-top:4px;" id="celeb-streak">1d</div>
+      </div>
+    </div>
+
+    <button class="btn btn-primary" style="width:100%;" onclick="closeModal('celebration-modal')">Awesome, Keep Grinding!</button>
+  </div>
+</div>
+
+<!-- Feed Pet Modal -->
+<div class="modal-overlay" id="feed-modal">
+  <div class="modal-content">
+    <button class="modal-close-btn" onclick="closeModal('feed-modal')">✕</button>
+    <h3 style="font-size:18px; font-weight:700; color:#fff; margin-bottom:16px;">Feed Companion</h3>
+    <div style="margin-bottom:14px;">
+      <label style="font-size:12px; color:var(--text-dim);">Select Treat</label>
+      <select id="feed-food-select" style="width:100%; padding:10px; border-radius:var(--radius-md); background:rgba(255,255,255,0.06); border:1px solid var(--border-color); color:#fff; margin-top:6px;"></select>
+    </div>
+    <div style="margin-bottom:20px;">
+      <label style="font-size:12px; color:var(--text-dim);">Quantity</label>
+      <input type="number" id="feed-food-count" value="1" min="1" max="50" style="width:100%; padding:10px; border-radius:var(--radius-md); background:rgba(255,255,255,0.06); border:1px solid var(--border-color); color:#fff; margin-top:6px;" />
+    </div>
+    <button class="btn btn-primary" style="width:100%;" onclick="submitFeed()">Feed Treat</button>
+  </div>
+</div>
+
+<!-- Create Note Modal -->
+<div class="modal-overlay" id="create-note-modal">
+  <div class="modal-content">
+    <button class="modal-close-btn" onclick="closeModal('create-note-modal')">✕</button>
+    <h3 style="font-size:18px; font-weight:700; color:#fff; margin-bottom:16px;">Create Study Note</h3>
+    <div style="margin-bottom:12px;">
+      <label style="font-size:12px; color:var(--text-dim);">Note Title</label>
+      <input type="text" id="note-title-input" placeholder="e.g. Rotational Motion Key Formulas" style="width:100%; padding:10px; border-radius:var(--radius-md); background:rgba(255,255,255,0.06); border:1px solid var(--border-color); color:#fff; margin-top:6px;" />
+    </div>
+    <div style="margin-bottom:12px;">
+      <label style="font-size:12px; color:var(--text-dim);">Subject</label>
+      <select id="note-subject-input" style="width:100%; padding:10px; border-radius:var(--radius-md); background:rgba(255,255,255,0.06); border:1px solid var(--border-color); color:#fff; margin-top:6px;">
+        <option value="Physics">Physics</option>
+        <option value="Chemistry">Chemistry</option>
+        <option value="Mathematics">Mathematics</option>
+        <option value="Formulas">Formulas & Shortcuts</option>
+        <option value="General">General</option>
+      </select>
+    </div>
+    <div style="margin-bottom:20px;">
+      <label style="font-size:12px; color:var(--text-dim);">Content</label>
+      <textarea id="note-content-input" rows="5" placeholder="Write your notes, formulas, or reminders here..." style="width:100%; padding:10px; border-radius:var(--radius-md); background:rgba(255,255,255,0.06); border:1px solid var(--border-color); color:#fff; margin-top:6px; font-family:var(--font-sans);"></textarea>
+    </div>
+    <button class="btn btn-primary" style="width:100%;" onclick="submitCreateNote()">Save Note</button>
+  </div>
+</div>
+
+<script src="/static/js/app.js"></script>
+</body>
+</html>
