@@ -157,7 +157,7 @@ pip install -r requirements.txt
 Create a `.env` file in the project root:
 ```env
 DISCORD_TOKEN=your_bot_token_here
-PREFIX=.
+COMMAND_PREFIX=.
 DEV_USER_ID=your_discord_id_here
 ```
 
@@ -167,6 +167,32 @@ python3 main.py
 ```
 
 Chronos automatically initialises the SQLite database, verifies migrations, seeds default catalogs, and connects to Discord.
+
+---
+
+## 🌐 Chronoweb (the website)
+
+Chronoweb is the browser twin of the bot, served from **inside the bot process** (`cogs/web.py` starts an aiohttp server on port `8080`). It uses the bot's own `bot.db` connection, so there is no second database and nothing to sync: whatever happens on the site is in Discord's data the same instant, and the other way round.
+
+* **Same account, same data**: sign in with Discord (OAuth2) or with the one-time link from `<prefix>weblogin`.
+* **Sessions are shared**: start or stop on the site and it is posted to the check-in channel exactly like `start` / `stop`. AFK prompts, level-ups and achievements reach both. Live timers update over SSE.
+* **Everything the bot does** has a page: stats, leaderboard, compare & fame, achievements, rewards, bag, shop, pets, Halloween, syllabus progress, Chronotes (notes), JEE trivia, admin tools and a searchable command reference (Help).
+* **JEE trivia is interactive** (no generated images): questions come from the same question service as the bot (`CJA_URL` / `CJA_KEY`), are typeset by `distexer` + vendored KaTeX, and answers are graded server-side so the answer never reaches the browser.
+* **One server only**: the site serves just the server named by `WEB_GUILD_NAME` (default `bored af`) or `WEB_GUILD_ID`.
+* **Bot-only on purpose**: `backupdb`, `restoredb`, `forceseed`, `syncguild`, `syncemojis` and the announcement commands.
+
+| Variable | Default | Purpose |
+|---|---|---|
+| `WEB_ENABLED` | `1` | Set `0` to run the bot without the site |
+| `WEB_HOST` / `WEB_PORT` | `0.0.0.0` / `8080` | Where the site listens |
+| `WEB_BASE_URL` | `https://chronos.fadehost.app` | Public URL (used in login links and OAuth) |
+| `WEB_SECRET` | derived from `DISCORD_TOKEN` | Signs login cookies; set it if you rotate the bot token |
+| `DISCORD_CLIENT_ID` / `DISCORD_CLIENT_SECRET` | empty | Enables "Continue with Discord". Redirect URI: `WEB_BASE_URL/auth/callback` |
+| `WEB_GUILD_NAME` / `WEB_GUILD_ID` | `bored af` / unset | The only server the site serves |
+| `WEB_DEV_MODE` | `0` | Local testing only (`/auth/dev`). **Never enable on the live host.** |
+
+Run the site without the bot for UI work: `WEB_DEV_MODE=1 python -m web.standalone --db chronos.sqlite3 --port 8099`.
+Tests: `python -m unittest discover -s tests`.
 
 ---
 
@@ -189,7 +215,9 @@ Chronos/
 │   ├── achievements.py# Achievement evaluation & badge grants
 │   ├── customization.py# Guild-specific role tiers & custom title tags
 │   ├── admin.py       # VC study-room provisioning & guild config
-│   └── dev.py         # Diagnostic utilities & data backup commands
+│   ├── dev.py         # Diagnostic utilities & data backup commands
+│   └── web.py         # Starts Chronoweb inside the bot process
+├── web/               # Chronoweb: aiohttp API (api_*.py), SSE events, auth, static frontend
 └── utils/             # Pure catalogs & data models (Zero DB dependency)
     ├── pets.py        # 40+ species definitions & evolution paths
     ├── food.py        # Treat catalog & XP yield values

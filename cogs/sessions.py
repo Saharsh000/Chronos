@@ -46,6 +46,15 @@ class Sessions(commands.Cog, name="Sessions"):
     def cog_unload(self) -> None:
         self.session_monitor.cancel()
 
+    def _emit(self, user_id: int, guild_id: int, kind: str, **data) -> None:
+        """Tell Chronos Web (cogs/web.py) something happened to this user so
+        any open browser tab can show it live. A no-op when the web cog isn't
+        loaded - discord.py just finds no `on_chronos_web_event` listener."""
+        try:
+            self.bot.dispatch("chronos_web_event", user_id, guild_id, kind, data)
+        except Exception:
+            log.exception("Failed to dispatch web event")
+
     # ------------------------------------------------------------------ #
     # Startup reconciliation - detect active sessions from the database
     # ------------------------------------------------------------------ #
@@ -111,6 +120,7 @@ class Sessions(commands.Cog, name="Sessions"):
 
         now = int(time.time())
         await self.db.start_session(ctx.author.id, ctx.guild.id, channel_id, resolved_subject, now)
+        self._emit(ctx.author.id, ctx.guild.id, "session_started", subject=resolved_subject, source="discord")
 
         subject_note = ""
         if resolved_subject:
@@ -156,6 +166,12 @@ class Sessions(commands.Cog, name="Sessions"):
         )
         if result["leveled_up"]:
             log.info(f"LEVEL UP      | user={result['user_id']} -> level {result['new_level']}")
+        self._emit(
+            ctx.author.id, ctx.guild.id, "session_ended", source="discord", reason="manual_stop",
+            duration=result["duration"], xp=result["xp_earned"], coins=result["coins_earned"],
+            subject=result.get("subject"), leveled_up=result["leveled_up"],
+            old_level=result["old_level"], new_level=result["new_level"],
+        )
 
         user_stats = await self.db.get_or_create_user_stats(ctx.author.id, ctx.guild.id)
         effective_tiers = await self.db.get_effective_tiers(ctx.guild.id)
@@ -261,6 +277,7 @@ class Sessions(commands.Cog, name="Sessions"):
             # instead of only once the session ends.
             credit = await self.db.credit_progress(session["session_id"], now)
             if credit:
+                self._emit_credit(credit)
                 if credit.get("streak_broken_from", 0) > 0:
                     await self._announce_streak_break(credit)
                 if credit["leveled_up"]:
@@ -285,6 +302,31 @@ class Sessions(commands.Cog, name="Sessions"):
     @session_monitor.before_loop
     async def before_session_monitor(self) -> None:
         await self.bot.wait_until_ready()
+
+    def _emit_credit(self, credit: dict) -> None:
+        """Mirror everything credit_progress() reports to the user's browser
+        (the Discord announcements below still happen exactly as before)."""
+        uid, gid = credit["user_id"], credit["guild_id"]
+        self._emit(
+            uid, gid, "progress", xp=credit["delta_xp"], coins=credit["delta_coins"],
+            seconds=credit["delta_seconds"], candy=credit.get("candy_earned", 0),
+        )
+        if credit.get("streak_broken_from", 0) > 0:
+            self._emit(uid, gid, "streak_broken", lost=credit["streak_broken_from"])
+        if credit["leveled_up"]:
+            self._emit(uid, gid, "level_up", old_level=credit["old_level"], new_level=credit["new_level"])
+        pet = credit.get("pet_result")
+        if pet and (pet["evolved"] or pet["leveled_up"]):
+            self._emit(
+                uid, gid, "pet_evolved" if pet["evolved"] else "pet_level_up",
+                nickname=pet["nickname"], species_id=pet["species_id"], new_level=pet["new_level"],
+                new_stage=pet["new_stage"]["name"],
+            )
+        if credit.get("hallo_box_drop"):
+            self._emit(uid, gid, "box_drop", box_id=credit["hallo_box_drop"])
+        if credit.get("pass_level_up"):
+            lvl = credit["pass_level_up"]
+            self._emit(uid, gid, "pass_level", level=lvl["level"], name=lvl["level_name"])
 
     async def _announce_streak_break(self, credit: dict) -> None:
         broken_from = credit.get("streak_broken_from", 0)
@@ -379,6 +421,11 @@ class Sessions(commands.Cog, name="Sessions"):
         log.info(
             f"ACHIEVEMENT   | user={user_id} guild={guild_id} unlocked: "
             + ", ".join(a.id for a in newly_unlocked)
+        )
+        self._emit(
+            user_id, guild_id, "achievement",
+            items=[{"id": a.id, "name": a.name, "emoji": a.emoji, "description": a.description,
+                    "reward_coins": a.reward_coins} for a in newly_unlocked],
         )
         guild_config = await self.db.get_guild_config(guild_id)
         channel_id = guild_config.get("checkin_channel_id")
@@ -486,6 +533,10 @@ class Sessions(commands.Cog, name="Sessions"):
 
         await self.db.set_prompt_sent(session["session_id"], msg.id, destination.id, now)
         log.info(f"AFK PROMPT    | sent to {member} ({member.id}) in guild {guild.id}")
+        self._emit(
+            session["user_id"], session["guild_id"], "afk_prompt",
+            sent_at=now, grace_seconds=config.AFK_GRACE_MINUTES * 60,
+        )
 
     async def _timeout_session(self, session: dict, now: int) -> None:
         # End the session at the moment the prompt was sent - that's the
@@ -500,6 +551,12 @@ class Sessions(commands.Cog, name="Sessions"):
         )
 
         newly_unlocked = await self.db.check_achievements(result["user_id"], result["guild_id"], end_time)
+        self._emit(
+            result["user_id"], result["guild_id"], "session_ended", source="afk", reason="afk_timeout",
+            duration=result["duration"], xp=result["xp_earned"], coins=result["coins_earned"],
+            subject=result.get("subject"), leveled_up=result["leveled_up"],
+            old_level=result["old_level"], new_level=result["new_level"],
+        )
 
         guild_config = await self.db.get_guild_config(session["guild_id"])
         channel_id = session.get("prompt_channel_id") or guild_config.get("checkin_channel_id")
@@ -555,6 +612,7 @@ class Sessions(commands.Cog, name="Sessions"):
         now = int(time.time())
         await self.db.update_checkin(session["session_id"], now)
         log.info(f"AFK CONFIRM   | user={session['user_id']} guild={session['guild_id']} checked in")
+        self._emit(session["user_id"], session["guild_id"], "afk_confirmed", source="discord")
 
         channel = self.bot.get_channel(payload.channel_id)
         if channel is None:

@@ -1,0 +1,11 @@
+.adm { display: grid; gap: 16px; } .adm-pane { display: grid; gap: 16px; align-content: start; max-width: 860px; }
+.adm .panel { display: grid; gap: 12px; padding: 18px; } .adm h3 { font: 800 1.15rem var(--display); }
+.adm .row { display: flex; gap: 10px; flex-wrap: wrap; align-items: center; } .adm .select, .adm .input { min-width: 0; } .adm .row .select { min-width: 220px; flex: 1 1 220px; max-width: 420px; }
+.rooms { display: grid; grid-template-columns: repeat(auto-fit, minmax(210px, 1fr)); gap: 10px; } .room { display: flex; gap: 12px; align-items: center; padding: 12px; border-radius: var(--r-sm); border: 1px solid var(--line); background: var(--s2); } .room div { display: grid; }
+.tiers, .tags-list { display: grid; gap: 8px; } .tier-row { display: grid; grid-template-columns: 82px minmax(0, 1fr) auto; gap: 12px; align-items: center; padding: 8px 12px; border-radius: var(--r-sm); border: 1px solid var(--line); background: var(--s2); } .tier-row.renamed { border-color: var(--accent); }
+.tier-row .nm { display: grid; gap: 2px; min-width: 0; } .tier-row .lv { color: var(--mute); }
+.tag-row { display: flex; gap: 12px; align-items: center; justify-content: space-between; flex-wrap: wrap; padding: 10px 14px; border-radius: var(--r-sm); border: 1px solid var(--line); background: var(--s2); } .tag-row b { margin-right: auto; }
+.grant { display: grid; gap: 12px; max-width: 520px; } .grant-fields { display: grid; gap: 12px; }
+.grant-result { display: flex; gap: 12px; align-items: center; padding: 12px; border-radius: var(--r-sm); border: 1px solid color-mix(in oklab, var(--good) 50%, var(--line)); background: color-mix(in oklab, var(--good) 8%, var(--s2)); } .grant-result[hidden] { display: none; }
+.diag { display: grid; grid-template-columns: repeat(auto-fit, minmax(150px, 1fr)); gap: 10px; } .diag .st { display: grid; gap: 2px; padding: 10px 12px; border-radius: var(--r-sm); border: 1px solid var(--line); background: var(--s2); } .diag .st b { font: 800 1.2rem var(--display); overflow-wrap: anywhere; } .diag .st span { color: var(--mute); font-size: .8rem; }
+@media (max-width: 760px) { .tier-row { grid-template-columns: 1fr; gap: 6px; } }

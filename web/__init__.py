@@ -1,1 +1,1 @@
-"""Chronoweb: Web application for Chronos study companion."""
+"""Chronos Web - the browser twin of the Discord bot (same process, same database)."""

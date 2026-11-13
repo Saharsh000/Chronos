@@ -157,6 +157,14 @@ class Pomodoro(commands.Cog, name="Pomodoro"):
             f"POMODORO PHASE| #{channel.name} -> {phase} ({format_duration(phase_duration)}), cycle {cycle_count}"
         )
 
+        # Let anyone in the room who has Chronos Web open see the phase flip too.
+        for m in channel.members:
+            if not m.bot:
+                self.bot.dispatch(
+                    "chronos_web_event", m.id, channel.guild.id, "pomodoro_phase",
+                    {"channel": channel.name, "phase": phase, "minutes": phase_duration // 60, "cycle": cycle_count},
+                )
+
         await self._announce(
             channel, pomo.get("announce_channel_id"),
             title=PHASE_TITLES[phase],

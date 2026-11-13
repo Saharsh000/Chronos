@@ -124,16 +124,6 @@ TRIVIA_MAIN_TIME_LIMIT = int(os.getenv("TRIVIA_MAIN_TIME_LIMIT", "60"))
 TRIVIA_ADVANCED_TIME_LIMIT = int(os.getenv("TRIVIA_ADVANCED_TIME_LIMIT", "90"))
 
 
-# --- Web & Chronoweb ---------------------------------------------------------
-WEB_HOST = os.getenv("WEB_HOST", "0.0.0.0")
-PORT = int(os.getenv("PORT", os.getenv("WEB_PORT", "8080")))
-WEB_BASE_URL = os.getenv("WEB_BASE_URL", "https://chronos.fadehost.app").rstrip("/")
-DISCORD_CLIENT_ID = os.getenv("DISCORD_CLIENT_ID", "1548004969574039662")
-DISCORD_CLIENT_SECRET = os.getenv("DISCORD_CLIENT_SECRET", "")
-DISCORD_REDIRECT_URI = os.getenv("DISCORD_REDIRECT_URI", f"{WEB_BASE_URL}/api/auth/discord/callback")
-JWT_SECRET = os.getenv("JWT_SECRET", "chronos-auth-secret-key-2026")
-
-
 def validate() -> None:
     """Fail fast with a clear message if required config is missing/invalid."""
     if not TOKEN:
@@ -144,3 +134,30 @@ def validate() -> None:
         raise RuntimeError("XP_MIN_PER_MINUTE cannot be greater than XP_MAX_PER_MINUTE.")
     if COINS_MIN_PER_MINUTE > COINS_MAX_PER_MINUTE:
         raise RuntimeError("COINS_MIN_PER_MINUTE cannot be greater than COINS_MAX_PER_MINUTE.")
+
+
+# --- Chronos Web (browser dashboard that shares this bot's database) ---------
+# The web server runs *inside* the bot process (see cogs/web.py + web/), so it
+# talks to the very same `bot.db` connection - there is no second database and
+# nothing to sync. Sessions started/stopped on the site are mirrored to Discord
+# exactly like `.start` / `.stop`, and AFK prompts / level-ups / etc. reach both.
+WEB_ENABLED = os.getenv("WEB_ENABLED", "1").strip().lower() not in ("0", "false", "no", "off")
+WEB_HOST = os.getenv("WEB_HOST", "0.0.0.0")
+WEB_PORT = int(os.getenv("WEB_PORT", "8080"))
+WEB_BASE_URL = os.getenv("WEB_BASE_URL", "https://chronos.fadehost.app").rstrip("/")
+# Signs login cookies. If unset, a stable secret is derived from DISCORD_TOKEN
+# (never exposed). Set WEB_SECRET explicitly if you ever rotate the bot token
+# and don't want everyone logged out.
+WEB_SECRET = os.getenv("WEB_SECRET", "")
+# Optional "Login with Discord" (OAuth2, `identify` scope). Without these the
+# site still works: users sign in with the `.weblogin` command (one-time link).
+DISCORD_CLIENT_ID = os.getenv("DISCORD_CLIENT_ID", "")
+DISCORD_CLIENT_SECRET = os.getenv("DISCORD_CLIENT_SECRET", "")
+# Chronos is only used in ONE server (the bot sits in a few others). The site only
+# lists / serves that server. Match by id (WEB_GUILD_ID) or, by default, by name.
+# If the named server can't be found the lock is skipped (and logged) instead of
+# locking everybody out.
+WEB_GUILD_ID = int(os.getenv("WEB_GUILD_ID", "0") or 0)
+WEB_GUILD_NAME = os.getenv("WEB_GUILD_NAME", "bored af").strip()
+# Local testing only: enables /auth/dev. NEVER enable on the live host.
+WEB_DEV_MODE = os.getenv("WEB_DEV_MODE", "0").strip().lower() in ("1", "true", "yes", "on")

@@ -1,169 +1,283 @@
-"""HTTP Server for Chronoweb, integrating aiohttp, discord.py, and aiosqlite."""
+"""aiohttp application factory for Chronos Web.
+
+The app is handed the bot's own `Database`, a `Bridge` (Discord access) and an
+`EventHub` (live notifications). It never opens a database of its own.
+"""
 from __future__ import annotations
 
 import asyncio
+import importlib
+import json
 import logging
-import os
+import secrets
+import time
 from pathlib import Path
-from typing import Any, Optional
+from typing import Any
 
 from aiohttp import web
 
 import config
-from database import Database
-from web import api, auth
+
+from . import auth
+from .common import ApiError, Routes, current_user, fail, ok, resolve_ctx, wire
+from .events import EventHub
 
 log = logging.getLogger("web.server")
-BASE_DIR = Path(__file__).resolve().parent
+
+ROOT = Path(__file__).resolve().parent.parent
+STATIC = Path(__file__).resolve().parent / "static"
+ASSET_DIRS = ("icons", "discord_emojis")
+
+# Each module exposes `routes = Routes()`. A missing module is skipped so the
+# site still boots while pieces are being added.
+API_MODULES = [
+    "api_session", "api_stats", "api_economy", "api_pets", "api_progress",
+    "api_notes", "api_trivia", "api_halloween", "api_admin",
+]
+
+CSP = (
+    "default-src 'self'; img-src 'self' data: https://cdn.discordapp.com https://media.discordapp.net https://raw.githubusercontent.com; "
+    "style-src 'self' 'unsafe-inline' https://fonts.googleapis.com; font-src 'self' https://fonts.gstatic.com; "
+    "script-src 'self'; connect-src 'self'; frame-ancestors 'none'; base-uri 'none'; form-action 'self'"
+)
 
 
-def build_app(bot: Optional[Any] = None, db: Optional[Database] = None) -> web.Application:
-    """Build and configure the aiohttp Web Application."""
-    app = web.Application(middlewares=[auth.auth_middleware])
-    
-    app["bot"] = bot
-    app["db"] = db
+@web.middleware
+async def security_headers(request: web.Request, handler):
+    try:
+        resp = await handler(request)
+    except web.HTTPNotFound:
+        if request.path.startswith("/api/"):
+            resp = web.json_response({"error": "Not found.", "code": "not_found"}, status=404)
+        else:
+            raise
+    resp.headers.setdefault("X-Content-Type-Options", "nosniff")
+    resp.headers.setdefault("Referrer-Policy", "same-origin")
+    resp.headers.setdefault("Content-Security-Policy", CSP)
+    return resp
 
-    # Auth routes
-    app.router.add_get("/api/auth/me", auth.handle_get_me)
-    app.router.add_get("/api/auth/discord/login", auth.handle_discord_login)
-    app.router.add_get("/api/auth/discord/callback", auth.handle_discord_callback)
-    app.router.add_post("/api/auth/dev-login", auth.handle_dev_login)
-    app.router.add_post("/api/auth/select-guild", auth.handle_select_guild)
-    app.router.add_post("/api/auth/logout", auth.handle_logout)
 
-    # Study Sessions & Pomodoro
-    app.router.add_get("/api/sessions/active", api.api_get_active_session)
-    app.router.add_post("/api/sessions/start", api.api_start_session)
-    app.router.add_post("/api/sessions/stop", api.api_stop_session)
-    app.router.add_post("/api/sessions/heartbeat", api.api_session_heartbeat)
-    app.router.add_get("/api/sessions/server-active", api.api_server_active)
-    app.router.add_get("/api/pomodoro/status", api.api_pomodoro_status)
+def _cookie_kwargs() -> dict[str, Any]:
+    return {"max_age": auth.SESSION_TTL, "httponly": True, "samesite": "Lax", "path": "/",
+            "secure": config.WEB_BASE_URL.startswith("https://") and not config.WEB_DEV_MODE}
 
-    # Stats & Profile
-    app.router.add_get("/api/stats", api.api_get_stats)
-    app.router.add_get("/api/stats/compare", api.api_compare_stats)
 
-    # Leaderboards & Hall of Fame
-    app.router.add_get("/api/leaderboard", api.api_get_leaderboard)
-    app.router.add_get("/api/leaderboard/hall-of-fame", api.api_hall_of_fame)
+def _login(resp: web.StreamResponse, uid: int, gid: int | None = None) -> None:
+    resp.set_cookie(auth.COOKIE, auth.make_session_cookie(uid, gid), **_cookie_kwargs())
 
-    # JEE Syllabus
-    app.router.add_get("/api/syllabus", api.api_get_syllabus)
-    app.router.add_post("/api/syllabus/chapter/toggle", api.api_toggle_chapter)
-    app.router.add_post("/api/syllabus/subtopic/toggle", api.api_toggle_subtopic)
-    app.router.add_post("/api/syllabus/revision", api.api_log_revision_pyq)
 
-    # Pets & Companions
-    app.router.add_get("/api/pets", api.api_get_pets)
-    app.router.add_get("/api/pets/catalog", api.api_get_pet_catalog)
-    app.router.add_post("/api/pets/buy", api.api_buy_pet)
-    app.router.add_post("/api/pets/equip", api.api_equip_pet)
-    app.router.add_post("/api/pets/rename", api.api_rename_pet)
-    app.router.add_post("/api/pets/feed", api.api_feed_pet)
-    app.router.add_get("/api/pets/food-catalog", api.api_get_food_catalog)
-    app.router.add_post("/api/pets/food-buy", api.api_buy_food)
+# ---------------------------------------------------------------------- #
+# Auth routes
+# ---------------------------------------------------------------------- #
+async def magic(request: web.Request):
+    got = auth.consume_magic(request.query.get("t", ""))
+    if not got:
+        raise web.HTTPFound("/?login=expired")
+    uid, gid = got
+    resp = web.HTTPFound("/")
+    _login(resp, uid, gid)
+    raise resp
 
-    # Economy & Shop
-    app.router.add_get("/api/economy/overview", api.api_get_economy)
-    app.router.add_get("/api/economy/shop", api.api_get_shop)
-    app.router.add_post("/api/economy/buy", api.api_buy_shop_item)
-    app.router.add_post("/api/economy/use", api.api_use_item)
-    app.router.add_post("/api/economy/set-title", api.api_set_title)
-    app.router.add_post("/api/economy/daily", api.api_claim_daily)
-    app.router.add_post("/api/economy/work", api.api_claim_work)
-    app.router.add_post("/api/economy/beg", api.api_claim_beg)
-    app.router.add_post("/api/economy/weekly", api.api_claim_weekly)
 
-    # Halloween Hub
-    app.router.add_get("/api/halloween/status", api.api_get_halloween)
-    app.router.add_post("/api/halloween/open-box", api.api_open_hallo_box)
-    app.router.add_post("/api/halloween/claim-pass", api.api_claim_pass_rewards)
-    app.router.add_post("/api/halloween/candy-buy", api.api_buy_candy_item)
+async def oauth_login(request: web.Request):
+    if not (auth.oauth_enabled() and config.DISCORD_CLIENT_ID):
+        raise web.HTTPFound("/?login=help")
+    state = secrets.token_urlsafe(16)
+    resp = web.HTTPFound(auth.oauth_url(config.DISCORD_CLIENT_ID, state))
+    resp.set_cookie("chronos_oauth", state, max_age=600, httponly=True, samesite="Lax", path="/")
+    raise resp
 
-    # Chronotes
-    app.router.add_get("/api/notes", api.api_get_notes)
-    app.router.add_post("/api/notes", api.api_create_note)
-    app.router.add_put("/api/notes/{id}", api.api_update_note)
-    app.router.add_delete("/api/notes/{id}", api.api_delete_note)
 
-    # JEE Trivia
-    app.router.add_get("/api/trivia/question", api.api_get_trivia_question)
-    app.router.add_post("/api/trivia/answer", api.api_submit_trivia_answer)
-    app.router.add_get("/api/trivia/stats", api.api_get_trivia_stats)
+async def oauth_callback(request: web.Request):
+    state, code = request.query.get("state"), request.query.get("code")
+    if not code or not state or state != request.cookies.get("chronos_oauth"):
+        raise web.HTTPFound("/?login=failed")
+    uid = await auth.oauth_exchange(config.DISCORD_CLIENT_ID, code)
+    if not uid:
+        raise web.HTTPFound("/?login=failed")
+    if not await request.app["bridge"].guilds_for(uid):
+        raise web.HTTPFound("/?login=noguild")
+    resp = web.HTTPFound("/")
+    _login(resp, uid)
+    resp.del_cookie("chronos_oauth", path="/")
+    raise resp
 
-    # Achievements
-    app.router.add_get("/api/achievements", api.api_get_achievements)
 
-    # Static files and Chronos assets
-    static_dir = BASE_DIR / "static"
-    static_dir.mkdir(parents=True, exist_ok=True)
-    app.router.add_static("/static/", path=str(static_dir), name="static")
+async def dev_login(request: web.Request):
+    if not config.WEB_DEV_MODE:
+        raise web.HTTPNotFound()
+    uid = int(request.query.get("user", "0") or 0)
+    gid = int(request.query["guild"]) if request.query.get("guild", "").isdigit() else None
+    if not uid:
+        raise web.HTTPBadRequest(text="user=<id> required")
+    resp = web.HTTPFound(request.query.get("next", "/"))
+    _login(resp, uid, gid)
+    raise resp
 
-    assets_dir = BASE_DIR.parent / "assets"
-    if assets_dir.exists():
-        app.router.add_static("/assets/", path=str(assets_dir), name="assets")
 
-    # Frontend Single Page App HTML handler
-    async def index_handler(request: web.Request) -> web.Response:
-        index_file = BASE_DIR / "templates" / "index.html"
-        if not index_file.exists():
-            return web.Response(text="Chronoweb loading...", content_type="text/html")
-        return web.FileResponse(index_file)
+async def logout(request: web.Request):
+    if request.headers.get("X-Requested-With") != "chronos":
+        return web.json_response({"error": "Missing request header.", "code": "csrf"}, status=403)
+    resp = web.json_response({"ok": True})
+    resp.del_cookie(auth.COOKIE, path="/")
+    return resp
 
-    app.router.add_get("/", index_handler)
 
-    # SPA catch-all for direct path reloads
-    async def spa_fallback(request: web.Request) -> web.Response:
-        if request.path.startswith("/api/") or request.path.startswith("/static/") or request.path.startswith("/assets/"):
-            return web.Response(status=404, text="Not Found")
-        index_file = BASE_DIR / "templates" / "index.html"
-        return web.FileResponse(index_file)
+# ---------------------------------------------------------------------- #
+# Identity + realtime
+# ---------------------------------------------------------------------- #
+async def me(request: web.Request):
+    base = {
+        "oauth": bool(auth.oauth_enabled() and config.DISCORD_CLIENT_ID),
+        "live": request.app["bridge"].live,
+        "dev_mode": config.WEB_DEV_MODE,
+        "prefix": config.PREFIX,
+        "now": int(time.time()),
+    }
+    if current_user(request) is None:
+        return ok({"authed": False, **base})
+    try:
+        c = await resolve_ctx(request, True)
+    except ApiError as e:
+        if e.code == "no_guild":
+            uid = current_user(request)
+            m = request.app["bridge"].member(0, uid)
+            return ok({"authed": True, "guild": None, "guilds": [], "no_guild": True,
+                       "user": {"id": uid, "name": m["name"], "avatar": m["avatar"]}, **base})
+        raise
+    stats = await c.db.get_or_create_user_stats(c.uid, c.gid)
+    from .common import level_block
+    return ok({
+        "authed": True,
+        "user": {**c.person(c.uid), "is_manager": c.bridge.is_manager(c.gid, c.uid),
+                 "is_dev": c.bridge.is_dev(c.uid)},
+        "guild": str(c.gid), "guilds": c.guilds, "level": await level_block(c, stats["xp"]),
+        **base,
+    })
 
-    app.router.add_get("/{tail:.*}", spa_fallback)
 
+async def set_guild(request: web.Request):
+    if request.headers.get("X-Requested-With") != "chronos":
+        return web.json_response({"error": "Missing request header.", "code": "csrf"}, status=403)
+    uid = current_user(request)
+    if uid is None:
+        return web.json_response({"error": "Sign in to continue.", "code": "unauthorized"}, status=401)
+    body = await request.json()
+    gid = str(body.get("id", ""))
+    ids = [g["id"] for g in await request.app["bridge"].guilds_for(uid)]
+    if gid not in ids:
+        return web.json_response({"error": "You're not in that server.", "code": "no_guild"}, status=403)
+    resp = web.json_response({"ok": True, "guild": gid})
+    _login(resp, uid, int(gid))
+    return resp
+
+
+async def events(request: web.Request):
+    uid = current_user(request)
+    if uid is None:
+        return web.json_response({"error": "Sign in to continue.", "code": "unauthorized"}, status=401)
+    hub: EventHub = request.app["hub"]
+    resp = web.StreamResponse(headers={
+        "Content-Type": "text/event-stream", "Cache-Control": "no-store",
+        "Connection": "keep-alive", "X-Accel-Buffering": "no",
+    })
+    await resp.prepare(request)
+    q = hub.subscribe(uid)
+
+    async def send(ev: dict) -> None:
+        await resp.write(f"id: {ev['id']}\ndata: {json.dumps(wire(ev), ensure_ascii=False)}\n\n".encode())
+
+    try:
+        await resp.write(b"retry: 3000\n\n")
+        last = request.headers.get("Last-Event-ID") or request.query.get("last") or "0"
+        if last.isdigit():
+            for ev in hub.since(uid, int(last)):
+                await send(ev)
+        while True:
+            try:
+                ev = await asyncio.wait_for(q.get(), timeout=20)
+                await send(ev)
+            except asyncio.TimeoutError:
+                await resp.write(b": ping\n\n")
+    except (asyncio.CancelledError, ConnectionResetError):
+        pass
+    finally:
+        hub.unsubscribe(uid, q)
+    return resp
+
+
+async def notifications(request: web.Request):
+    uid = current_user(request)
+    if uid is None:
+        return web.json_response({"error": "Sign in to continue.", "code": "unauthorized"}, status=401)
+    last = request.query.get("since", "0")
+    items = request.app["hub"].since(uid, int(last) if last.isdigit() else 0)
+    return ok({"events": items})
+
+
+async def health(request: web.Request):
+    return web.json_response({"ok": True, "live": request.app["bridge"].live, "t": int(time.time())})
+
+
+# ---------------------------------------------------------------------- #
+# Static / SPA
+# ---------------------------------------------------------------------- #
+async def index(request: web.Request):
+    f = STATIC / "index.html"
+    if not f.exists():
+        return web.Response(text="Chronos Web is starting up.", status=503)
+    return web.FileResponse(f, headers={"Cache-Control": "no-cache"})
+
+
+def build_app(db, bridge, hub: EventHub | None = None) -> web.Application:
+    app = web.Application(middlewares=[security_headers], client_max_size=2 * 1024 * 1024)
+    app["db"], app["bridge"], app["hub"] = db, bridge, hub or EventHub()
+    app["locks"] = {}
+
+    app.router.add_get("/auth/magic", magic)
+    app.router.add_get("/auth/login", oauth_login)
+    app.router.add_get("/auth/callback", oauth_callback)
+    app.router.add_get("/auth/dev", dev_login)
+    app.router.add_post("/auth/logout", logout)
+    app.router.add_get("/api/health", health)
+    app.router.add_get("/api/me", me)
+    app.router.add_post("/api/guild", set_guild)
+    app.router.add_get("/api/events", events)
+    app.router.add_get("/api/notifications", notifications)
+
+    for name in API_MODULES:
+        try:
+            mod = importlib.import_module(f"web.{name}")
+        except ModuleNotFoundError as e:
+            if e.name == f"web.{name}":
+                log.debug("web module %s not present, skipping", name)
+                continue
+            log.exception("web module %s failed to import", name)
+            continue
+        except Exception:
+            log.exception("web module %s failed to import", name)
+            continue
+        mod.routes.install(app)
+
+    if STATIC.exists():
+        app.router.add_static("/static", STATIC, follow_symlinks=False)
+    for d in ASSET_DIRS:
+        p = ROOT / "assets" / d
+        if p.exists():
+            app.router.add_static(f"/assets/{d}", p, follow_symlinks=False)
+
+    app.router.add_get("/", index)
+
+    async def spa(request: web.Request):
+        if request.path.startswith(("/api/", "/auth/", "/assets/", "/static/")):
+            raise web.HTTPNotFound()
+        return await index(request)
+    app.router.add_get("/{tail:.*}", spa)
     return app
 
 
-async def start_web_server(
-    bot: Optional[Any] = None,
-    db: Optional[Database] = None,
-    host: Optional[str] = None,
-    port: Optional[int] = None,
-) -> tuple[web.AppRunner, web.TCPSite]:
-    """Start web runner asynchronously on configured host/port."""
-    host = host or config.WEB_HOST
-    port = port or config.PORT
-    
-    app = build_app(bot=bot, db=db)
-    runner = web.AppRunner(app)
+async def start(app: web.Application, host: str, port: int) -> web.AppRunner:
+    runner = web.AppRunner(app, access_log=None)
     await runner.setup()
-    
-    site = web.TCPSite(runner, host=host, port=port)
-    await site.start()
-    log.info(f"Chronoweb running on http://{host}:{port} (Domain: {config.WEB_BASE_URL})")
-    return runner, site
-
-
-if __name__ == "__main__":
-    # Standalone server runner for testing
-    from utils.logger import setup_logging
-    setup_logging()
-    
-    async def _main():
-        db = Database(config.DB_PATH)
-        await db.connect()
-        runner, site = await start_web_server(db=db)
-        print(f"🚀 Chronoweb standalone started at http://localhost:{config.PORT}")
-        try:
-            while True:
-                await asyncio.sleep(3600)
-        except (KeyboardInterrupt, asyncio.CancelledError):
-            print("Stopping web server...")
-            await runner.cleanup()
-            await db.close()
-
-    try:
-        asyncio.run(_main())
-    except KeyboardInterrupt:
-        pass
+    await web.TCPSite(runner, host, port).start()
+    return runner

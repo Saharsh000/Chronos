@@ -1,0 +1,32 @@
+.wallet-bar { display: flex; gap: 22px; align-items: center; flex-wrap: wrap; }
+.wallet-bar .big { font: 800 1.6rem var(--display); display: inline-flex; align-items: center; gap: 10px; font-variant-numeric: tabular-nums; }
+.claims { display: grid; grid-template-columns: repeat(auto-fit, minmax(250px, 1fr)); gap: 16px; }
+.claim { display: grid; gap: 12px; align-content: start; padding: 20px; border: 1px solid var(--line); border-radius: var(--r-lg); background: var(--s1); }
+.claim.ready { border-color: color-mix(in oklab, var(--accent) 55%, var(--line)); background: linear-gradient(170deg, var(--accent-soft), transparent 60%), var(--s1); }
+.claim .range { color: var(--mute); font-size: .88rem; } .claim .cd { font: 800 1.35rem var(--display); font-variant-numeric: tabular-nums; }
+.streak-dots { display: flex; gap: 5px; flex-wrap: wrap; } .streak-dots i { width: 22px; height: 22px; border-radius: 6px; background: var(--s3); display: grid; place-items: center; font: 700 .68rem var(--body); font-style: normal; color: var(--faint); }
+.streak-dots i.on { background: var(--accent); color: var(--on-accent); } .streak-dots i.ms { box-shadow: 0 0 0 2px var(--warn) inset; }
+.reveal { display: grid; gap: 14px; justify-items: center; text-align: center; }
+.reveal .amount { font: 800 2.6rem var(--display); letter-spacing: -.03em; display: inline-flex; align-items: center; gap: 12px; }
+.reveal .extra { width: 100%; padding: 12px 14px; border-radius: var(--r); background: var(--s2); text-align: left; }
+.story { text-align: left; border-left: 3px solid var(--accent); padding: 4px 0 4px 14px; color: var(--mute); }
+.shop-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(250px, 1fr)); gap: 14px; }
+.sitem { display: grid; gap: 10px; align-content: start; padding: 18px; border: 1px solid var(--line); border-radius: var(--r-lg); background: var(--s1); }
+.sitem .top { display: flex; gap: 14px; align-items: center; } .sitem .price { font: 800 1.1rem var(--display); display: inline-flex; gap: 6px; align-items: center; }
+.sitem.title { background: repeating-linear-gradient(135deg, transparent 0 14px, color-mix(in oklab, var(--warn) 5%, transparent) 14px 28px), var(--s1); }
+.stepper { display: inline-flex; align-items: center; border: 1px solid var(--line-2); border-radius: var(--r-sm); overflow: hidden; } .stepper button { width: 32px; height: 34px; border: 0; background: var(--s2); cursor: pointer; font-size: 1.1rem; } .stepper input { width: 52px; text-align: center; border: 0; background: var(--s1); height: 34px; }
+.bag-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(150px, 1fr)); gap: 12px; }
+.slot { position: relative; display: grid; justify-items: center; gap: 6px; padding: 16px 10px; border: 1px solid var(--line); border-radius: var(--r); background: var(--s1); text-align: center; cursor: pointer; width: 100%; color: inherit; }
+.slot:hover { border-color: var(--line-2); background: var(--s2); } .slot[aria-pressed='true'] { border-color: var(--accent); box-shadow: 0 0 0 1px var(--accent) inset; }
+.slot .q { position: absolute; top: 8px; right: 8px; font: 700 .8rem var(--display); background: var(--s3); border-radius: 99px; padding: 1px 8px; }
+.boost { display: flex; align-items: center; gap: 14px; padding: 14px 16px; border: 1px solid color-mix(in oklab, var(--good) 40%, var(--line)); border-radius: var(--r); background: color-mix(in oklab, var(--good) 8%, var(--s1)); }
+.boost .t { font: 800 1.1rem var(--display); font-variant-numeric: tabular-nums; margin-left: auto; }
+@keyframes shake { 20%, 60% { transform: rotate(-6deg) scale(1.04); } 40%, 80% { transform: rotate(6deg) scale(1.04); } }
+.chest.opening { animation: shake .6s; }
+.loot { display: grid; gap: 8px; width: 100%; } .loot .l { display: flex; align-items: center; gap: 10px; padding: 10px 12px; border-radius: var(--r-sm); background: var(--s2); text-align: left; }
+.page-head + .wallet-bar, .page-head + .tabs { margin-top: 14px; }
+.wallet-bar { margin-bottom: 14px; }
+.page-head .wallet-bar { margin: 0; }
+.chest { display: inline-grid; }
+@media (max-width: 560px) { .claims, .shop-grid { grid-template-columns: 1fr; } .reveal .amount { font-size: 2rem; } .wallet-bar .big { font-size: 1.3rem; } }
+@media (prefers-reduced-motion: reduce) { .chest.opening { animation: none; } }
