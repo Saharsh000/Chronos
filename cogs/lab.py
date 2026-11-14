@@ -247,16 +247,10 @@ class Lab(commands.Cog, name="The Lab"):
             status = "✅" if crafted_in_cat == len(cat_all) else f"{crafted_in_cat}/{len(cat_all)}"
             cat_summaries.append(f"• **{cat}**: {status}")
 
-        embed.add_field(
-            name="📚 Categories",
-            value="\n".join(cat_summaries[:8]),
-            inline=True,
-        )
-        embed.add_field(
-            name="📚 Categories (cont.)",
-            value="\n".join(cat_summaries[8:]),
-            inline=True,
-        )
+        # Split 21 categories into 3 clean columns of 7
+        embed.add_field(name="📚 Categories (1/3)", value="\n".join(cat_summaries[:7]), inline=True)
+        embed.add_field(name="📚 Categories (2/3)", value="\n".join(cat_summaries[7:14]), inline=True)
+        embed.add_field(name="📚 Categories (3/3)", value="\n".join(cat_summaries[14:]), inline=True)
 
         # Daily Repeat Coins
         embed.add_field(
@@ -321,12 +315,29 @@ class Lab(commands.Cog, name="The Lab"):
             return
 
         if not query or not query.strip():
-            await ctx.send(embed=embeds.error_embed(
-                f"Please specify a compound name or formula to synthesize!\n"
-                f"Examples:\n"
+            inv = await self.db.get_lab_elements(ctx.author.id, ctx.guild.id)
+            user_compounds = await self.db.get_lab_compounds(ctx.author.id, ctx.guild.id)
+            ready = []
+            for c in lab_catalog.COMPOUNDS:
+                if all(inv.get(elem, 0) >= req for elem, req in c["elements"].items()):
+                    ready.append(c)
+
+            ready_str = ""
+            if ready:
+                uncrafted_ready = [c for c in ready if c["id"] not in user_compounds]
+                picks = (uncrafted_ready + ready)[:6]
+                ready_str = "\n\n✨ **Compounds you can synthesize right now:**\n" + "\n".join(
+                    f"• **{c['name']}** (`{c['formula']}`) — `{ctx.prefix}synth {c['id']}`" for c in picks
+                )
+
+            await ctx.send(embed=embeds.info_embed(
+                "⚗️ How to Synthesize",
+                f"Usage: `{ctx.prefix}synth <compound name or formula>`\n\n"
+                f"**Examples:**\n"
                 f"• `{ctx.prefix}synth methane`\n"
                 f"• `{ctx.prefix}synth C6H6`\n"
-                f"• `{ctx.prefix}synth ethanol`"
+                f"• `{ctx.prefix}synth ethanol`{ready_str}\n\n"
+                f"Browse all {len(lab_catalog.COMPOUNDS)} compounds with `{ctx.prefix}compounds`."
             ))
             return
 
@@ -527,6 +538,7 @@ class Lab(commands.Cog, name="The Lab"):
             return
 
         cat_compounds = [c for c in lab_catalog.COMPOUNDS if c["category"] == target_cat]
+        inv = await self.db.get_lab_elements(ctx.author.id, ctx.guild.id)
 
         # Chunk compounds into pages of 5 per page for clean mobile display
         CHUNK_SIZE = 5
@@ -542,38 +554,45 @@ class Lab(commands.Cog, name="The Lab"):
             for c in chunk:
                 cid = c["id"]
                 discovered = (cid in user_compounds)
-                total_atoms = sum(c["elements"].values())
+                formula_str = c["formula"]
+                condensed = c.get("structure") or c.get("smiles") or formula_str
 
-                if not discovered:
-                    # Silhouette view
-                    e.add_field(
-                        name="❓ ???",
-                        value=f"**Category:** {target_cat} · **Atoms:** {total_atoms}\n*Undiscovered — craft to reveal formula & fact.*",
-                        inline=False,
-                    )
-                else:
-                    # Discovered details
+                # Check reagent availability in user's inventory
+                cost_parts = [f"{req}{elem}" for elem, req in c["elements"].items() if req > 0]
+                cost_str = " · ".join(cost_parts)
+                missing = [f"{req - inv.get(elem, 0)} {elem}" for elem, req in c["elements"].items() if inv.get(elem, 0) < req]
+                can_craft = (len(missing) == 0)
+
+                disc_info = discoveries.get(cid)
+                first_mark = ""
+                if disc_info:
+                    if disc_info["user_id"] == ctx.author.id:
+                        first_mark = " · ⭐ *Discovered by YOU!*"
+                    else:
+                        first_mark = f" · 🌟 *Discovered by <@{disc_info['user_id']}>*"
+
+                if discovered:
                     uc = user_compounds[cid]
-                    disc_info = discoveries.get(cid)
-                    first_mark = ""
-                    if disc_info:
-                        if disc_info["user_id"] == ctx.author.id:
-                            first_mark = " · ⭐ *Discovered by YOU!*"
-                        else:
-                            first_mark = f" · 🌟 *Discovered by <@{disc_info['user_id']}>*"
+                    status_str = f"✅ **Crafted {uc['times_crafted']}×**{first_mark}"
+                    icon = "✅"
+                elif can_craft:
+                    status_str = f"✨ **Ready to Synthesize!** `{ctx.prefix}synth {c['id']}`"
+                    icon = "✨"
+                else:
+                    status_str = f"⏳ **Uncrafted** · *Need: {', '.join(missing)}*"
+                    icon = "🧪"
 
-                    formula_str = c["formula"]
-                    condensed = c.get("smiles") or formula_str
-                    e.add_field(
-                        name=f"🧪 {c['name']} (`{formula_str}`)",
-                        value=(
-                            f"**Formula:** `{formula_str}` · **Structure:** `{condensed}`\n"
-                            f"**Fact:** *\"{c['fact']}\"*\n"
-                            f"**Times Crafted:** {uc['times_crafted']}{first_mark}"
-                        ),
-                        inline=False,
-                    )
-            embeds.set_footer(e, f"{ctx.prefix}synth <name> to synthesize")
+                struct_line = f" · **Structure:** `{condensed}`" if condensed != formula_str else ""
+                e.add_field(
+                    name=f"{icon} {c['name']} (`{formula_str}`)",
+                    value=(
+                        f"**Formula:** `{formula_str}`{struct_line} · **Recipe:** {cost_str}\n"
+                        f"**Fact:** *\"{c['fact']}\"*\n"
+                        f"**Status:** {status_str}"
+                    ),
+                    inline=False,
+                )
+            embeds.set_footer(e, f"{ctx.prefix}synth <name> to synthesize · Page {page_idx + 1}/{total_pages}")
             embeds_list.append(e)
 
         if len(embeds_list) == 1:
