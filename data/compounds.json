@@ -6028,5 +6028,365 @@
     "category": "Acid-Derivatives",
     "structure": "CH2(COOCH2CH3)2",
     "fact": "Malonic ester; classic beta-dicarbonyl reagent whose acidic methylene protons (pKa ~13) drive the malonic ester alkylation synthesis."
+  },
+  {
+    "id": "propylamine",
+    "name": "Propylamine",
+    "formula": "C3H9N",
+    "elements": {
+      "C": 3,
+      "H": 9,
+      "O": 0,
+      "N": 1,
+      "Cl": 0,
+      "F": 0,
+      "Br": 0,
+      "I": 0
+    },
+    "category": "Nitrogen-Compounds",
+    "structure": "CH3CH2CH2NH2",
+    "fact": "1-Aminopropane; primary aliphatic amine that reacts with nitrous acid (HNO2) to liberate nitrogen gas quantitatively."
+  },
+  {
+    "id": "isopropylamine",
+    "name": "Isopropylamine",
+    "formula": "C3H9N",
+    "elements": {
+      "C": 3,
+      "H": 9,
+      "O": 0,
+      "N": 1,
+      "Cl": 0,
+      "F": 0,
+      "Br": 0,
+      "I": 0
+    },
+    "category": "Nitrogen-Compounds",
+    "structure": "(CH3)2CHNH2",
+    "fact": "Secondary carbon-bearing primary amine; intermediate in the synthesis of atrazine and glyphosate herbicides."
+  },
+  {
+    "id": "butylamine",
+    "name": "Butylamine",
+    "formula": "C4H11N",
+    "elements": {
+      "C": 4,
+      "H": 11,
+      "O": 0,
+      "N": 1,
+      "Cl": 0,
+      "F": 0,
+      "Br": 0,
+      "I": 0
+    },
+    "category": "Nitrogen-Compounds",
+    "structure": "CH3(CH2)3NH2",
+    "fact": "1-Aminobutane; fishy-ammoniacal smelling primary amine, strong nucleophile in acylation reactions."
+  },
+  {
+    "id": "isobutylamine",
+    "name": "Isobutylamine",
+    "formula": "C4H11N",
+    "elements": {
+      "C": 4,
+      "H": 11,
+      "O": 0,
+      "N": 1,
+      "Cl": 0,
+      "F": 0,
+      "Br": 0,
+      "I": 0
+    },
+    "category": "Nitrogen-Compounds",
+    "structure": "(CH3)2CHCH2NH2",
+    "fact": "2-Methylpropan-1-amine; branched primary amine used in pharmaceutical manufacturing."
+  },
+  {
+    "id": "sec-butylamine",
+    "name": "sec-Butylamine",
+    "formula": "C4H11N",
+    "elements": {
+      "C": 4,
+      "H": 11,
+      "O": 0,
+      "N": 1,
+      "Cl": 0,
+      "F": 0,
+      "Br": 0,
+      "I": 0
+    },
+    "category": "Nitrogen-Compounds",
+    "structure": "CH3CH2CH(CH3)NH2",
+    "fact": "Butan-2-amine; chiral primary amine; used as post-harvest agricultural fungistat."
+  },
+  {
+    "id": "tert-butylamine",
+    "name": "tert-Butylamine",
+    "formula": "C4H11N",
+    "elements": {
+      "C": 4,
+      "H": 11,
+      "O": 0,
+      "N": 1,
+      "Cl": 0,
+      "F": 0,
+      "Br": 0,
+      "I": 0
+    },
+    "category": "Nitrogen-Compounds",
+    "structure": "(CH3)3CNH2",
+    "fact": "Prepared via Ritter reaction of tert-butanol with hydrogen cyanide in conc. sulfuric acid."
+  },
+  {
+    "id": "diethylamine",
+    "name": "Diethylamine",
+    "formula": "C4H11N",
+    "elements": {
+      "C": 4,
+      "H": 11,
+      "O": 0,
+      "N": 1,
+      "Cl": 0,
+      "F": 0,
+      "Br": 0,
+      "I": 0
+    },
+    "category": "Nitrogen-Compounds",
+    "structure": "(CH3CH2)2NH",
+    "fact": "Secondary aliphatic amine; forms a yellow oily N-nitrosamine with nitrous acid that gives Liebermann's nitroso test."
+  },
+  {
+    "id": "dipropylamine",
+    "name": "Dipropylamine",
+    "formula": "C6H15N",
+    "elements": {
+      "C": 6,
+      "H": 15,
+      "O": 0,
+      "N": 1,
+      "Cl": 0,
+      "F": 0,
+      "Br": 0,
+      "I": 0
+    },
+    "category": "Nitrogen-Compounds",
+    "structure": "(CH3CH2CH2)2NH",
+    "fact": "Symmetrical secondary amine used in vulcanization accelerators and pesticide synthesis."
+  },
+  {
+    "id": "diisopropylamine",
+    "name": "Diisopropylamine",
+    "formula": "C6H15N",
+    "elements": {
+      "C": 6,
+      "H": 15,
+      "O": 0,
+      "N": 1,
+      "Cl": 0,
+      "F": 0,
+      "Br": 0,
+      "I": 0
+    },
+    "category": "Nitrogen-Compounds",
+    "structure": "((CH3)2CH)2NH",
+    "fact": "Precursor to non-nucleophilic strong base lithium diisopropylamide (LDA) upon deprotonation with n-BuLi."
+  },
+  {
+    "id": "triethylamine",
+    "name": "Triethylamine",
+    "formula": "C6H15N",
+    "elements": {
+      "C": 6,
+      "H": 15,
+      "O": 0,
+      "N": 1,
+      "Cl": 0,
+      "F": 0,
+      "Br": 0,
+      "I": 0
+    },
+    "category": "Nitrogen-Compounds",
+    "structure": "(CH3CH2)3N",
+    "fact": "Et3N; classic sterically hindered tertiary amine base used to scavenge acid by-products in organic synthesis."
+  },
+  {
+    "id": "benzylamine",
+    "name": "Benzylamine",
+    "formula": "C7H9N",
+    "elements": {
+      "C": 7,
+      "H": 9,
+      "O": 0,
+      "N": 1,
+      "Cl": 0,
+      "F": 0,
+      "Br": 0,
+      "I": 0
+    },
+    "category": "Nitrogen-Compounds",
+    "structure": "C6H5CH2NH2",
+    "fact": "Primary benzylic amine whose basicity (pKb 4.67) is comparable to aliphatic amines, far more basic than aniline."
+  },
+  {
+    "id": "n-methylaniline",
+    "name": "N-Methylaniline",
+    "formula": "C7H9N",
+    "elements": {
+      "C": 7,
+      "H": 9,
+      "O": 0,
+      "N": 1,
+      "Cl": 0,
+      "F": 0,
+      "Br": 0,
+      "I": 0
+    },
+    "category": "Nitrogen-Compounds",
+    "structure": "C6H5NHCH3",
+    "fact": "Secondary aromatic amine; reacts with nitrous acid to yield N-methyl-N-nitrosoaniline without diazonium formation."
+  },
+  {
+    "id": "n,n-dimethylaniline",
+    "name": "N,N-Dimethylaniline",
+    "formula": "C8H11N",
+    "elements": {
+      "C": 8,
+      "H": 11,
+      "O": 0,
+      "N": 1,
+      "Cl": 0,
+      "F": 0,
+      "Br": 0,
+      "I": 0
+    },
+    "category": "Nitrogen-Compounds",
+    "structure": "C6H5N(CH3)2",
+    "fact": "Tertiary aromatic amine; undergoes electrophilic aromatic substitution at para position to yield p-nitroso-N,N-dimethylaniline."
+  },
+  {
+    "id": "o-toluidine",
+    "name": "o-Toluidine",
+    "formula": "C7H9N",
+    "elements": {
+      "C": 7,
+      "H": 9,
+      "O": 0,
+      "N": 1,
+      "Cl": 0,
+      "F": 0,
+      "Br": 0,
+      "I": 0
+    },
+    "category": "Nitrogen-Compounds",
+    "structure": "2-CH3C6H4NH2",
+    "fact": "2-Methylaniline; ortho-isomer used in clinical glucose diagnostic test strips and azo dye production."
+  },
+  {
+    "id": "p-toluidine",
+    "name": "p-Toluidine",
+    "formula": "C7H9N",
+    "elements": {
+      "C": 7,
+      "H": 9,
+      "O": 0,
+      "N": 1,
+      "Cl": 0,
+      "F": 0,
+      "Br": 0,
+      "I": 0
+    },
+    "category": "Nitrogen-Compounds",
+    "structure": "4-CH3C6H4NH2",
+    "fact": "4-Methylaniline; crystalline solid amine that undergoes Sandmeyer reaction via p-methylbenzenediazonium chloride."
+  },
+  {
+    "id": "diphenylamine",
+    "name": "Diphenylamine",
+    "formula": "C12H11N",
+    "elements": {
+      "C": 12,
+      "H": 11,
+      "O": 0,
+      "N": 1,
+      "Cl": 0,
+      "F": 0,
+      "Br": 0,
+      "I": 0
+    },
+    "category": "Nitrogen-Compounds",
+    "structure": "(C6H5)2NH",
+    "fact": "Diaryl secondary amine; redox indicator that oxidizes to an intensely blue-violet diphenylbenzidine complex in the presence of nitrates."
+  },
+  {
+    "id": "propionitrile",
+    "name": "Propionitrile",
+    "formula": "C3H5N",
+    "elements": {
+      "C": 3,
+      "H": 5,
+      "O": 0,
+      "N": 1,
+      "Cl": 0,
+      "F": 0,
+      "Br": 0,
+      "I": 0
+    },
+    "category": "Nitrogen-Compounds",
+    "structure": "CH3CH2CN",
+    "fact": "Ethyl cyanide; aliphatic nitrile synthesized by nucleophilic displacement of ethyl bromide with potassium cyanide (KCN)."
+  },
+  {
+    "id": "butyronitrile",
+    "name": "Butyronitrile",
+    "formula": "C4H7N",
+    "elements": {
+      "C": 4,
+      "H": 7,
+      "O": 0,
+      "N": 1,
+      "Cl": 0,
+      "F": 0,
+      "Br": 0,
+      "I": 0
+    },
+    "category": "Nitrogen-Compounds",
+    "structure": "CH3(CH2)2CN",
+    "fact": "Propyl cyanide; reduces to butylamine via catalytic hydrogenation or LiAlH4 reduction."
+  },
+  {
+    "id": "benzonitrile",
+    "name": "Benzonitrile",
+    "formula": "C7H5N",
+    "elements": {
+      "C": 7,
+      "H": 5,
+      "O": 0,
+      "N": 1,
+      "Cl": 0,
+      "F": 0,
+      "Br": 0,
+      "I": 0
+    },
+    "category": "Nitrogen-Compounds",
+    "structure": "C6H5CN",
+    "fact": "Phenyl cyanide; prepared by Sandmeyer reaction of benzenediazonium chloride with cuprous cyanide (CuCN)."
+  },
+  {
+    "id": "benzyl-cyanide",
+    "name": "Benzyl Cyanide",
+    "formula": "C8H7N",
+    "elements": {
+      "C": 8,
+      "H": 7,
+      "O": 0,
+      "N": 1,
+      "Cl": 0,
+      "F": 0,
+      "Br": 0,
+      "I": 0
+    },
+    "category": "Nitrogen-Compounds",
+    "structure": "C6H5CH2CN",
+    "fact": "Phenylacetonitrile; features reactive benzylic methylene protons that undergo base-catalyzed condensations with aldehydes."
   }
 ]
