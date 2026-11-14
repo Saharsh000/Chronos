@@ -150,6 +150,24 @@ def get_finish_palette(finish_id: str) -> dict[str, tuple[int, int, int, int]]:
         "x": c("#8642bd"),             # Violet base
         "X": c("#4a1873"),             # Violet dark
 
+        # Extended master shading tones (for rich pixel art)
+        "q": c("#fff9e6"),             # Warm ivory / specular highlight
+        "s": c("#e2e8f0"),             # Cool light glass / slate highlight
+        "t": c("#94a3b8"),             # Cool slate / glass midtone
+        "z": c("#1e293b"),             # Deep slate / shadow
+        "d": c("#fed7aa"),             # Soft peach / snout highlight
+        "n": c("#881337"),             # Deep ruby / crimson shadow
+        "1": c("#fef08a"),             # Soft gold / light sparkle
+        "2": c("#86efac"),             # Bright emerald / mint highlight
+        "3": c("#064e3b"),             # Deep pine forest shadow
+        "4": c("#7dd3fc"),             # Ice blue / frost highlight
+        "5": c("#0369a1"),             # Deep ocean blue shadow
+        "6": c("#fde047"),             # Brilliant gold highlight
+        "7": c("#78350f"),             # Deep warm amber shadow
+        "8": c("#c084fc"),             # Radiant lavender / violet highlight
+        "9": c("#581c87"),             # Deep twilight purple shadow
+        "0": c("#0f172a"),             # Deep midnight black shadow
+
         # Glow core colors
         "*": c("#ffffcc"),             # Glow bulb core / bright sparkle
         "+": c("#ffcc22"),             # Golden glow radiant aura

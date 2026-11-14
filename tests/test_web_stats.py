@@ -8,10 +8,11 @@ from tests.web_helpers import GID, OTHER, UID, WebCase
 class StatsApiTests(WebCase):
     async def asyncSetUp(self) -> None:
         await super().asyncSetUp()
-        now = int(time.time())
+        from web.common import period_start
+        base = period_start("today") + 60
         for uid, secs in ((UID, 7200), (OTHER, 1800)):
-            sid = await self.db.start_session(uid, GID, None, "physics", now - secs)
-            await self.db.end_session(sid, now, "manual_stop")
+            sid = await self.db.start_session(uid, GID, None, "physics", base)
+            await self.db.end_session(sid, base + secs, "manual_stop")
 
     async def test_requires_login(self) -> None:
         r = await self.client.get("/api/profile")
