@@ -350,6 +350,12 @@ class Sessions(commands.Cog, name="Sessions"):
             uid, gid, "progress", xp=credit["delta_xp"], coins=credit["delta_coins"],
             seconds=credit["delta_seconds"], candy=credit.get("candy_earned", 0),
         )
+        if credit.get("track") == "oc" and credit.get("element_drops"):
+            self._emit(
+                uid, gid, "lab_elements_updated",
+                elements=credit["element_drops"],
+                capped=credit.get("capped_elements", []),
+            )
         if credit.get("streak_broken_from", 0) > 0:
             self._emit(uid, gid, "streak_broken", lost=credit["streak_broken_from"])
         if credit["leveled_up"]:
