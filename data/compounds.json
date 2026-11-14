@@ -8728,5 +8728,275 @@
     "category": "Reagents-Catalysts",
     "structure": "C7H12N2",
     "fact": "1,5-Diazabicyclo[4.3.0]non-5-ene; bicyclic amidine base utilized in dehydrohalogenation reactions without competitive SN2 substitution."
+  },
+  {
+    "id": "chloramphenicol",
+    "name": "Chloramphenicol",
+    "formula": "C11H12Cl2N2O5",
+    "elements": {
+      "C": 11,
+      "H": 12,
+      "O": 5,
+      "N": 2,
+      "Cl": 2,
+      "F": 0,
+      "Br": 0,
+      "I": 0
+    },
+    "category": "Pharmaceuticals",
+    "structure": "C11H12Cl2N2O5",
+    "fact": "Broad-spectrum antibiotic originally isolated from Streptomyces venezuelae; contains both a p-nitrophenyl group and a dichloroacetamide tail; binds bacterial 50S ribosomal subunit."
+  },
+  {
+    "id": "diazepam",
+    "name": "Diazepam",
+    "formula": "C16H13ClN2O",
+    "elements": {
+      "C": 16,
+      "H": 13,
+      "O": 1,
+      "N": 2,
+      "Cl": 1,
+      "F": 0,
+      "Br": 0,
+      "I": 0
+    },
+    "category": "Pharmaceuticals",
+    "structure": "C16H13ClN2O",
+    "fact": "Valium; 1,4-benzodiazepine positive allosteric modulator of GABA-A receptors used as anxiolytic and anticonvulsant."
+  },
+  {
+    "id": "fluoxetine",
+    "name": "Fluoxetine",
+    "formula": "C17H18F3NO",
+    "elements": {
+      "C": 17,
+      "H": 18,
+      "O": 1,
+      "N": 1,
+      "Cl": 0,
+      "F": 3,
+      "Br": 0,
+      "I": 0
+    },
+    "category": "Pharmaceuticals",
+    "structure": "C17H18F3NO",
+    "fact": "Prozac; selective serotonin reuptake inhibitor (SSRI) antidepressant containing a trifluoromethylphenyl ether moiety."
+  },
+  {
+    "id": "lidocaine",
+    "name": "Lidocaine",
+    "formula": "C14H22N2O",
+    "elements": {
+      "C": 14,
+      "H": 22,
+      "O": 1,
+      "N": 2,
+      "Cl": 0,
+      "F": 0,
+      "Br": 0,
+      "I": 0
+    },
+    "category": "Pharmaceuticals",
+    "structure": "2-(diethylamino)-N-(2,6-dimethylphenyl)acetamide",
+    "fact": "Xylocaine; amino-amide local anesthetic and Class 1b antiarrhythmic that blocks voltage-gated sodium channels."
+  },
+  {
+    "id": "procaine",
+    "name": "Procaine",
+    "formula": "C13H20N2O2",
+    "elements": {
+      "C": 13,
+      "H": 20,
+      "O": 2,
+      "N": 2,
+      "Cl": 0,
+      "F": 0,
+      "Br": 0,
+      "I": 0
+    },
+    "category": "Pharmaceuticals",
+    "structure": "2-(diethylamino)ethyl 4-aminobenzoate",
+    "fact": "Novocaine; historical amino-ester local anesthetic synthesized by Alfred Einhorn; rapidly hydrolyzed by plasma pseudocholinesterase."
+  },
+  {
+    "id": "benzocaine",
+    "name": "Benzocaine",
+    "formula": "C9H11NO2",
+    "elements": {
+      "C": 9,
+      "H": 11,
+      "O": 2,
+      "N": 1,
+      "Cl": 0,
+      "F": 0,
+      "Br": 0,
+      "I": 0
+    },
+    "category": "Pharmaceuticals",
+    "structure": "ethyl 4-aminobenzoate",
+    "fact": "Hydrophobic local topical anesthetic found in cough drops and sunburn sprays; ester of PABA lacking a basic terminal aliphatic amine."
+  },
+  {
+    "id": "naproxen",
+    "name": "Naproxen",
+    "formula": "C14H14O3",
+    "elements": {
+      "C": 14,
+      "H": 14,
+      "O": 3,
+      "N": 0,
+      "Cl": 0,
+      "F": 0,
+      "Br": 0,
+      "I": 0
+    },
+    "category": "Pharmaceuticals",
+    "structure": "2-(6-methoxynaphthalen-2-yl)propanoic acid",
+    "fact": "Non-steroidal anti-inflammatory drug (NSAID); non-selective COX inhibitor sold as optically pure (S)-enantiomer."
+  },
+  {
+    "id": "theobromine",
+    "name": "Theobromine",
+    "formula": "C7H8N4O2",
+    "elements": {
+      "C": 7,
+      "H": 8,
+      "O": 2,
+      "N": 4,
+      "Cl": 0,
+      "F": 0,
+      "Br": 0,
+      "I": 0
+    },
+    "category": "Pharmaceuticals",
+    "structure": "3,7-dimethylxanthine",
+    "fact": "Principal purine alkaloid found in cocoa beans and chocolate; bitter cardiac stimulant and vasodilator structurally related to caffeine."
+  },
+  {
+    "id": "nicotine",
+    "name": "Nicotine",
+    "formula": "C10H14N2",
+    "elements": {
+      "C": 10,
+      "H": 14,
+      "O": 0,
+      "N": 2,
+      "Cl": 0,
+      "F": 0,
+      "Br": 0,
+      "I": 0
+    },
+    "category": "Pharmaceuticals",
+    "structure": "3-(1-methylpyrrolidin-2-yl)pyridine",
+    "fact": "Chiral pyridine-pyrrolidine alkaloid produced in Solanaceae nightshade plants; potent agonist of nicotinic acetylcholine receptors (nAChRs)."
+  },
+  {
+    "id": "atropine",
+    "name": "Atropine",
+    "formula": "C17H23NO3",
+    "elements": {
+      "C": 17,
+      "H": 23,
+      "O": 3,
+      "N": 1,
+      "Cl": 0,
+      "F": 0,
+      "Br": 0,
+      "I": 0
+    },
+    "category": "Pharmaceuticals",
+    "structure": "C17H23NO3",
+    "fact": "Tropane alkaloid racemic mixture extracted from deadly nightshade (Atropa belladonna); competitive antagonist of muscarinic acetylcholine receptors."
+  },
+  {
+    "id": "quinine",
+    "name": "Quinine",
+    "formula": "C20H24N2O2",
+    "elements": {
+      "C": 20,
+      "H": 24,
+      "O": 2,
+      "N": 2,
+      "Cl": 0,
+      "F": 0,
+      "Br": 0,
+      "I": 0
+    },
+    "category": "Pharmaceuticals",
+    "structure": "C20H24N2O2",
+    "fact": "Cinchona bark alkaloid containing a quinoline ring and quinuclidine bridge; historic frontline antimalarial and fluorescent bitter flavor in tonic water."
+  },
+  {
+    "id": "morphine",
+    "name": "Morphine",
+    "formula": "C17H19NO3",
+    "elements": {
+      "C": 17,
+      "H": 19,
+      "O": 3,
+      "N": 1,
+      "Cl": 0,
+      "F": 0,
+      "Br": 0,
+      "I": 0
+    },
+    "category": "Pharmaceuticals",
+    "structure": "C17H19NO3",
+    "fact": "Principal opiate alkaloid of Papaver somniferum; contains a rigid pentacyclic skeleton with phenolic and allylic hydroxyls; benchmark opioid analgesic."
+  },
+  {
+    "id": "codeine",
+    "name": "Codeine",
+    "formula": "C18H21NO3",
+    "elements": {
+      "C": 18,
+      "H": 21,
+      "O": 3,
+      "N": 1,
+      "Cl": 0,
+      "F": 0,
+      "Br": 0,
+      "I": 0
+    },
+    "category": "Pharmaceuticals",
+    "structure": "C18H21NO3",
+    "fact": "3-O-Methylmorphine; naturally occurring opium alkaloid with antitussive (cough suppressant) and mild analgesic properties."
+  },
+  {
+    "id": "ephedrine",
+    "name": "Ephedrine",
+    "formula": "C10H15NO",
+    "elements": {
+      "C": 10,
+      "H": 15,
+      "O": 1,
+      "N": 1,
+      "Cl": 0,
+      "F": 0,
+      "Br": 0,
+      "I": 0
+    },
+    "category": "Pharmaceuticals",
+    "structure": "(1R,2S)-2-(methylamino)-1-phenylpropan-1-ol",
+    "fact": "Sympathomimetic alkaloid from Ephedra sinica; bronchodilator and decongestant structurally resembling amphetamine."
+  },
+  {
+    "id": "piperine",
+    "name": "Piperine",
+    "formula": "C17H19NO3",
+    "elements": {
+      "C": 17,
+      "H": 19,
+      "O": 3,
+      "N": 1,
+      "Cl": 0,
+      "F": 0,
+      "Br": 0,
+      "I": 0
+    },
+    "category": "Pharmaceuticals",
+    "structure": "C17H19NO3",
+    "fact": "Alkaloid responsible for the pungency of black pepper; piperidine amide of piperic acid; enhances bioavailability of curcumin by inhibiting hepatic glucuronidation."
   }
 ]
