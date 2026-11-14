@@ -3495,6 +3495,29 @@ class Database:
         await self.conn.commit()
         return allowed
 
+    async def get_lab_discovery(
+        self, guild_id: int, compound_id: str
+    ) -> Optional[dict[str, Any]]:
+        """Check if a compound has been synthesized in this server, and by whom."""
+        cur = await self.conn.execute(
+            "SELECT * FROM lab_discoveries WHERE guild_id = ? AND compound_id = ?",
+            (guild_id, compound_id),
+        )
+        row = await cur.fetchone()
+        return dict(row) if row else None
+
+    async def get_all_lab_discoveries(
+        self, guild_id: int
+    ) -> dict[str, dict[str, Any]]:
+        """Return all first discoveries in the guild mapped by compound_id."""
+        cur = await self.conn.execute(
+            "SELECT * FROM lab_discoveries WHERE guild_id = ?",
+            (guild_id,),
+        )
+        rows = await cur.fetchall()
+        return {r["compound_id"]: dict(r) for r in rows}
+
+
 
 
 
