@@ -45,28 +45,29 @@ class TestLabRewards(unittest.IsolatedAsyncioTestCase):
         self.assertIn("lab_first_synth", res["new_achievements"])
 
     async def test_category_completion_reward(self):
-        # Phenols has only 3 compounds: phenol, catechol, p-cresol
-        phenols = [c for c in lab_catalog.COMPOUNDS if c["category"] == "Phenols"]
-        self.assertEqual(len(phenols), 3)
+        # Use Monomers category which has exactly 4 compounds — small enough to complete in a test
+        monomers = [c for c in lab_catalog.COMPOUNDS if c["category"] == "Monomers"]
+        self.assertGreaterEqual(len(monomers), 4, "Monomers category must have at least 4 compounds")
 
         await self.db.add_lab_elements(UID, GID, {e: 500 for e in lab_catalog.ELEMENT_LIST})
 
         curr_before = await self.db.get_or_create_currency(UID, GID)
         coins_start = curr_before["coins"]
 
-        # Craft first 2
-        await self.db.craft_compound(UID, GID, phenols[0]["id"])
-        await self.db.craft_compound(UID, GID, phenols[1]["id"])
+        # Craft all but the last monomer
+        for c in monomers[:-1]:
+            res = await self.db.craft_compound(UID, GID, c["id"])
+            self.assertFalse(res["newly_completed_category"], f"Should not complete category after crafting {c['id']}")
 
-        # Craft 3rd -> category complete!
-        res3 = await self.db.craft_compound(UID, GID, phenols[2]["id"])
-        self.assertTrue(res3["newly_completed_category"])
-        self.assertEqual(res3["category"], "Phenols")
-        self.assertEqual(res3["category_title"], "Aromatic Hydroxylist")
+        # Craft the final monomer -> triggers category completion
+        res_last = await self.db.craft_compound(UID, GID, monomers[-1]["id"])
+        self.assertTrue(res_last["newly_completed_category"])
+        self.assertEqual(res_last["category"], "Monomers")
+        self.assertEqual(res_last["category_title"], "Polymer Architect")
 
-        # Verify category title in inventory
+        # Verify category title was added to inventory
         inv = await self.db.get_inventory(UID, GID)
-        self.assertIn("title_phenols", inv)
+        self.assertIn("title_monomers", inv)
 
     async def test_milestone_reward_25(self):
         await self.db.add_lab_elements(UID, GID, {e: 500 for e in lab_catalog.ELEMENT_LIST})

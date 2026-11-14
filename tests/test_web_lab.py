@@ -100,7 +100,7 @@ class WebLabTests(WebCase):
 
         st, comp_data = await self.get("/api/lab/compendium")
         self.assertEqual(st, 200)
-        self.assertEqual(comp_data["total_compounds"], 100)
+        self.assertEqual(comp_data["total_compounds"], 500)
         self.assertEqual(comp_data["total_discovered"], 0)
 
         # First entry should be undiscovered and have no formula or fact
