@@ -1,0 +1,16 @@
+...##......##...
+..#AA######AA#..
+.##kkffffffkk##.
+.#kkkffffffkkk#.
+.#kkkfeffeFkkk#.
+..##kffffffk##..
+...##AA##AA##...
+..#LLPPAAPPDD#..
+.#LLPPWwwWPPDD#.
+.#LLPPWWWWPPDD#.
+.#LLPPPPPPPPDD#.
+..#AAAAAAAAAA#..
+....##MM##MM##..
+................
+................
+................

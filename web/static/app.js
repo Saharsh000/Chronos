@@ -10,6 +10,7 @@ const NAV = [
   { group: 'Study', items: [
     { path: '/', view: 'home', label: 'Home', icon: 'chrono_clock' },
     { path: '/live', view: 'live', label: 'Live', icon: 'focus_clock', badge: 'live' },
+    { path: '/lab', view: 'lab', label: 'The Lab', icon: 'potion_flask' },
     { path: '/progress', view: 'progress', label: 'Progress', icon: 'study_book' },
     { path: '/notes', view: 'notes', label: 'Notes', icon: 'notes' },
     { path: '/trivia', view: 'trivia', label: 'JEE Trivia', icon: 'atom' },

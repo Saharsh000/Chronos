@@ -44,6 +44,7 @@ drops or rewrites a column, so old data is preserved untouched.
 """
 from __future__ import annotations
 
+import datetime as dt
 import json
 import logging
 import os
@@ -57,6 +58,7 @@ import config
 from utils import economy, streaks
 from utils import food as food_catalog
 from utils import halloween as halloween_catalog
+from utils import lab as lab_catalog
 from utils import pets as pet_catalog
 from utils.achievements import Achievement
 from utils.achievements import evaluate as evaluate_achievements
@@ -362,6 +364,52 @@ CREATE TABLE IF NOT EXISTS bot_kv_store (
     key   TEXT PRIMARY KEY,
     value TEXT NOT NULL
 );
+
+-- Lab: unlock tracking (one row per user per guild once they pay 60,000 and have >=30h chemistry)
+CREATE TABLE IF NOT EXISTS lab_unlocks (
+    user_id     INTEGER NOT NULL,
+    guild_id    INTEGER NOT NULL,
+    unlocked_at INTEGER NOT NULL,
+    PRIMARY KEY (user_id, guild_id)
+);
+
+-- Lab: element inventory (capped at 500 per element)
+CREATE TABLE IF NOT EXISTS lab_elements (
+    user_id  INTEGER NOT NULL,
+    guild_id INTEGER NOT NULL,
+    element  TEXT NOT NULL,
+    quantity INTEGER NOT NULL DEFAULT 0,
+    PRIMARY KEY (user_id, guild_id, element)
+);
+
+-- Lab: synthesized compound collection (counts, not consumed)
+CREATE TABLE IF NOT EXISTS lab_compounds (
+    user_id          INTEGER NOT NULL,
+    guild_id         INTEGER NOT NULL,
+    compound_id      TEXT NOT NULL,
+    times_crafted    INTEGER NOT NULL DEFAULT 0,
+    first_crafted_at INTEGER,
+    PRIMARY KEY (user_id, guild_id, compound_id)
+);
+
+-- Lab: per-IST-day caps/state (repeat coin cap, OC minutes for rate cap)
+CREATE TABLE IF NOT EXISTS lab_daily (
+    user_id      INTEGER NOT NULL,
+    guild_id     INTEGER NOT NULL,
+    date_ist     TEXT NOT NULL,         -- YYYY-MM-DD in IST
+    repeat_coins INTEGER NOT NULL DEFAULT 0,
+    oc_minutes   INTEGER NOT NULL DEFAULT 0,  -- credited OC minutes today (for 6h/day cap)
+    PRIMARY KEY (user_id, guild_id, date_ist)
+);
+
+-- Lab: server-wide first discoverer per compound
+CREATE TABLE IF NOT EXISTS lab_discoveries (
+    guild_id      INTEGER NOT NULL,
+    compound_id   TEXT NOT NULL,
+    user_id       INTEGER NOT NULL,
+    discovered_at INTEGER NOT NULL,
+    PRIMARY KEY (guild_id, compound_id)
+);
 """
 
 # Columns added to `user_stats` after its original release. Applied by
@@ -379,6 +427,8 @@ USER_STATS_MIGRATIONS: dict[str, str] = {
 # total coins earned for the session that just ended.
 SESSIONS_MIGRATIONS: dict[str, str] = {
     "credited_coins": "ALTER TABLE sessions ADD COLUMN credited_coins INTEGER NOT NULL DEFAULT 0",
+    "track": "ALTER TABLE sessions ADD COLUMN track TEXT",
+    "credited_elements": "ALTER TABLE sessions ADD COLUMN credited_elements TEXT",
 }
 
 # Halloween Event: Seasonal currency (Candy)
@@ -502,7 +552,8 @@ class Database:
         tables = [
             "user_stats", "subject_stats", "user_currency", "user_inventory",
             "achievements_unlocked", "user_pets", "user_daily", "user_cooldowns",
-            "halloween_pass", "user_trivia_stats",
+            "halloween_pass", "user_trivia_stats", "lab_unlocks", "lab_elements",
+            "lab_compounds", "lab_daily", "lab_discoveries",
         ]
         total_synced = 0
         for table in tables:
@@ -932,14 +983,15 @@ class Database:
         channel_id: Optional[int],
         subject: Optional[str] = None,
         now: Optional[int] = None,
+        track: Optional[str] = None,
     ) -> int:
         now = now if now is not None else int(time.time())
         cur = await self.conn.execute(
             """
-            INSERT INTO sessions (user_id, guild_id, channel_id, subject, start_time, last_checkin, status)
-            VALUES (?, ?, ?, ?, ?, ?, 'active')
+            INSERT INTO sessions (user_id, guild_id, channel_id, subject, start_time, last_checkin, status, track)
+            VALUES (?, ?, ?, ?, ?, ?, 'active', ?)
             """,
-            (user_id, guild_id, channel_id, subject, now, now),
+            (user_id, guild_id, channel_id, subject, now, now, track),
         )
         await self.conn.commit()
         return cur.lastrowid
@@ -1030,6 +1082,14 @@ class Database:
         # (returns None) if the user has no pet equipped in this guild.
         pet_result = await self.grant_pet_xp(session["user_id"], session["guild_id"], delta_pet_xp)
 
+        # The Lab: Element drops for Organic Chemistry (OC) mode sessions
+        element_drops: dict[str, int] = {}
+        capped_elements: list[str] = []
+        if session.get("track") == "oc":
+            element_drops, capped_elements = await self.credit_lab_elements(
+                session_id, session["user_id"], session["guild_id"], new_minutes, now=now
+            )
+
         # Jack-o'-Lantern Season Pass & study drops — COMPLETELY COMMENTED OUT (event ended)
         pass_res: dict = {}
         hallo_box_dropped: str | None = None
@@ -1050,6 +1110,9 @@ class Database:
             "user_id": session["user_id"],
             "guild_id": session["guild_id"],
             "subject": session["subject"],
+            "track": session.get("track"),
+            "element_drops": element_drops,
+            "capped_elements": capped_elements,
             "delta_seconds": delta_seconds,
             "delta_xp": delta_xp,
             "delta_coins": delta_coins,
@@ -1125,6 +1188,8 @@ class Database:
             "guild_id": session["guild_id"],
             "channel_id": session["channel_id"],
             "subject": session["subject"],
+            "track": session.get("track"),
+            "credited_elements": json.loads(session.get("credited_elements") or "{}"),
             "duration": duration,
             "xp_earned": total_xp_earned,
             "coins_earned": total_coins_earned,
@@ -2176,6 +2241,20 @@ class Database:
         pass_row = await cur_pass.fetchone()
         pass_level = halloween_catalog.get_current_pass_level(pass_row["study_seconds"])["level"] if pass_row else 0
 
+        cur_lab_unlock = await self.conn.execute(
+            "SELECT unlocked_at FROM lab_unlocks WHERE user_id = ? AND guild_id = ?",
+            (user_id, guild_id),
+        )
+        lab_unlocked = (await cur_lab_unlock.fetchone()) is not None
+
+        cur_compounds = await self.conn.execute(
+            "SELECT COUNT(DISTINCT compound_id) AS unique_c, COALESCE(SUM(times_crafted), 0) AS total_c FROM lab_compounds WHERE user_id = ? AND guild_id = ?",
+            (user_id, guild_id),
+        )
+        comp_row = await cur_compounds.fetchone()
+        lab_unique_compounds = comp_row["unique_c"] if comp_row else 0
+        lab_compounds_crafted = comp_row["total_c"] if comp_row else 0
+
         return {
             "total_seconds": stats["total_seconds"],
             "level": stats["level"],
@@ -2188,6 +2267,9 @@ class Database:
             "boxes_opened": currency["boxes_opened"],
             "items_purchased": currency["items_purchased"],
             "candy_earned": currency.get("candy", 0),
+            "lab_unlocked": lab_unlocked,
+            "lab_unique_compounds": lab_unique_compounds,
+            "lab_compounds_crafted": lab_compounds_crafted,
             "subject_seconds": subject_seconds,
             "early_bird_count": row["early_bird"] or 0 if row else 0,
             "night_owl_count": row["night_owl"] or 0 if row else 0,
@@ -3268,6 +3350,408 @@ class Database:
             (key, str(value)),
         )
         await self.conn.commit()
+
+    # ------------------------------------------------------------------ #
+    # The Lab DLC & Organic Chemistry Mode
+    # ------------------------------------------------------------------ #
+    async def get_lab_chemistry_hours(self, user_id: int, guild_id: int) -> float:
+        """Total all-time study hours in Chemistry for this user in this guild."""
+        cur = await self.conn.execute(
+            "SELECT total_seconds FROM subject_stats WHERE user_id = ? AND guild_id = ? AND subject = 'chemistry'",
+            (user_id, guild_id),
+        )
+        row = await cur.fetchone()
+        return (row["total_seconds"] / 3600.0) if row else 0.0
+
+    async def get_lab_unlock(self, user_id: int, guild_id: int) -> Optional[dict[str, Any]]:
+        """Return unlock record if user has unlocked The Lab in this guild, else None."""
+        cur = await self.conn.execute(
+            "SELECT * FROM lab_unlocks WHERE user_id = ? AND guild_id = ?",
+            (user_id, guild_id),
+        )
+        row = await cur.fetchone()
+        return dict(row) if row else None
+
+    async def set_lab_unlock(
+        self, user_id: int, guild_id: int, now: Optional[int] = None
+    ) -> dict[str, Any]:
+        """Unlock The Lab DLC. Requires >=30h chemistry study and 60,000 coins.
+        Deducts 60,000 coins atomically and records the unlock.
+        """
+        now = now if now is not None else int(time.time())
+        existing = await self.get_lab_unlock(user_id, guild_id)
+        if existing:
+            return {"success": True, "already_unlocked": True, "unlocked_at": existing["unlocked_at"]}
+
+        chem_hours = await self.get_lab_chemistry_hours(user_id, guild_id)
+        if chem_hours < lab_catalog.LAB_CHEMISTRY_HOURS_REQUIRED:
+            raise ValueError(
+                f"Insufficient chemistry hours: {chem_hours:.1f}h / {lab_catalog.LAB_CHEMISTRY_HOURS_REQUIRED:.1f}h"
+            )
+
+        curr = await self.get_or_create_currency(user_id, guild_id)
+        if curr["coins"] < lab_catalog.LAB_UNLOCK_PRICE:
+            raise ValueError(
+                f"Insufficient Chronocoins: {curr['coins']:,} / {lab_catalog.LAB_UNLOCK_PRICE:,}"
+            )
+
+        # Atomic deduction and unlock insertion
+        await self.conn.execute(
+            "UPDATE user_currency SET coins = coins - ? WHERE user_id = ? AND guild_id = ?",
+            (lab_catalog.LAB_UNLOCK_PRICE, user_id, guild_id),
+        )
+        await self.conn.execute(
+            "INSERT OR IGNORE INTO lab_unlocks (user_id, guild_id, unlocked_at) VALUES (?, ?, ?)",
+            (user_id, guild_id, now),
+        )
+        await self.conn.commit()
+        return {"success": True, "already_unlocked": False, "unlocked_at": now}
+
+    async def get_lab_elements(self, user_id: int, guild_id: int) -> dict[str, int]:
+        """Fetch current stock for all 8 Lab elements (defaulting to 0 if not present)."""
+        cur = await self.conn.execute(
+            "SELECT element, quantity FROM lab_elements WHERE user_id = ? AND guild_id = ?",
+            (user_id, guild_id),
+        )
+        rows = await cur.fetchall()
+        inv = {e: 0 for e in lab_catalog.ELEMENT_LIST}
+        for r in rows:
+            if r["element"] in inv:
+                inv[r["element"]] = r["quantity"]
+        return inv
+
+    async def add_lab_elements(
+        self, user_id: int, guild_id: int, deltas: dict[str, int]
+    ) -> tuple[dict[str, int], list[str]]:
+        """Add (or deduct) elements to a user's inventory.
+        Enforces lab_catalog.ELEMENT_INVENTORY_CAP (500) per element.
+        Returns:
+            (actual_added_dict, list_of_capped_elements)
+        """
+        current = await self.get_lab_elements(user_id, guild_id)
+        actual_added = {e: 0 for e in lab_catalog.ELEMENT_LIST}
+        capped = []
+
+        for elem, delta in deltas.items():
+            if elem not in current or delta == 0:
+                continue
+            cur_qty = current[elem]
+            if delta > 0:
+                if cur_qty >= lab_catalog.ELEMENT_INVENTORY_CAP:
+                    capped.append(elem)
+                    actual_added[elem] = 0
+                    continue
+                new_qty = min(lab_catalog.ELEMENT_INVENTORY_CAP, cur_qty + delta)
+                if new_qty == lab_catalog.ELEMENT_INVENTORY_CAP and (cur_qty + delta) >= lab_catalog.ELEMENT_INVENTORY_CAP:
+                    capped.append(elem)
+                actual_added[elem] = new_qty - cur_qty
+            else:
+                new_qty = max(0, cur_qty + delta)
+                actual_added[elem] = new_qty - cur_qty
+
+            await self.conn.execute(
+                """
+                INSERT INTO lab_elements (user_id, guild_id, element, quantity)
+                VALUES (?, ?, ?, ?)
+                ON CONFLICT(user_id, guild_id, element) DO UPDATE SET quantity = ?
+                """,
+                (user_id, guild_id, elem, new_qty, new_qty),
+            )
+
+        await self.conn.commit()
+        return actual_added, capped
+
+    def _get_ist_date(self) -> str:
+        """Current date string (YYYY-MM-DD) in IST."""
+        return dt.datetime.now(config.IST).strftime("%Y-%m-%d")
+
+    async def get_lab_daily(
+        self, user_id: int, guild_id: int, date_ist: Optional[str] = None
+    ) -> dict[str, Any]:
+        """Fetch daily Lab stats (repeat coins & OC minutes) for the given or current IST date."""
+        date_str = date_ist or self._get_ist_date()
+        cur = await self.conn.execute(
+            "SELECT * FROM lab_daily WHERE user_id = ? AND guild_id = ? AND date_ist = ?",
+            (user_id, guild_id, date_str),
+        )
+        row = await cur.fetchone()
+        if row:
+            return dict(row)
+        return {"user_id": user_id, "guild_id": guild_id, "date_ist": date_str, "repeat_coins": 0, "oc_minutes": 0}
+
+    async def add_lab_daily_oc_minutes(
+        self, user_id: int, guild_id: int, minutes: int, date_ist: Optional[str] = None
+    ) -> int:
+        """Increment credited OC minutes for today in IST. Returns the new daily total."""
+        date_str = date_ist or self._get_ist_date()
+        cur = await self.conn.execute(
+            """
+            INSERT INTO lab_daily (user_id, guild_id, date_ist, repeat_coins, oc_minutes)
+            VALUES (?, ?, ?, 0, ?)
+            ON CONFLICT(user_id, guild_id, date_ist) DO UPDATE SET oc_minutes = oc_minutes + excluded.oc_minutes
+            RETURNING oc_minutes
+            """,
+            (user_id, guild_id, date_str, minutes),
+        )
+        row = await cur.fetchone()
+        await self.conn.commit()
+        return row["oc_minutes"] if row else minutes
+
+    async def add_lab_daily_repeat_coins(
+        self, user_id: int, guild_id: int, coins: int, date_ist: Optional[str] = None
+    ) -> int:
+        """Credit repeat synthesis coins subject to DAILY_REPEAT_COIN_CAP (1000/day).
+        Returns actual coins credited (may be less than requested if cap reached).
+        """
+        if coins <= 0:
+            return 0
+        date_str = date_ist or self._get_ist_date()
+        daily = await self.get_lab_daily(user_id, guild_id, date_str)
+        cur_repeat = daily["repeat_coins"]
+        allowed = max(0, min(coins, lab_catalog.DAILY_REPEAT_COIN_CAP - cur_repeat))
+        if allowed <= 0:
+            return 0
+
+        await self.conn.execute(
+            """
+            INSERT INTO lab_daily (user_id, guild_id, date_ist, repeat_coins, oc_minutes)
+            VALUES (?, ?, ?, ?, 0)
+            ON CONFLICT(user_id, guild_id, date_ist) DO UPDATE SET repeat_coins = repeat_coins + ?
+            """,
+            (user_id, guild_id, date_str, allowed, allowed),
+        )
+        await self.conn.commit()
+        return allowed
+
+    async def get_lab_discovery(
+        self, guild_id: int, compound_id: str
+    ) -> Optional[dict[str, Any]]:
+        """Check if a compound has been synthesized in this server, and by whom."""
+        cur = await self.conn.execute(
+            "SELECT * FROM lab_discoveries WHERE guild_id = ? AND compound_id = ?",
+            (guild_id, compound_id),
+        )
+        row = await cur.fetchone()
+        return dict(row) if row else None
+
+    async def get_all_lab_discoveries(
+        self, guild_id: int
+    ) -> dict[str, dict[str, Any]]:
+        """Return all first discoveries in the guild mapped by compound_id."""
+        cur = await self.conn.execute(
+            "SELECT * FROM lab_discoveries WHERE guild_id = ?",
+            (guild_id,),
+        )
+        rows = await cur.fetchall()
+        return {r["compound_id"]: dict(r) for r in rows}
+
+    async def get_lab_compounds(
+        self, user_id: int, guild_id: int
+    ) -> dict[str, dict[str, Any]]:
+        """Return all compounds synthesized by this user in this guild, mapped by compound_id."""
+        cur = await self.conn.execute(
+            "SELECT * FROM lab_compounds WHERE user_id = ? AND guild_id = ?",
+            (user_id, guild_id),
+        )
+        rows = await cur.fetchall()
+        return {r["compound_id"]: dict(r) for r in rows}
+
+    async def get_lab_compound(
+        self, user_id: int, guild_id: int, compound_id: str
+    ) -> Optional[dict[str, Any]]:
+        """Return synthesis record for a specific compound."""
+        cur = await self.conn.execute(
+            "SELECT * FROM lab_compounds WHERE user_id = ? AND guild_id = ? AND compound_id = ?",
+            (user_id, guild_id, compound_id),
+        )
+        row = await cur.fetchone()
+        return dict(row) if row else None
+
+    async def get_lab_collection_count(
+        self, user_id: int, guild_id: int
+    ) -> int:
+        """Total distinct compounds synthesized by this user."""
+        cur = await self.conn.execute(
+            "SELECT COUNT(DISTINCT compound_id) FROM lab_compounds WHERE user_id = ? AND guild_id = ? AND times_crafted > 0",
+            (user_id, guild_id),
+        )
+        row = await cur.fetchone()
+        return row[0] if row else 0
+
+    async def craft_compound(
+        self, user_id: int, guild_id: int, compound_id: str, now: Optional[int] = None
+    ) -> dict[str, Any]:
+        """Synthesize an organic compound in The Lab.
+        Consumes exact element counts, awards coins/XP, checks server discovery,
+        category completions, collection milestones, and achievements.
+        """
+        now = now if now is not None else int(time.time())
+        unlock = await self.get_lab_unlock(user_id, guild_id)
+        if not unlock:
+            raise ValueError("lab_locked")
+
+        compound = lab_catalog.COMPOUND_BY_ID.get(compound_id)
+        if not compound:
+            raise ValueError(f"unknown_compound:{compound_id}")
+
+        inv = await self.get_lab_elements(user_id, guild_id)
+        reqs = compound["elements"]
+        for elem, needed in reqs.items():
+            if needed > 0 and inv.get(elem, 0) < needed:
+                raise ValueError(f"insufficient_{elem}:{inv.get(elem, 0)}/{needed}")
+
+        # Deduct elements
+        deduct_deltas = {elem: -needed for elem, needed in reqs.items() if needed > 0}
+        await self.add_lab_elements(user_id, guild_id, deduct_deltas)
+
+        # Check existing collection state
+        existing = await self.get_lab_compound(user_id, guild_id, compound_id)
+        first_time = (existing is None or existing["times_crafted"] == 0)
+
+        # Calculate synthesis rewards
+        if first_time:
+            coins_earned = lab_catalog.reward_coins_first(compound)
+            xp_earned = lab_catalog.reward_xp_first(compound)
+            repeat_coins_requested = 0
+            repeat_coins_credited = 0
+        else:
+            repeat_coins_requested = lab_catalog.reward_coins_repeat(compound)
+            repeat_coins_credited = await self.add_lab_daily_repeat_coins(user_id, guild_id, repeat_coins_requested)
+            coins_earned = repeat_coins_credited
+            xp_earned = lab_catalog.reward_xp_repeat(compound)
+
+        # Payout coins and XP
+        if coins_earned > 0:
+            await self.add_coins(user_id, guild_id, coins_earned)
+        if xp_earned > 0:
+            await self.grant_xp(user_id, guild_id, xp_earned)
+
+        # Update lab_compounds
+        await self.conn.execute(
+            """
+            INSERT INTO lab_compounds (user_id, guild_id, compound_id, times_crafted, first_crafted_at)
+            VALUES (?, ?, ?, 1, ?)
+            ON CONFLICT(user_id, guild_id, compound_id) DO UPDATE SET times_crafted = times_crafted + 1
+            """,
+            (user_id, guild_id, compound_id, now),
+        )
+
+        # Check server discovery
+        cur_disc = await self.conn.execute(
+            """
+            INSERT OR IGNORE INTO lab_discoveries (guild_id, compound_id, user_id, discovered_at)
+            VALUES (?, ?, ?, ?)
+            """,
+            (guild_id, compound_id, user_id, now),
+        )
+        is_discoverer = (cur_disc.rowcount > 0)
+        await self.conn.commit()
+
+        # Check category completion
+        cat = compound["category"]
+        cat_compounds = [c for c in lab_catalog.COMPOUNDS if c["category"] == cat]
+        user_compounds = await self.get_lab_compounds(user_id, guild_id)
+        newly_completed_category = False
+        cat_title = None
+
+        if first_time:
+            other_cat_ids = [c["id"] for c in cat_compounds if c["id"] != compound_id]
+            if all(cid in user_compounds for cid in other_cat_ids):
+                newly_completed_category = True
+                cat_title = lab_catalog.CATEGORY_TITLES.get(cat)
+                # Category completion bonus: 1,000 coins + Title
+                await self.add_coins(user_id, guild_id, 1000)
+                if cat_title:
+                    item_id = f"title_{cat.lower().replace('-', '_')}"
+                    await self.add_item(user_id, guild_id, item_id, 1)
+
+        # Check milestones (25, 50, 75, 100)
+        milestone_reward = None
+        unique_count = len(user_compounds)
+        if first_time and unique_count in lab_catalog.MILESTONE_REWARDS:
+            ms = lab_catalog.MILESTONE_REWARDS[unique_count]
+            milestone_reward = {"count": unique_count, **ms}
+            if ms["type"] == "item":
+                await self.add_item(user_id, guild_id, ms["item_id"], ms["quantity"])
+            elif ms["type"] == "title":
+                item_id = f"title_{ms['title'].lower().replace(' ', '_')}"
+                await self.add_item(user_id, guild_id, item_id, 1)
+            elif ms["type"] == "grandmaster":
+                await self.add_coins(user_id, guild_id, ms["coins"])
+                await self.add_item(user_id, guild_id, "title_grandmaster_chemist", 1)
+
+        # Check achievements
+        new_achievements = await self.check_achievements(user_id, guild_id)
+
+        times_crafted = (existing["times_crafted"] + 1) if existing else 1
+        return {
+            "compound": compound,
+            "first_time": first_time,
+            "times_crafted": times_crafted,
+            "is_discoverer": is_discoverer,
+            "coins_earned": coins_earned,
+            "xp_earned": xp_earned,
+            "repeat_coins_requested": repeat_coins_requested,
+            "repeat_coins_credited": repeat_coins_credited,
+            "repeat_cap_reached": (repeat_coins_requested > repeat_coins_credited),
+            "newly_completed_category": newly_completed_category,
+            "category": cat,
+            "category_title": cat_title,
+            "unique_compounds_count": unique_count,
+            "milestone_reward": milestone_reward,
+            "new_achievements": [a.id for a in new_achievements],
+        }
+
+    async def credit_lab_elements(
+        self,
+        session_id: int,
+        user_id: int,
+        guild_id: int,
+        new_minutes: int,
+        now: Optional[int] = None,
+    ) -> tuple[dict[str, int], list[str]]:
+        """Idempotent per-minute element crediting for an active OC session.
+        Applies full rates for first 6 hours of OC time in an IST day, 50% rate after.
+        Enforces 500 element inventory cap. Updates sessions.credited_elements JSON.
+        """
+        if new_minutes <= 0:
+            return {e: 0 for e in lab_catalog.ELEMENT_LIST}, []
+
+        cur = await self.conn.execute("SELECT credited_elements FROM sessions WHERE session_id = ?", (session_id,))
+        row = await cur.fetchone()
+        raw_credited = row["credited_elements"] if row else None
+        cur_cumulative = json.loads(raw_credited) if raw_credited else {e: 0 for e in lab_catalog.ELEMENT_LIST}
+
+        daily = await self.get_lab_daily(user_id, guild_id)
+        start_min = daily["oc_minutes"]
+
+        session_deltas = {e: 0 for e in lab_catalog.ELEMENT_LIST}
+        for i in range(new_minutes):
+            is_half = (start_min + i) >= lab_catalog.OC_FULL_RATE_MINUTES
+            m_roll = lab_catalog.roll_minute_elements(half_rate=is_half)
+            for e, val in m_roll.items():
+                session_deltas[e] += val
+
+        # Increment daily OC minutes
+        await self.add_lab_daily_oc_minutes(user_id, guild_id, new_minutes)
+
+        # Deposit to user inventory (with 500 cap)
+        actual_added, capped = await self.add_lab_elements(user_id, guild_id, session_deltas)
+
+        # Update sessions.credited_elements
+        new_cumulative = {e: cur_cumulative.get(e, 0) + session_deltas.get(e, 0) for e in lab_catalog.ELEMENT_LIST}
+        await self.conn.execute(
+            "UPDATE sessions SET credited_elements = ? WHERE session_id = ?",
+            (json.dumps(new_cumulative), session_id),
+        )
+        await self.conn.commit()
+        return session_deltas, capped
+
+
+
+
+
+
 
 
 

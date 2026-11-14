@@ -36,12 +36,15 @@ async def effects_block(c: Ctx, uid: Optional[int] = None) -> list[dict[str, Any
 
 
 def session_view(c: Ctx, s: dict[str, Any], now: int) -> dict[str, Any]:
+    import json
     checkin_interval = config.CHECKIN_INTERVAL_MINUTES * 60
     grace = config.AFK_GRACE_MINUTES * 60
     prompt = s.get("prompt_sent_at")
     return {
         "id": s["session_id"],
         "subject": subject_card(s.get("subject")),
+        "track": s.get("track"),
+        "credited_elements": json.loads(s.get("credited_elements") or "{}"),
         "start_time": s["start_time"],
         "elapsed": max(0, now - s["start_time"]),
         "credited_seconds": s["credited_seconds"],
@@ -95,21 +98,39 @@ async def start_session(c: Ctx):
     if await c.db.get_active_session(c.uid, c.gid):
         raise fail("You already have a session running. Stop it first.", 409, "already_active")
 
-    voice_id = c.bridge.voice_channel_of(c.gid, c.uid)
-    cfg = await c.db.get_guild_config(c.gid)
-    resolved = detect_subject(cfg, voice_id)
-    subject = (body.get("subject") or "").strip()
-    if subject:
-        resolved = SUBJECT_ALIASES.get(normalize_subject_key(subject))
-        if resolved is None:
-            raise fail(f"Unknown subject '{subject}'. {SUBJECT_HINT}", 400, "bad_subject")
+    mode = (body.get("mode") or body.get("track") or "").strip().lower()
+    track = None
+    if mode in ("oc", "organic"):
+        unlock = await c.db.get_lab_unlock(c.uid, c.gid)
+        if not unlock:
+            chem_hours = await c.db.get_lab_chemistry_hours(c.uid, c.gid)
+            curr = await c.db.get_or_create_currency(c.uid, c.gid)
+            raise fail(
+                f"The Lab is locked. Chemistry: {chem_hours:.1f}h / 30h, Coins: {curr['coins']:,} / 60,000.",
+                403,
+                "lab_locked",
+                chemistry_hours=chem_hours,
+                coins=curr["coins"],
+            )
+        resolved = "chemistry"
+        track = "oc"
+    else:
+        voice_id = c.bridge.voice_channel_of(c.gid, c.uid)
+        cfg = await c.db.get_guild_config(c.gid)
+        resolved = detect_subject(cfg, voice_id)
+        subject = (body.get("subject") or "").strip()
+        if subject:
+            resolved = SUBJECT_ALIASES.get(normalize_subject_key(subject))
+            if resolved is None:
+                raise fail(f"Unknown subject '{subject}'. {SUBJECT_HINT}", 400, "bad_subject")
 
+    voice_id = c.bridge.voice_channel_of(c.gid, c.uid)
     now = int(time.time())
-    sid = await c.db.start_session(c.uid, c.gid, voice_id, resolved, now)
+    sid = await c.db.start_session(c.uid, c.gid, voice_id, resolved, now, track=track)
     log.info("SESSION START | %s (%s) in guild %s via web%s", c.me["name"], c.uid, c.gid,
-             f" [subject={resolved}]" if resolved else "")
+             f" [subject={resolved}, track={track}]" if resolved else "")
     await c.mirror(embed=mirror.session_started(c.me, c.uid, resolved, now))
-    c.emit("session_started", subject=resolved, source="web")
+    c.emit("session_started", subject=resolved, track=track, source="web")
     await c.top3_perk()
     s = await c.db.get_active_session(c.uid, c.gid)
     return {"ok": True, "session": session_view(c, s, now), "id": sid}
@@ -199,6 +220,7 @@ async def active(c: Ctx):
         m = c.person(s["user_id"])
         people.append({**m, "elapsed": max(0, now - s["start_time"]), "start_time": s["start_time"],
                        "subject": subject_card(s.get("subject")),
+                       "track": s.get("track"),
                        "channel": c.bridge.channel_name(s.get("channel_id")), "me": s["user_id"] == c.uid})
     people.sort(key=lambda p: -p["elapsed"])
     return {"now": now, "people": people}

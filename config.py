@@ -46,8 +46,8 @@ XP_MAX_PER_MINUTE = int(os.getenv("XP_MAX_PER_MINUTE", "14"))
 # Coins are earned the same way XP is - a random per-minute roll,
 # credited incrementally alongside XP (see database.py). Spend them in
 # the `.shop` (see utils/economy.py for the catalog).
-COINS_MIN_PER_MINUTE = int(os.getenv("COINS_MIN_PER_MINUTE", "1"))
-COINS_MAX_PER_MINUTE = int(os.getenv("COINS_MAX_PER_MINUTE", "3"))
+COINS_MIN_PER_MINUTE = int(os.getenv("COINS_MIN_PER_MINUTE", "60"))
+COINS_MAX_PER_MINUTE = int(os.getenv("COINS_MAX_PER_MINUTE", "120"))
 
 # --- Pets --------------------------------------------------------------------
 # Study level (utils/xp.py, NOT pet level) required before `.buypet` works.
@@ -64,18 +64,18 @@ PET_XP_MAX_PER_MINUTE = int(os.getenv("PET_XP_MAX_PER_MINUTE", "3"))
 # `.sellfood` refunds this fraction of a food's shop price.
 FOOD_SELL_RATE = float(os.getenv("FOOD_SELL_RATE", "0.5"))
 
-# --- Extra coin-earning commands (pets + food made coins matter more) --------
+# --- Extra coin-earning commands (scaled for 50k+ player economy) ------------
 WORK_COOLDOWN_SECONDS = int(os.getenv("WORK_COOLDOWN_SECONDS", str(60 * 60)))
-WORK_COINS_MIN = int(os.getenv("WORK_COINS_MIN", "80"))
-WORK_COINS_MAX = int(os.getenv("WORK_COINS_MAX", "180"))
+WORK_COINS_MIN = int(os.getenv("WORK_COINS_MIN", "3500"))
+WORK_COINS_MAX = int(os.getenv("WORK_COINS_MAX", "8000"))
 WORK_XP_MIN = int(os.getenv("WORK_XP_MIN", "10"))
 WORK_XP_MAX = int(os.getenv("WORK_XP_MAX", "25"))
 
 # `.beg` - a much shorter cooldown than `.work`, smaller (and sometimes
 # zero) payout, purely for flavor/frequent small top-ups.
 BEG_COOLDOWN_SECONDS = int(os.getenv("BEG_COOLDOWN_SECONDS", str(10 * 60)))
-BEG_COINS_MIN = int(os.getenv("BEG_COINS_MIN", "10"))
-BEG_COINS_MAX = int(os.getenv("BEG_COINS_MAX", "45"))
+BEG_COINS_MIN = int(os.getenv("BEG_COINS_MIN", "400"))
+BEG_COINS_MAX = int(os.getenv("BEG_COINS_MAX", "1200"))
 BEG_FAIL_CHANCE = float(os.getenv("BEG_FAIL_CHANCE", "0.25"))
 
 # --- Streak break penalty ----------------------------------------------------
@@ -83,12 +83,12 @@ BEG_FAIL_CHANCE = float(os.getenv("BEG_FAIL_CHANCE", "0.25"))
 # Freeze), the user loses coins proportional to the streak they just
 # lost. The formula is: min(old_streak * STREAK_BREAK_COINS_PER_DAY, STREAK_BREAK_COINS_CAP)
 # Set STREAK_BREAK_COINS_PER_DAY to 0 to disable the penalty entirely.
-STREAK_BREAK_COINS_PER_DAY = int(os.getenv("STREAK_BREAK_COINS_PER_DAY", "5"))
-STREAK_BREAK_COINS_CAP = int(os.getenv("STREAK_BREAK_COINS_CAP", "500"))
+STREAK_BREAK_COINS_PER_DAY = int(os.getenv("STREAK_BREAK_COINS_PER_DAY", "150"))
+STREAK_BREAK_COINS_CAP = int(os.getenv("STREAK_BREAK_COINS_CAP", "15000"))
 
 WEEKLY_COOLDOWN_SECONDS = int(os.getenv("WEEKLY_COOLDOWN_SECONDS", str(7 * 24 * 60 * 60)))
-WEEKLY_COINS_MIN = int(os.getenv("WEEKLY_COINS_MIN", "900"))
-WEEKLY_COINS_MAX = int(os.getenv("WEEKLY_COINS_MAX", "1500"))
+WEEKLY_COINS_MIN = int(os.getenv("WEEKLY_COINS_MIN", "40000"))
+WEEKLY_COINS_MAX = int(os.getenv("WEEKLY_COINS_MAX", "80000"))
 
 # --- AFK check-in system -----------------------------------------------------
 # Every CHECKIN_INTERVAL_MINUTES of inactivity, the bot asks "are you

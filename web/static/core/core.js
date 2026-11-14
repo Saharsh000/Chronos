@@ -121,7 +121,7 @@ export const plural = (n, w) => `${num(n)} ${w}${n === 1 ? '' : 's'}`;
 // ---------------------------------------------------------------- icons
 const ICON_SIZES = [16, 32, 64, 128, 256];
 export function iconUrl(name, size = 32) {
-  if (name.startsWith('food/')) return `/assets/icons/${name}.png`;   // food art ships at one size
+  if (name.startsWith('food/') || name.startsWith('toys/')) return `/assets/icons/${name}.png`;   // food & toy art ship at single size
   const s = ICON_SIZES.find((x) => x >= size) || 256;
   return `/assets/icons/${name}_${s}.png`;
 }
