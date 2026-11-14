@@ -8458,5 +8458,275 @@
     "category": "Terpenoids-Steroids",
     "structure": "C20H30O",
     "fact": "Vitamin A1; diterpenoid alcohol required for rhodopsin formation in visual phototransduction and cellular differentiation."
+  },
+  {
+    "id": "phenolphthalein",
+    "name": "Phenolphthalein",
+    "formula": "C20H14O4",
+    "elements": {
+      "C": 20,
+      "H": 14,
+      "O": 4,
+      "N": 0,
+      "Cl": 0,
+      "F": 0,
+      "Br": 0,
+      "I": 0
+    },
+    "category": "Dyes-Indicators",
+    "structure": "C20H14O4",
+    "fact": "Triarylmethane pH indicator; synthesized by heating phthalic anhydride with two equivalents of phenol in conc. H2SO4; turns magenta at pH > 8.2 due to quinoid Dianion formation."
+  },
+  {
+    "id": "fluorescein",
+    "name": "Fluorescein",
+    "formula": "C20H12O5",
+    "elements": {
+      "C": 20,
+      "H": 12,
+      "O": 5,
+      "N": 0,
+      "Cl": 0,
+      "F": 0,
+      "Br": 0,
+      "I": 0
+    },
+    "category": "Dyes-Indicators",
+    "structure": "C20H12O5",
+    "fact": "Resorcinol-derived xanthene dye with intense yellow-green fluorescence (quantum yield ~0.92); used to trace underground watercourses and corneal abrasions."
+  },
+  {
+    "id": "indigo",
+    "name": "Indigo",
+    "formula": "C16H10N2O2",
+    "elements": {
+      "C": 16,
+      "H": 10,
+      "O": 2,
+      "N": 2,
+      "Cl": 0,
+      "F": 0,
+      "Br": 0,
+      "I": 0
+    },
+    "category": "Dyes-Indicators",
+    "structure": "C16H10N2O2",
+    "fact": "Ancient blue vat dye; reduced by sodium dithionite to water-soluble leuco-indigo, which re-oxidizes upon air exposure onto cotton denim fibers."
+  },
+  {
+    "id": "alizarin",
+    "name": "Alizarin",
+    "formula": "C14H8O4",
+    "elements": {
+      "C": 14,
+      "H": 8,
+      "O": 4,
+      "N": 0,
+      "Cl": 0,
+      "F": 0,
+      "Br": 0,
+      "I": 0
+    },
+    "category": "Dyes-Indicators",
+    "structure": "1,2-(OH)2C14H6O2",
+    "fact": "1,2-Dihydroxyanthraquinone; historic red mordant dye extracted from madder root (Rubia tinctorum), forming insoluble turkey red complexes with aluminum lakes."
+  },
+  {
+    "id": "malachite-green",
+    "name": "Malachite Green",
+    "formula": "C23H25ClN2",
+    "elements": {
+      "C": 23,
+      "H": 25,
+      "O": 0,
+      "N": 2,
+      "Cl": 1,
+      "F": 0,
+      "Br": 0,
+      "I": 0
+    },
+    "category": "Dyes-Indicators",
+    "structure": "[C23H25N2]+ Cl-",
+    "fact": "Triarylmethane cationic dye produced by condensing benzaldehyde with two equivalents of N,N-dimethylaniline; clinical aquaculture antifungal agent."
+  },
+  {
+    "id": "crystal-violet",
+    "name": "Crystal Violet",
+    "formula": "C25H30ClN3",
+    "elements": {
+      "C": 25,
+      "H": 30,
+      "O": 0,
+      "N": 3,
+      "Cl": 1,
+      "F": 0,
+      "Br": 0,
+      "I": 0
+    },
+    "category": "Dyes-Indicators",
+    "structure": "[C25H30N3]+ Cl-",
+    "fact": "Hexamethylpararosaniline chloride; primary staining dye in the Gram stain test differentiating Gram-positive and Gram-negative bacteria."
+  },
+  {
+    "id": "eosin-y",
+    "name": "Eosin Y",
+    "formula": "C20H8Br4O5",
+    "elements": {
+      "C": 20,
+      "H": 8,
+      "O": 5,
+      "N": 0,
+      "Cl": 0,
+      "F": 0,
+      "Br": 4,
+      "I": 0
+    },
+    "category": "Dyes-Indicators",
+    "structure": "C20H8Br4O5",
+    "fact": "Tetrabromofluorescein; red fluorescent acidic histological dye used with hematoxylin (H&E stain) to counterstain cytoplasm and collagen."
+  },
+  {
+    "id": "methyl-red",
+    "name": "Methyl Red",
+    "formula": "C15H15N3O2",
+    "elements": {
+      "C": 15,
+      "H": 15,
+      "O": 2,
+      "N": 3,
+      "Cl": 0,
+      "F": 0,
+      "Br": 0,
+      "I": 0
+    },
+    "category": "Dyes-Indicators",
+    "structure": "2-(4-(dimethylamino)phenylazo)benzoic acid",
+    "fact": "Azo dye pH indicator changing from red below pH 4.4 to yellow above pH 6.2; standard reagent in the Voges-Proskauer/MR microbiology test."
+  },
+  {
+    "id": "sudan-i",
+    "name": "Sudan I",
+    "formula": "C16H12N2O",
+    "elements": {
+      "C": 16,
+      "H": 12,
+      "O": 1,
+      "N": 2,
+      "Cl": 0,
+      "F": 0,
+      "Br": 0,
+      "I": 0
+    },
+    "category": "Dyes-Indicators",
+    "structure": "1-(phenyldiazenyl)naphthalen-2-ol",
+    "fact": "Lysochrome diazo dye synthesized by coupling benzenediazonium chloride with 2-naphthol; used to stain neutral triglycerides and lipids."
+  },
+  {
+    "id": "ddq",
+    "name": "DDQ",
+    "formula": "C8Cl2N2O2",
+    "elements": {
+      "C": 8,
+      "H": 0,
+      "O": 2,
+      "N": 2,
+      "Cl": 2,
+      "F": 0,
+      "Br": 0,
+      "I": 0
+    },
+    "category": "Reagents-Catalysts",
+    "structure": "2,3-dichloro-5,6-dicyano-1,4-benzoquinone",
+    "fact": "Powerful high-potential quinone oxidant (E\u00b0 = +1.0 V) used for selective oxidative deprotection of PMB ethers and dehydrogenation of steroids."
+  },
+  {
+    "id": "nbs",
+    "name": "NBS",
+    "formula": "C4H4BrNO2",
+    "elements": {
+      "C": 4,
+      "H": 4,
+      "O": 2,
+      "N": 1,
+      "Cl": 0,
+      "F": 0,
+      "Br": 1,
+      "I": 0
+    },
+    "category": "Reagents-Catalysts",
+    "structure": "C4H4BrNO2",
+    "fact": "N-Bromosuccinimide; maintains low, steady concentration of molecular bromine (Br2) for selective Wohl-Ziegler allylic and benzylic free radical bromination."
+  },
+  {
+    "id": "dmp",
+    "name": "DMP",
+    "formula": "C13H13IO8",
+    "elements": {
+      "C": 13,
+      "H": 13,
+      "O": 8,
+      "N": 0,
+      "Cl": 0,
+      "F": 0,
+      "Br": 0,
+      "I": 1
+    },
+    "category": "Reagents-Catalysts",
+    "structure": "C13H13IO8",
+    "fact": "Dess-Martin periodinane; hypervalent iodine(V) reagent that selectively oxidizes primary alcohols to aldehydes without over-oxidation to carboxylic acids under neutral conditions."
+  },
+  {
+    "id": "tempo",
+    "name": "TEMPO",
+    "formula": "C9H18NO",
+    "elements": {
+      "C": 9,
+      "H": 18,
+      "O": 1,
+      "N": 1,
+      "Cl": 0,
+      "F": 0,
+      "Br": 0,
+      "I": 0
+    },
+    "category": "Reagents-Catalysts",
+    "structure": "C9H18NO",
+    "fact": "(2,2,6,6-Tetramethylpiperidin-1-yl)oxyl; persistent stable sterically protected nitroxide free radical used as selective organocatalyst for alcohol oxidations."
+  },
+  {
+    "id": "dbu",
+    "name": "DBU",
+    "formula": "C9H16N2",
+    "elements": {
+      "C": 9,
+      "H": 16,
+      "O": 0,
+      "N": 2,
+      "Cl": 0,
+      "F": 0,
+      "Br": 0,
+      "I": 0
+    },
+    "category": "Reagents-Catalysts",
+    "structure": "C9H16N2",
+    "fact": "1,8-Diazabicyclo[5.4.0]undec-7-ene; amidine organic base whose protonated conjugate acid is resonance stabilized by both nitrogens; non-nucleophilic E2 base."
+  },
+  {
+    "id": "dbn",
+    "name": "DBN",
+    "formula": "C7H12N2",
+    "elements": {
+      "C": 7,
+      "H": 12,
+      "O": 0,
+      "N": 2,
+      "Cl": 0,
+      "F": 0,
+      "Br": 0,
+      "I": 0
+    },
+    "category": "Reagents-Catalysts",
+    "structure": "C7H12N2",
+    "fact": "1,5-Diazabicyclo[4.3.0]non-5-ene; bicyclic amidine base utilized in dehydrohalogenation reactions without competitive SN2 substitution."
   }
 ]
