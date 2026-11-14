@@ -362,6 +362,14 @@ CREATE TABLE IF NOT EXISTS bot_kv_store (
     key   TEXT PRIMARY KEY,
     value TEXT NOT NULL
 );
+
+-- Lab: unlock tracking (one row per user per guild once they pay 60,000 and have >=30h chemistry)
+CREATE TABLE IF NOT EXISTS lab_unlocks (
+    user_id     INTEGER NOT NULL,
+    guild_id    INTEGER NOT NULL,
+    unlocked_at INTEGER NOT NULL,
+    PRIMARY KEY (user_id, guild_id)
+);
 """
 
 # Columns added to `user_stats` after its original release. Applied by
