@@ -7738,5 +7738,365 @@
     "category": "Heterocycles",
     "structure": "C3H4N2O2",
     "fact": "Imidazolidine-2,4-dione; cyclic urea derivative synthesized by reaction of amino acids with cyanates; core of phenytoin anticonvulsant."
+  },
+  {
+    "id": "pyridine",
+    "name": "Pyridine",
+    "formula": "C5H5N",
+    "elements": {
+      "C": 5,
+      "H": 5,
+      "O": 0,
+      "N": 1,
+      "Cl": 0,
+      "F": 0,
+      "Br": 0,
+      "I": 0
+    },
+    "category": "Heterocycles",
+    "structure": "C5H5N",
+    "fact": "Six-membered aromatic nitrogen heterocycle; sp2 nitrogen lone pair resides in plane of ring and does not participate in the aromatic sextet, making it basic (pKb 8.75)."
+  },
+  {
+    "id": "quinoline",
+    "name": "Quinoline",
+    "formula": "C9H7N",
+    "elements": {
+      "C": 9,
+      "H": 7,
+      "O": 0,
+      "N": 1,
+      "Cl": 0,
+      "F": 0,
+      "Br": 0,
+      "I": 0
+    },
+    "category": "Heterocycles",
+    "structure": "C9H7N",
+    "fact": "1-Azanaphthalene; synthesized via the Skraup reaction by heating aniline with glycerol, sulfuric acid, and nitrobenzene as oxidant."
+  },
+  {
+    "id": "isoquinoline",
+    "name": "Isoquinoline",
+    "formula": "C9H7N",
+    "elements": {
+      "C": 9,
+      "H": 7,
+      "O": 0,
+      "N": 1,
+      "Cl": 0,
+      "F": 0,
+      "Br": 0,
+      "I": 0
+    },
+    "category": "Heterocycles",
+    "structure": "C9H7N",
+    "fact": "2-Azanaphthalene; synthesized by Bischler-Napieralski cyclodehydration of beta-phenylethylamides followed by dehydrogenation."
+  },
+  {
+    "id": "acridine",
+    "name": "Acridine",
+    "formula": "C13H9N",
+    "elements": {
+      "C": 13,
+      "H": 9,
+      "O": 0,
+      "N": 1,
+      "Cl": 0,
+      "F": 0,
+      "Br": 0,
+      "I": 0
+    },
+    "category": "Heterocycles",
+    "structure": "C13H9N",
+    "fact": "Dibenzo[b,e]pyridine; planar fluorescent tricyclic nitrogen heterocycle; classic DNA intercalating agent and antiseptic dye parent."
+  },
+  {
+    "id": "pyrimidine",
+    "name": "Pyrimidine",
+    "formula": "C4H4N2",
+    "elements": {
+      "C": 4,
+      "H": 4,
+      "O": 0,
+      "N": 2,
+      "Cl": 0,
+      "F": 0,
+      "Br": 0,
+      "I": 0
+    },
+    "category": "Heterocycles",
+    "structure": "C4H4N2",
+    "fact": "1,3-Diazine; core aromatic ring of cytosine, thymine, and uracil nucleic acid bases."
+  },
+  {
+    "id": "pyrazine",
+    "name": "Pyrazine",
+    "formula": "C4H4N2",
+    "elements": {
+      "C": 4,
+      "H": 4,
+      "O": 0,
+      "N": 2,
+      "Cl": 0,
+      "F": 0,
+      "Br": 0,
+      "I": 0
+    },
+    "category": "Heterocycles",
+    "structure": "C4H4N2",
+    "fact": "1,4-Diazine; symmetrical planar heterocycle; substituted alkylpyrazines are key volatile aroma contributors to roasted coffee and chocolate."
+  },
+  {
+    "id": "pyridazine",
+    "name": "Pyridazine",
+    "formula": "C4H4N2",
+    "elements": {
+      "C": 4,
+      "H": 4,
+      "O": 0,
+      "N": 2,
+      "Cl": 0,
+      "F": 0,
+      "Br": 0,
+      "I": 0
+    },
+    "category": "Heterocycles",
+    "structure": "C4H4N2",
+    "fact": "1,2-Diazine; cyclic diaza-aromatic compound prepared by condensing maleic dialdehyde with hydrazine."
+  },
+  {
+    "id": "piperidine",
+    "name": "Piperidine",
+    "formula": "C5H11N",
+    "elements": {
+      "C": 5,
+      "H": 11,
+      "O": 0,
+      "N": 1,
+      "Cl": 0,
+      "F": 0,
+      "Br": 0,
+      "I": 0
+    },
+    "category": "Heterocycles",
+    "structure": "C5H11N",
+    "fact": "Hexahydropyridine; saturated cyclic secondary amine found in black pepper (piperine); pKb 2.88, significantly stronger base than pyridine."
+  },
+  {
+    "id": "piperazine",
+    "name": "Piperazine",
+    "formula": "C4H10N2",
+    "elements": {
+      "C": 4,
+      "H": 10,
+      "O": 0,
+      "N": 2,
+      "Cl": 0,
+      "F": 0,
+      "Br": 0,
+      "I": 0
+    },
+    "category": "Heterocycles",
+    "structure": "C4H10N2",
+    "fact": "Hexahydropyrazine; cyclic diamine anthelmintic agent and common structural bridge in pharmaceutical medicinal chemistry."
+  },
+  {
+    "id": "morpholine",
+    "name": "Morpholine",
+    "formula": "C4H9NO",
+    "elements": {
+      "C": 4,
+      "H": 9,
+      "O": 1,
+      "N": 1,
+      "Cl": 0,
+      "F": 0,
+      "Br": 0,
+      "I": 0
+    },
+    "category": "Heterocycles",
+    "structure": "C4H9NO",
+    "fact": "Six-membered ring featuring both ether oxygen and secondary amine nitrogen; volatile corrosion inhibitor in industrial boiler steam systems."
+  },
+  {
+    "id": "phenazine",
+    "name": "Phenazine",
+    "formula": "C12H8N2",
+    "elements": {
+      "C": 12,
+      "H": 8,
+      "O": 0,
+      "N": 2,
+      "Cl": 0,
+      "F": 0,
+      "Br": 0,
+      "I": 0
+    },
+    "category": "Heterocycles",
+    "structure": "C12H8N2",
+    "fact": "Dibenzo[b,e]pyrazine; yellow crystalline tricyclic heterocycle synthesized by condensation of catechol with o-phenylenediamine."
+  },
+  {
+    "id": "phenanthridine",
+    "name": "Phenanthridine",
+    "formula": "C13H9N",
+    "elements": {
+      "C": 13,
+      "H": 9,
+      "O": 0,
+      "N": 1,
+      "Cl": 0,
+      "F": 0,
+      "Br": 0,
+      "I": 0
+    },
+    "category": "Heterocycles",
+    "structure": "C13H9N",
+    "fact": "Benzo[c]quinoline; core fluorophore of ethidium bromide DNA fluorescent stain used in agarose gel electrophoresis."
+  },
+  {
+    "id": "2-picoline",
+    "name": "2-Picoline",
+    "formula": "C6H7N",
+    "elements": {
+      "C": 6,
+      "H": 7,
+      "O": 0,
+      "N": 1,
+      "Cl": 0,
+      "F": 0,
+      "Br": 0,
+      "I": 0
+    },
+    "category": "Heterocycles",
+    "structure": "2-CH3C5H4N",
+    "fact": "alpha-Picoline; 2-methylpyridine; acidic methyl protons undergo condensation with aldehydes to form 2-vinylpyridines."
+  },
+  {
+    "id": "3-picoline",
+    "name": "3-Picoline",
+    "formula": "C6H7N",
+    "elements": {
+      "C": 6,
+      "H": 7,
+      "O": 0,
+      "N": 1,
+      "Cl": 0,
+      "F": 0,
+      "Br": 0,
+      "I": 0
+    },
+    "category": "Heterocycles",
+    "structure": "3-CH3C5H4N",
+    "fact": "beta-Picoline; 3-methylpyridine; oxidized industrially by nitric acid or air to nicotinic acid (niacin / Vitamin B3)."
+  },
+  {
+    "id": "4-picoline",
+    "name": "4-Picoline",
+    "formula": "C6H7N",
+    "elements": {
+      "C": 6,
+      "H": 7,
+      "O": 0,
+      "N": 1,
+      "Cl": 0,
+      "F": 0,
+      "Br": 0,
+      "I": 0
+    },
+    "category": "Heterocycles",
+    "structure": "4-CH3C5H4N",
+    "fact": "gamma-Picoline; 4-methylpyridine; oxidized to isonicotinic acid, precursor to the front-line tuberculosis drug isoniazid (INH)."
+  },
+  {
+    "id": "2,6-lutidine",
+    "name": "2,6-Lutidine",
+    "formula": "C7H9N",
+    "elements": {
+      "C": 7,
+      "H": 9,
+      "O": 0,
+      "N": 1,
+      "Cl": 0,
+      "F": 0,
+      "Br": 0,
+      "I": 0
+    },
+    "category": "Heterocycles",
+    "structure": "2,6-(CH3)2C5H3N",
+    "fact": "2,6-Dimethylpyridine; sterically hindered non-nucleophilic mild organic base that resists coordination to Lewis acidic centers."
+  },
+  {
+    "id": "dmap",
+    "name": "DMAP",
+    "formula": "C7H10N2",
+    "elements": {
+      "C": 7,
+      "H": 10,
+      "O": 0,
+      "N": 2,
+      "Cl": 0,
+      "F": 0,
+      "Br": 0,
+      "I": 0
+    },
+    "category": "Heterocycles",
+    "structure": "4-(CH3)2NC5H4N",
+    "fact": "4-Dimethylaminopyridine; hyper-nucleophilic acylation catalyst that accelerates esterification by orders of magnitude via resonance stabilization."
+  },
+  {
+    "id": "1,10-phenanthroline",
+    "name": "1,10-Phenanthroline",
+    "formula": "C12H8N2",
+    "elements": {
+      "C": 12,
+      "H": 8,
+      "O": 0,
+      "N": 2,
+      "Cl": 0,
+      "F": 0,
+      "Br": 0,
+      "I": 0
+    },
+    "category": "Heterocycles",
+    "structure": "C12H8N2",
+    "fact": "Rigid bidentate chelating nitrogen ligand; forms deep red ferroin complex [Fe(phen)3]2+ used as classic redox titration indicator."
+  },
+  {
+    "id": "2,2-bipyridine",
+    "name": "2,2-Bipyridine",
+    "formula": "C10H8N2",
+    "elements": {
+      "C": 10,
+      "H": 8,
+      "O": 0,
+      "N": 2,
+      "Cl": 0,
+      "F": 0,
+      "Br": 0,
+      "I": 0
+    },
+    "category": "Heterocycles",
+    "structure": "C10H8N2",
+    "fact": "Bipy; neutral chelating bidentate ligand; coordinates transition metals for photoredox catalysis and OLED emitters."
+  },
+  {
+    "id": "uracil",
+    "name": "Uracil",
+    "formula": "C4H4N2O2",
+    "elements": {
+      "C": 4,
+      "H": 4,
+      "O": 2,
+      "N": 2,
+      "Cl": 0,
+      "F": 0,
+      "Br": 0,
+      "I": 0
+    },
+    "category": "Heterocycles",
+    "structure": "C4H4N2O2",
+    "fact": "Pyrimidine-2,4(1H,3H)-dione; natural pyrimidine nucleobase in RNA that pairs with adenine via two Watson-Crick hydrogen bonds."
   }
 ]
