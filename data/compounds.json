@@ -8098,5 +8098,365 @@
     "category": "Heterocycles",
     "structure": "C4H4N2O2",
     "fact": "Pyrimidine-2,4(1H,3H)-dione; natural pyrimidine nucleobase in RNA that pairs with adenine via two Watson-Crick hydrogen bonds."
+  },
+  {
+    "id": "menthol",
+    "name": "Menthol",
+    "formula": "C10H20O",
+    "elements": {
+      "C": 10,
+      "H": 20,
+      "O": 1,
+      "N": 0,
+      "Cl": 0,
+      "F": 0,
+      "Br": 0,
+      "I": 0
+    },
+    "category": "Terpenoids-Steroids",
+    "structure": "C10H20O",
+    "fact": "Monocyclic monoterpene alcohol found in peppermint oil; triggers cold-sensitive TRPM8 receptors to produce a cooling sensation."
+  },
+  {
+    "id": "limonene",
+    "name": "Limonene",
+    "formula": "C10H16",
+    "elements": {
+      "C": 10,
+      "H": 16,
+      "O": 0,
+      "N": 0,
+      "Cl": 0,
+      "F": 0,
+      "Br": 0,
+      "I": 0
+    },
+    "category": "Terpenoids-Steroids",
+    "structure": "C10H16",
+    "fact": "Monocyclic monoterpene; (R)-limonene has strong orange aroma, industrial citrus degreaser solvent."
+  },
+  {
+    "id": "beta-pinene",
+    "name": "beta-Pinene",
+    "formula": "C10H16",
+    "elements": {
+      "C": 10,
+      "H": 16,
+      "O": 0,
+      "N": 0,
+      "Cl": 0,
+      "F": 0,
+      "Br": 0,
+      "I": 0
+    },
+    "category": "Terpenoids-Steroids",
+    "structure": "C10H16",
+    "fact": "Bicyclic monoterpene with exocyclic methylene; major component of pine turpentine; synthesized into myrcene."
+  },
+  {
+    "id": "geraniol",
+    "name": "Geraniol",
+    "formula": "C10H18O",
+    "elements": {
+      "C": 10,
+      "H": 18,
+      "O": 1,
+      "N": 0,
+      "Cl": 0,
+      "F": 0,
+      "Br": 0,
+      "I": 0
+    },
+    "category": "Terpenoids-Steroids",
+    "structure": "C10H18O",
+    "fact": "Acyclic monoterpene alcohol with sweet rose odor; major constituent of rose and palmarosa essential oils."
+  },
+  {
+    "id": "linalool",
+    "name": "Linalool",
+    "formula": "C10H18O",
+    "elements": {
+      "C": 10,
+      "H": 18,
+      "O": 1,
+      "N": 0,
+      "Cl": 0,
+      "F": 0,
+      "Br": 0,
+      "I": 0
+    },
+    "category": "Terpenoids-Steroids",
+    "structure": "C10H18O",
+    "fact": "Tertiary monoterpene alcohol with pleasant floral lavender scent, found in over 200 plant species."
+  },
+  {
+    "id": "citronellal",
+    "name": "Citronellal",
+    "formula": "C10H18O",
+    "elements": {
+      "C": 10,
+      "H": 18,
+      "O": 1,
+      "N": 0,
+      "Cl": 0,
+      "F": 0,
+      "Br": 0,
+      "I": 0
+    },
+    "category": "Terpenoids-Steroids",
+    "structure": "C10H18O",
+    "fact": "Monoterpenoid aldehyde occurring in citronella oil; cyclizes to isopulegol in the synthesis of menthol."
+  },
+  {
+    "id": "farnesol",
+    "name": "Farnesol",
+    "formula": "C15H26O",
+    "elements": {
+      "C": 15,
+      "H": 26,
+      "O": 1,
+      "N": 0,
+      "Cl": 0,
+      "F": 0,
+      "Br": 0,
+      "I": 0
+    },
+    "category": "Terpenoids-Steroids",
+    "structure": "C15H26O",
+    "fact": "Acyclic sesquiterpene alcohol; pyrophosphate derivative (FPP) is key biological precursor to squalene and steroids."
+  },
+  {
+    "id": "borneol",
+    "name": "Borneol",
+    "formula": "C10H18O",
+    "elements": {
+      "C": 10,
+      "H": 18,
+      "O": 1,
+      "N": 0,
+      "Cl": 0,
+      "F": 0,
+      "Br": 0,
+      "I": 0
+    },
+    "category": "Terpenoids-Steroids",
+    "structure": "C10H18O",
+    "fact": "Bicyclic monoterpene alcohol synthesized by reduction of camphor; endo-stereoisomer favored by thermodynamic control."
+  },
+  {
+    "id": "fenchone",
+    "name": "Fenchone",
+    "formula": "C10H16O",
+    "elements": {
+      "C": 10,
+      "H": 16,
+      "O": 1,
+      "N": 0,
+      "Cl": 0,
+      "F": 0,
+      "Br": 0,
+      "I": 0
+    },
+    "category": "Terpenoids-Steroids",
+    "structure": "C10H16O",
+    "fact": "Bicyclic monoterpene ketone related to camphor; aroma constituent of fennel and absinthe essential oils."
+  },
+  {
+    "id": "nerol",
+    "name": "Nerol",
+    "formula": "C10H18O",
+    "elements": {
+      "C": 10,
+      "H": 18,
+      "O": 1,
+      "N": 0,
+      "Cl": 0,
+      "F": 0,
+      "Br": 0,
+      "I": 0
+    },
+    "category": "Terpenoids-Steroids",
+    "structure": "C10H18O",
+    "fact": "(Z)-isomer of geraniol; monoterpene alcohol with sweet fresh floral aroma used in perfumery."
+  },
+  {
+    "id": "cholesterol",
+    "name": "Cholesterol",
+    "formula": "C27H46O",
+    "elements": {
+      "C": 27,
+      "H": 46,
+      "O": 1,
+      "N": 0,
+      "Cl": 0,
+      "F": 0,
+      "Br": 0,
+      "I": 0
+    },
+    "category": "Terpenoids-Steroids",
+    "structure": "C27H46O",
+    "fact": "Essential zoosterol maintaining eukaryotic cell membrane fluidity; biosynthetic precursor to all steroid hormones and bile acids."
+  },
+  {
+    "id": "testosterone",
+    "name": "Testosterone",
+    "formula": "C19H28O2",
+    "elements": {
+      "C": 19,
+      "H": 28,
+      "O": 2,
+      "N": 0,
+      "Cl": 0,
+      "F": 0,
+      "Br": 0,
+      "I": 0
+    },
+    "category": "Terpenoids-Steroids",
+    "structure": "C19H28O2",
+    "fact": "Primary male androgen anabolic steroid hormone possessing a 4-en-3-one system and 17beta-hydroxyl group."
+  },
+  {
+    "id": "progesterone",
+    "name": "Progesterone",
+    "formula": "C21H30O2",
+    "elements": {
+      "C": 21,
+      "H": 30,
+      "O": 2,
+      "N": 0,
+      "Cl": 0,
+      "F": 0,
+      "Br": 0,
+      "I": 0
+    },
+    "category": "Terpenoids-Steroids",
+    "structure": "C21H30O2",
+    "fact": "Endogenous steroid progestogen hormone maintaining pregnancy and menstrual cycle regulation."
+  },
+  {
+    "id": "cortisone",
+    "name": "Cortisone",
+    "formula": "C21H28O5",
+    "elements": {
+      "C": 21,
+      "H": 28,
+      "O": 5,
+      "N": 0,
+      "Cl": 0,
+      "F": 0,
+      "Br": 0,
+      "I": 0
+    },
+    "category": "Terpenoids-Steroids",
+    "structure": "C21H28O5",
+    "fact": "Glucocorticoid steroid hormone with three ketone groups and two hydroxyls; potent anti-inflammatory drug."
+  },
+  {
+    "id": "estradiol",
+    "name": "Estradiol",
+    "formula": "C18H24O2",
+    "elements": {
+      "C": 18,
+      "H": 24,
+      "O": 2,
+      "N": 0,
+      "Cl": 0,
+      "F": 0,
+      "Br": 0,
+      "I": 0
+    },
+    "category": "Terpenoids-Steroids",
+    "structure": "C18H24O2",
+    "fact": "E2; major female sex steroid hormone featuring an aromatic A-ring (phenolic steroid) and 17beta-hydroxyl."
+  },
+  {
+    "id": "ergosterol",
+    "name": "Ergosterol",
+    "formula": "C28H44O",
+    "elements": {
+      "C": 28,
+      "H": 44,
+      "O": 1,
+      "N": 0,
+      "Cl": 0,
+      "F": 0,
+      "Br": 0,
+      "I": 0
+    },
+    "category": "Terpenoids-Steroids",
+    "structure": "C28H44O",
+    "fact": "Mycosterol found in fungal cell membranes; undergoes UV photochemical ring opening to Vitamin D2 (ergocalciferol)."
+  },
+  {
+    "id": "cholic-acid",
+    "name": "Cholic Acid",
+    "formula": "C24H40O5",
+    "elements": {
+      "C": 24,
+      "H": 40,
+      "O": 5,
+      "N": 0,
+      "Cl": 0,
+      "F": 0,
+      "Br": 0,
+      "I": 0
+    },
+    "category": "Terpenoids-Steroids",
+    "structure": "C24H40O5",
+    "fact": "Major primary bile acid produced in the liver; acts as natural facial amphiphilic detergent for dietary fat emulsification."
+  },
+  {
+    "id": "stigmasterol",
+    "name": "Stigmasterol",
+    "formula": "C29H48O",
+    "elements": {
+      "C": 29,
+      "H": 48,
+      "O": 1,
+      "N": 0,
+      "Cl": 0,
+      "F": 0,
+      "Br": 0,
+      "I": 0
+    },
+    "category": "Terpenoids-Steroids",
+    "structure": "C29H48O",
+    "fact": "Plant phytosterol with unsaturated C22-C23 trans double bond in its side chain; industrial precursor to semisynthetic progesterone."
+  },
+  {
+    "id": "beta-carotene",
+    "name": "beta-Carotene",
+    "formula": "C40H56",
+    "elements": {
+      "C": 40,
+      "H": 56,
+      "O": 0,
+      "N": 0,
+      "Cl": 0,
+      "F": 0,
+      "Br": 0,
+      "I": 0
+    },
+    "category": "Terpenoids-Steroids",
+    "structure": "C40H56",
+    "fact": "Symmetrical tetraterpene pigment with 11 conjugated double bonds; cleaved by beta-carotene 15,15'-dioxygenase into two molecules of Vitamin A."
+  },
+  {
+    "id": "retinol",
+    "name": "Retinol",
+    "formula": "C20H30O",
+    "elements": {
+      "C": 20,
+      "H": 30,
+      "O": 1,
+      "N": 0,
+      "Cl": 0,
+      "F": 0,
+      "Br": 0,
+      "I": 0
+    },
+    "category": "Terpenoids-Steroids",
+    "structure": "C20H30O",
+    "fact": "Vitamin A1; diterpenoid alcohol required for rhodopsin formation in visual phototransduction and cellular differentiation."
   }
 ]
