@@ -33,6 +33,7 @@ INITIAL_EXTENSIONS = (
     "cogs.notes",
     "cogs.admin",
     "cogs.dev",
+    "cogs.lab",
     "cogs.help",
     "cogs.web",
 )
