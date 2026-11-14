@@ -2788,5 +2788,365 @@
     "category": "Alkynes",
     "structure": "C6H11C\u2261CH",
     "fact": "Terminal alkyne bearing a bulky cyclohexyl substituent used in steric studies of hydroboration."
+  },
+  {
+    "id": "cycloheptane",
+    "name": "Cycloheptane",
+    "formula": "C7H14",
+    "elements": {
+      "C": 7,
+      "H": 14,
+      "O": 0,
+      "N": 0,
+      "Cl": 0,
+      "F": 0,
+      "Br": 0,
+      "I": 0
+    },
+    "category": "Cycloalkanes",
+    "structure": "C7H14",
+    "fact": "Seven-membered cycloalkane; undergoes rapid pseudorotation among chair and twist-chair conformations."
+  },
+  {
+    "id": "cyclooctane",
+    "name": "Cyclooctane",
+    "formula": "C8H16",
+    "elements": {
+      "C": 8,
+      "H": 16,
+      "O": 0,
+      "N": 0,
+      "Cl": 0,
+      "F": 0,
+      "Br": 0,
+      "I": 0
+    },
+    "category": "Cycloalkanes",
+    "structure": "C8H16",
+    "fact": "Medium-ring cycloalkane exhibiting significant transannular strain (Prelog strain) between opposing ring hydrogens."
+  },
+  {
+    "id": "cyclononane",
+    "name": "Cyclononane",
+    "formula": "C9H18",
+    "elements": {
+      "C": 9,
+      "H": 18,
+      "O": 0,
+      "N": 0,
+      "Cl": 0,
+      "F": 0,
+      "Br": 0,
+      "I": 0
+    },
+    "category": "Cycloalkanes",
+    "structure": "C9H18",
+    "fact": "Nine-membered ring cycloalkane with twist-chair-boat conformational equilibrium and moderate transannular crowding."
+  },
+  {
+    "id": "cyclodecane",
+    "name": "Cyclodecane",
+    "formula": "C10H20",
+    "elements": {
+      "C": 10,
+      "H": 20,
+      "O": 0,
+      "N": 0,
+      "Cl": 0,
+      "F": 0,
+      "Br": 0,
+      "I": 0
+    },
+    "category": "Cycloalkanes",
+    "structure": "C10H20",
+    "fact": "Ten-membered ring with boat-chair-boat minimum energy conformation minimizing transannular H-H repulsions."
+  },
+  {
+    "id": "methylcyclopentane",
+    "name": "Methylcyclopentane",
+    "formula": "C6H12",
+    "elements": {
+      "C": 6,
+      "H": 12,
+      "O": 0,
+      "N": 0,
+      "Cl": 0,
+      "F": 0,
+      "Br": 0,
+      "I": 0
+    },
+    "category": "Cycloalkanes",
+    "structure": "c-C5H9CH3",
+    "fact": "Five-membered ring with single methyl substituent; isomerizes to cyclohexane over aluminum chloride catalyst."
+  },
+  {
+    "id": "methylcyclohexane",
+    "name": "Methylcyclohexane",
+    "formula": "C7H14",
+    "elements": {
+      "C": 7,
+      "H": 14,
+      "O": 0,
+      "N": 0,
+      "Cl": 0,
+      "F": 0,
+      "Br": 0,
+      "I": 0
+    },
+    "category": "Cycloalkanes",
+    "structure": "c-C6H11CH3",
+    "fact": "Demonstrates A-value steric energy; methyl group preferentially adopts equatorial position (95% at 25\u00b0C)."
+  },
+  {
+    "id": "1,1-dimethylcyclohexane",
+    "name": "1,1-Dimethylcyclohexane",
+    "formula": "C8H16",
+    "elements": {
+      "C": 8,
+      "H": 16,
+      "O": 0,
+      "N": 0,
+      "Cl": 0,
+      "F": 0,
+      "Br": 0,
+      "I": 0
+    },
+    "category": "Cycloalkanes",
+    "structure": "c-C6H10(CH3)2",
+    "fact": "Gem-dimethylcycloalkane containing forced axial and equatorial methyl groups regardless of ring flip."
+  },
+  {
+    "id": "trans-1,2-dimethylcyclohexane",
+    "name": "trans-1,2-Dimethylcyclohexane",
+    "formula": "C8H16",
+    "elements": {
+      "C": 8,
+      "H": 16,
+      "O": 0,
+      "N": 0,
+      "Cl": 0,
+      "F": 0,
+      "Br": 0,
+      "I": 0
+    },
+    "category": "Cycloalkanes",
+    "structure": "trans-c-C6H10(CH3)2",
+    "fact": "Chiral cycloalkane whose most stable diequatorial conformer possesses C2 symmetry without meso plane."
+  },
+  {
+    "id": "cis-1,2-dimethylcyclohexane",
+    "name": "cis-1,2-Dimethylcyclohexane",
+    "formula": "C8H16",
+    "elements": {
+      "C": 8,
+      "H": 16,
+      "O": 0,
+      "N": 0,
+      "Cl": 0,
+      "F": 0,
+      "Br": 0,
+      "I": 0
+    },
+    "category": "Cycloalkanes",
+    "structure": "cis-c-C6H10(CH3)2",
+    "fact": "Meso compound in rapid ring-flip conformational equilibrium between two enantiomeric axial-equatorial forms."
+  },
+  {
+    "id": "trans-1,4-dimethylcyclohexane",
+    "name": "trans-1,4-Dimethylcyclohexane",
+    "formula": "C8H16",
+    "elements": {
+      "C": 8,
+      "H": 16,
+      "O": 0,
+      "N": 0,
+      "Cl": 0,
+      "F": 0,
+      "Br": 0,
+      "I": 0
+    },
+    "category": "Cycloalkanes",
+    "structure": "trans-1,4-c-C6H10(CH3)2",
+    "fact": "Highly stable diequatorial chair conformer with center of inversion symmetry and zero dipole moment."
+  },
+  {
+    "id": "cis-1,3-dimethylcyclohexane",
+    "name": "cis-1,3-Dimethylcyclohexane",
+    "formula": "C8H16",
+    "elements": {
+      "C": 8,
+      "H": 16,
+      "O": 0,
+      "N": 0,
+      "Cl": 0,
+      "F": 0,
+      "Br": 0,
+      "I": 0
+    },
+    "category": "Cycloalkanes",
+    "structure": "cis-1,3-c-C6H10(CH3)2",
+    "fact": "Diequatorial meso isomer favored by ~23 kJ/mol over diaxial conformer due to severe 1,3-diaxial strain."
+  },
+  {
+    "id": "trans-decalin",
+    "name": "trans-Decalin",
+    "formula": "C10H18",
+    "elements": {
+      "C": 10,
+      "H": 18,
+      "O": 0,
+      "N": 0,
+      "Cl": 0,
+      "F": 0,
+      "Br": 0,
+      "I": 0
+    },
+    "category": "Cycloalkanes",
+    "structure": "trans-C10H18",
+    "fact": "Rigid fused bicyclic alkane with trans-ring junction; incapable of chair-chair conformational inversion."
+  },
+  {
+    "id": "cis-decalin",
+    "name": "cis-Decalin",
+    "formula": "C10H18",
+    "elements": {
+      "C": 10,
+      "H": 18,
+      "O": 0,
+      "N": 0,
+      "Cl": 0,
+      "F": 0,
+      "Br": 0,
+      "I": 0
+    },
+    "category": "Cycloalkanes",
+    "structure": "cis-C10H18",
+    "fact": "Flexible fused bicyclic alkane with cis-ring junction that undergoes rapid conformational chair-chair flipping."
+  },
+  {
+    "id": "norbornane",
+    "name": "Norbornane",
+    "formula": "C7H12",
+    "elements": {
+      "C": 7,
+      "H": 12,
+      "O": 0,
+      "N": 0,
+      "Cl": 0,
+      "F": 0,
+      "Br": 0,
+      "I": 0
+    },
+    "category": "Cycloalkanes",
+    "structure": "C7H12",
+    "fact": "Bicyclo[2.2.1]heptane; rigid bridged bicyclic alkane famous for non-classical carbocation studies in solvolysis."
+  },
+  {
+    "id": "adamantane",
+    "name": "Adamantane",
+    "formula": "C10H16",
+    "elements": {
+      "C": 10,
+      "H": 16,
+      "O": 0,
+      "N": 0,
+      "Cl": 0,
+      "F": 0,
+      "Br": 0,
+      "I": 0
+    },
+    "category": "Cycloalkanes",
+    "structure": "C10H16",
+    "fact": "Diamondoid cage hydrocarbon with Td symmetry; completely strain-free repeating chair cyclohexane subunits."
+  },
+  {
+    "id": "cubane",
+    "name": "Cubane",
+    "formula": "C8H8",
+    "elements": {
+      "C": 8,
+      "H": 8,
+      "O": 0,
+      "N": 0,
+      "Cl": 0,
+      "F": 0,
+      "Br": 0,
+      "I": 0
+    },
+    "category": "Cycloalkanes",
+    "structure": "C8H8",
+    "fact": "Synthetic platonic hydrocarbon with 90\u00b0 C-C-C bond angles; possesses immense strain energy (~695 kJ/mol)."
+  },
+  {
+    "id": "spiropentane",
+    "name": "Spiropentane",
+    "formula": "C5H8",
+    "elements": {
+      "C": 5,
+      "H": 8,
+      "O": 0,
+      "N": 0,
+      "Cl": 0,
+      "F": 0,
+      "Br": 0,
+      "I": 0
+    },
+    "category": "Cycloalkanes",
+    "structure": "C5H8",
+    "fact": "Simplest spiro-hydrocarbon sharing a single quaternary spiro-carbon between two cyclopropane rings."
+  },
+  {
+    "id": "bicyclo[2.2.2]octane",
+    "name": "Bicyclo[2.2.2]octane",
+    "formula": "C8H14",
+    "elements": {
+      "C": 8,
+      "H": 14,
+      "O": 0,
+      "N": 0,
+      "Cl": 0,
+      "F": 0,
+      "Br": 0,
+      "I": 0
+    },
+    "category": "Cycloalkanes",
+    "structure": "C8H14",
+    "fact": "Symmetrical bridged bicyclic hydrocarbon with eclipsed ethano bridges, illustrating torsional strain without angle strain."
+  },
+  {
+    "id": "prismane",
+    "name": "Prismane",
+    "formula": "C6H6",
+    "elements": {
+      "C": 6,
+      "H": 6,
+      "O": 0,
+      "N": 0,
+      "Cl": 0,
+      "F": 0,
+      "Br": 0,
+      "I": 0
+    },
+    "category": "Cycloalkanes",
+    "structure": "C6H6",
+    "fact": "Ladenburg benzene valence isomer with triangular prismatic carbon skeleton; extraordinarily strained polycyclic cage."
+  },
+  {
+    "id": "quadricyclane",
+    "name": "Quadricyclane",
+    "formula": "C7H8",
+    "elements": {
+      "C": 7,
+      "H": 8,
+      "O": 0,
+      "N": 0,
+      "Cl": 0,
+      "F": 0,
+      "Br": 0,
+      "I": 0
+    },
+    "category": "Cycloalkanes",
+    "structure": "C7H8",
+    "fact": "Highly strained tetracyclic valence isomer of norbornadiene formed upon UV irradiation; candidate for solar thermal fuels."
   }
 ]
