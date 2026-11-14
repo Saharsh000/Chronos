@@ -40,7 +40,7 @@ ELEMENT_SYMBOLS = {
 LAB_UNLOCK_PRICE = 60000
 LAB_CHEMISTRY_HOURS_REQUIRED = 30.0
 ELEMENT_INVENTORY_CAP = 500
-DAILY_REPEAT_COIN_CAP = 1000
+DAILY_REPEAT_COIN_CAP = 5000
 OC_FULL_RATE_HOURS = 6.0
 OC_FULL_RATE_MINUTES = int(OC_FULL_RATE_HOURS * 60)  # 360 minutes
 
@@ -61,18 +61,27 @@ CATEGORY_TITLES = {
     "Aromatics": "Resonance Master",
     "Biomolecules": "Molecular Biologist",
     "Monomers": "Polymer Architect",
+    "Heterocycles": "Heterocycle Herbalist",
+    "Terpenoids-Steroids": "Terpenoid Titan",
+    "Dyes-Indicators": "Chromophore Chemist",
+    "Reagents-Catalysts": "Catalysis Commander",
+    "Pharmaceuticals": "Pharmacology Pioneer",
+    "Coordination-Ligands": "Ligand Luminary",
 }
 
 MILESTONE_REWARDS = {
     25: {"type": "item", "item_id": "mystery_box", "quantity": 1, "description": "1 Mystery Box"},
     50: {"type": "item", "item_id": "mystery_box", "quantity": 2, "description": "2 Mystery Boxes"},
     75: {"type": "title", "title": "Synthesis Virtuoso", "description": "Title: Synthesis Virtuoso"},
-    100: {
+    100: {"type": "item", "item_id": "mystery_box", "quantity": 3, "title": "Century Chemist", "description": "Title: Century Chemist + 3 Mystery Boxes"},
+    200: {"type": "item", "item_id": "mystery_box", "quantity": 5, "title": "Reaction Maestro", "description": "Title: Reaction Maestro + 5 Mystery Boxes"},
+    350: {"type": "item", "item_id": "mystery_box", "quantity": 10, "title": "Master Synthesizer", "description": "Title: Master Synthesizer + 10 Mystery Boxes"},
+    500: {
         "type": "grandmaster",
         "title": "Grandmaster Chemist",
-        "coins": 5000,
+        "coins": 50000,
         "badge": "grandmaster_chemist",
-        "description": "Title: Grandmaster Chemist + Profile Badge + 5,000 Coins",
+        "description": "Title: Grandmaster Chemist + Profile Badge + 50,000 Coins",
     },
 }
 
