@@ -220,6 +220,7 @@ async def active(c: Ctx):
         m = c.person(s["user_id"])
         people.append({**m, "elapsed": max(0, now - s["start_time"]), "start_time": s["start_time"],
                        "subject": subject_card(s.get("subject")),
+                       "track": s.get("track"),
                        "channel": c.bridge.channel_name(s.get("channel_id")), "me": s["user_id"] == c.uid})
     people.sort(key=lambda p: -p["elapsed"])
     return {"now": now, "people": people}

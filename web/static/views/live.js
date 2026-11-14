@@ -12,8 +12,9 @@ export default async function live(root, ctx) {
   function paint() {
     people.length ? mount(who, people.map((p) => {
       const sc = p.subject ? SUBJECTS[p.subject.key].color : 'var(--accent)';
+      const subjText = p.track === 'oc' ? 'Chemistry (OC Track)' : (p.subject?.label || 'General');
       return h('a', { class: `person-card ${p.me ? 'me' : ''}`, href: p.me ? '/me' : `/u/${p.id}`, style: { '--sc': sc, color: 'inherit', textDecoration: 'none' } },
-        avatar(p, 44), h('div', { style: { minWidth: 0 } }, h('b', p.name), h('div', { class: 'faint' }, [p.subject?.label || 'General', p.channel].filter(Boolean).join(' · '))),
+        avatar(p, 44), h('div', { style: { minWidth: 0 } }, h('b', p.name), h('div', { class: 'faint' }, [subjText, p.channel].filter(Boolean).join(' · '))),
         h('span', { class: 't', dataset: { since: p.start_time } }, clock(nowSec() - p.start_time)));
     })) : mount(who, h('div', { style: { gridColumn: '1 / -1' } }, empty({ icon: 'focus_clock', title: 'Quiet right now', text: 'Nobody is in a session. Start one from Home and you\'ll show up here.' })));
     pomo.length ? mount(rooms, pomo.map((r) => {
