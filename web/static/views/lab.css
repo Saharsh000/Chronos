@@ -1,70 +1,183 @@
-/* The Lab DLC Styles */
-.lab-wrap { display: grid; gap: 20px; width: 100%; max-width: 1440px; margin: 0 auto; }
-.lab-locked { display: grid; gap: 16px; padding: 28px; border: 1px solid var(--line); border-radius: var(--r-lg); background: var(--s1); text-align: center; max-width: 640px; margin: 40px auto; }
-.lab-locked h1 { font: 800 1.8rem var(--display); letter-spacing: -.02em; }
-.lab-locked p { color: var(--mute); line-height: 1.5; }
-.lab-reqs { display: grid; gap: 14px; margin: 16px 0; text-align: left; }
+/* The Lab DLC Styles - Real Interactive Chemistry Laboratory */
+.lab-wrap { display: grid; gap: 24px; width: 100%; max-width: 1560px; margin: 0 auto; padding-bottom: 40px; }
+.lab-locked { display: grid; gap: 16px; padding: 32px; border: 1px solid var(--line); border-radius: var(--r-lg); background: var(--s1); text-align: center; max-width: 640px; margin: 40px auto; box-shadow: 0 10px 30px rgba(0,0,0,0.3); }
+.lab-locked h1 { font: 800 2rem var(--display); letter-spacing: -.02em; color: var(--chemistry); }
+.lab-locked p { color: var(--mute); line-height: 1.6; font-size: 1.05rem; }
+.lab-reqs { display: grid; gap: 14px; margin: 18px 0; text-align: left; }
 .req-item { display: grid; gap: 6px; }
-.req-header { display: flex; justify-content: space-between; font-size: .9rem; font-weight: 700; }
+.req-header { display: flex; justify-content: space-between; font-size: .92rem; font-weight: 700; }
 .req-header span:last-child { color: var(--accent); font-variant-numeric: tabular-nums; }
 
-/* Main layout - spacious layout with responsive panel */
-.lab-layout { display: grid; grid-template-columns: 380px minmax(0, 1fr); gap: 24px; align-items: start; }
-@media (max-width: 1080px) { .lab-layout { grid-template-columns: minmax(0, 1fr); } }
+/* Main Workbench Layout: Left Workbench (Flask + Shelf) | Right Compendium */
+.lab-layout { display: grid; grid-template-columns: 420px minmax(0, 1fr); gap: 24px; align-items: start; }
+@media (max-width: 1160px) { .lab-layout { grid-template-columns: minmax(0, 1fr); } }
 
-.lab-panel { display: grid; gap: 16px; padding: 20px; border: 1px solid var(--line); border-radius: var(--r-lg); background: var(--s1); }
-.lab-panel-head { display: flex; justify-content: space-between; align-items: center; border-bottom: 1px solid var(--line); padding-bottom: 12px; }
+.lab-panel { display: grid; gap: 18px; padding: 22px; border: 1px solid var(--line); border-radius: var(--r-lg); background: var(--s1); box-shadow: 0 4px 20px rgba(0,0,0,0.15); }
+.lab-panel-head { display: flex; justify-content: space-between; align-items: center; border-bottom: 1px solid var(--line); padding-bottom: 14px; }
 .lab-panel-head h2 { font: 800 1.25rem var(--display); letter-spacing: -.01em; display: flex; align-items: center; gap: 8px; margin: 0; }
 
-/* Element Tray */
-.element-tray { display: grid; grid-template-columns: repeat(4, 1fr); gap: 10px; }
-@media (max-width: 480px) { .element-tray { grid-template-columns: repeat(2, 1fr); } }
-.elem-card { display: grid; justify-items: center; gap: 4px; padding: 12px 6px; border: 1px solid var(--line); border-radius: var(--r); background: var(--s2); cursor: pointer; transition: transform .15s ease, border-color .15s ease, box-shadow .15s ease; user-select: none; }
-.elem-card:hover { transform: translateY(-2px); border-color: var(--accent); box-shadow: 0 4px 12px rgba(0,0,0,0.15); }
-.elem-card:active { transform: translateY(0); }
-.elem-card.disabled { opacity: .45; cursor: not-allowed; }
-.elem-sym { font: 800 1.4rem var(--display); color: var(--accent); line-height: 1; }
-.elem-name { font-size: .75rem; color: var(--mute); }
-.elem-count { font-size: .85rem; font-weight: 700; font-variant-numeric: tabular-nums; }
-.elem-count.capped { color: var(--warn); }
+/* ==================================================================== */
+/* 1. ACTUAL REACTION FLASK & APPARATUS                                 */
+/* ==================================================================== */
+.flask-apparatus { display: flex; flex-direction: column; align-items: center; gap: 16px; padding: 20px 14px 16px; background: radial-gradient(circle at 50% 30%, #151a38 0%, #0c0e1e 100%); border: 1px solid var(--line-2); border-radius: var(--r); position: relative; overflow: hidden; box-shadow: inset 0 0 40px rgba(0,0,0,0.6); }
 
-/* Reaction Flask */
-.reaction-flask { display: grid; gap: 14px; padding: 18px; border: 2px dashed var(--line-2); border-radius: var(--r); background: radial-gradient(circle at 50% 100%, color-mix(in oklab, var(--accent) 10%, transparent), transparent 70%), var(--s2); text-align: center; position: relative; transition: border-color .25s ease, box-shadow .25s ease; }
-.reaction-flask.match { border: 2px solid #22c55e; box-shadow: 0 0 16px rgba(34, 197, 94, 0.35); }
-.flask-formula { font: 800 2rem var(--display); letter-spacing: .02em; min-height: 48px; display: flex; align-items: center; justify-content: center; gap: 4px; }
-.flask-formula .placeholder { color: var(--faint); font-size: 1rem; font-weight: normal; }
-.flask-match-banner { padding: 8px 12px; border-radius: var(--r); background: rgba(34, 197, 94, 0.15); border: 1px solid rgba(34, 197, 94, 0.4); color: #22c55e; font-weight: 700; font-size: .92rem; }
-.flask-atom-tags { display: flex; flex-wrap: wrap; gap: 6px; justify-content: center; min-height: 28px; }
-.atom-tag { display: inline-flex; align-items: center; gap: 4px; padding: 4px 8px; border-radius: var(--r-sm); background: var(--s1); border: 1px solid var(--line); font-size: .8rem; font-weight: 700; }
-.atom-tag .rm { cursor: pointer; color: var(--mute); margin-left: 2px; }
-.atom-tag .rm:hover { color: var(--danger, #ef4444); }
+/* Flask Glow Aura when matched */
+.flask-apparatus::before { content: ''; position: absolute; inset: 0; background: radial-gradient(circle at 50% 65%, var(--flask-glow, transparent) 0%, transparent 70%); opacity: 0.35; pointer-events: none; transition: opacity .4s ease; }
+.flask-apparatus.has-match::before { opacity: 0.8; }
 
-/* Compendium Search & Controls */
-.comp-controls { display: grid; gap: 12px; }
-.lab-search { width: 100%; padding: 10px 14px; border-radius: var(--r); border: 1px solid var(--line); background: var(--s2); color: var(--text); font-size: .9rem; box-sizing: border-box; }
-.lab-search:focus { outline: none; border-color: var(--accent); }
+.flask-svg-container { position: relative; width: 230px; height: 260px; display: flex; justify-content: center; align-items: flex-end; }
+.flask-svg { width: 100%; height: 100%; filter: drop-shadow(0 8px 16px rgba(0,0,0,0.45)); }
 
-/* Category Filters */
-.cat-filters { display: flex; gap: 6px; overflow-x: auto; padding: 4px 2px 10px; scrollbar-width: thin; -webkit-overflow-scrolling: touch; }
+/* Flask Glass Styling */
+.flask-glass-outline { stroke: rgba(255, 255, 255, 0.4); stroke-width: 2.5; fill: none; }
+.flask-grad-line { stroke: rgba(255, 255, 255, 0.35); stroke-width: 1.5; }
+.flask-grad-text { font-family: monospace; font-size: 8px; fill: rgba(255, 255, 255, 0.45); user-select: none; }
+.flask-specular { fill: none; stroke: rgba(255, 255, 255, 0.55); stroke-width: 2; stroke-linecap: round; opacity: 0.7; }
+
+/* Dynamic Reaction Liquid */
+.flask-liquid-path { transition: height 0.4s var(--ease), y 0.4s var(--ease), fill 0.4s ease; }
+.flask-meniscus { fill: none; stroke: rgba(255,255,255,0.45); stroke-width: 2; }
+
+/* Bubbling animations inside the chemical liquid */
+.flask-bubble { fill: rgba(255, 255, 255, 0.5); transform-origin: center; animation: bubbleRise 2.5s infinite linear; }
+.flask-bubble:nth-child(2) { animation-duration: 1.8s; animation-delay: 0.5s; }
+.flask-bubble:nth-child(3) { animation-duration: 2.2s; animation-delay: 1.1s; }
+.flask-bubble:nth-child(4) { animation-duration: 3.1s; animation-delay: 0.3s; }
+.flask-bubble:nth-child(5) { animation-duration: 2.7s; animation-delay: 1.7s; }
+
+@keyframes bubbleRise {
+  0% { transform: translateY(0) scale(0.7); opacity: 0; }
+  25% { opacity: 0.8; }
+  85% { opacity: 0.9; }
+  100% { transform: translateY(-70px) scale(1.3); opacity: 0; }
+}
+
+/* Fumes rising from the flask neck */
+.flask-vapor { animation: vaporDrift 3s infinite ease-out; opacity: 0; transform-origin: bottom center; }
+.flask-vapor:nth-child(2) { animation-delay: 1.2s; animation-duration: 3.4s; }
+@keyframes vaporDrift {
+  0% { transform: translateY(0) scale(0.6); opacity: 0; }
+  30% { opacity: 0.6; }
+  100% { transform: translateY(-38px) scale(1.6); opacity: 0; }
+}
+
+/* Heating Mantle / Magnetic Stirrer Base */
+.stirrer-base { width: 190px; height: 32px; background: linear-gradient(180deg, #303758 0%, #171b30 100%); border: 1px solid var(--line-2); border-radius: 6px; display: flex; justify-content: space-between; align-items: center; padding: 0 14px; box-shadow: 0 4px 12px rgba(0,0,0,0.5); z-index: 2; margin-top: -6px; }
+.stirrer-status { display: flex; align-items: center; gap: 8px; font-size: .75rem; font-family: monospace; font-weight: 700; color: var(--mute); }
+.stirrer-led { width: 8px; height: 8px; border-radius: 50%; background: #475569; transition: all .3s ease; }
+.stirrer-led.active { background: #22c55e; box-shadow: 0 0 10px #22c55e; }
+.stirrer-led.heating { background: #f97316; box-shadow: 0 0 10px #f97316; }
+
+/* Digital Chemical Monitor HUD */
+.flask-monitor { width: 100%; display: grid; gap: 10px; background: rgba(10, 12, 23, 0.75); border: 1px solid var(--line); border-radius: var(--r-sm); padding: 12px 14px; text-align: center; }
+.hud-formula { font: 800 1.6rem var(--display); letter-spacing: .04em; color: var(--text); min-height: 38px; display: flex; align-items: center; justify-content: center; gap: 6px; }
+.hud-formula.empty { color: var(--faint); font-size: 1.05rem; font-weight: normal; }
+
+.reaction-detector { padding: 8px 12px; border-radius: var(--r-sm); font-size: .88rem; font-weight: 800; letter-spacing: .02em; display: flex; align-items: center; justify-content: center; gap: 8px; transition: all .3s ease; }
+.reaction-detector.standby { background: rgba(255,255,255,0.04); color: var(--mute); border: 1px dashed var(--line); }
+.reaction-detector.unstable { background: rgba(245, 184, 74, 0.12); color: var(--warn); border: 1px solid rgba(245, 184, 74, 0.35); }
+.reaction-detector.stable { background: rgba(34, 197, 94, 0.18); color: #22c55e; border: 1px solid #22c55e; box-shadow: 0 0 16px rgba(34, 197, 94, 0.35); animation: pulseMatch 1s infinite alternate; }
+
+@keyframes pulseMatch { 0% { box-shadow: 0 0 8px rgba(34, 197, 94, 0.25); } 100% { box-shadow: 0 0 20px rgba(34, 197, 94, 0.6); } }
+
+.flask-stoich-tags { display: flex; flex-wrap: wrap; gap: 6px; justify-content: center; min-height: 28px; }
+.stoich-pill { display: inline-flex; align-items: center; gap: 4px; padding: 4px 8px; border-radius: var(--r-sm); background: var(--s2); border: 1px solid var(--line); font-size: .8rem; font-weight: 700; }
+.stoich-pill .rm { cursor: pointer; color: var(--mute); margin-left: 2px; font-weight: bold; }
+.stoich-pill .rm:hover { color: var(--bad); }
+
+/* Big Synthesis Action Buttons */
+.flask-actions { display: flex; gap: 10px; width: 100%; }
+.btn-synthesize { flex: 1; padding: 12px 18px; font: 800 1rem var(--display); border-radius: var(--r); background: linear-gradient(135deg, #10b981 0%, #059669 100%); color: #fff; border: 1px solid #34d399; box-shadow: 0 4px 18px rgba(16, 185, 129, 0.4); cursor: pointer; display: flex; align-items: center; justify-content: center; gap: 8px; transition: transform .15s ease, box-shadow .15s ease; }
+.btn-synthesize:hover { transform: translateY(-2px); box-shadow: 0 6px 24px rgba(16, 185, 129, 0.6); }
+.btn-synthesize:active { transform: translateY(0); }
+.btn-dump { padding: 12px 16px; font-weight: 700; border-radius: var(--r); background: var(--s2); border: 1px solid var(--line); color: var(--mute); cursor: pointer; transition: all .15s ease; }
+.btn-dump:hover { color: var(--bad); border-color: var(--bad); background: rgba(255, 107, 134, 0.1); }
+
+/* ==================================================================== */
+/* 2. CHEMICAL REAGENT RACK (VIAL DISPENSERS)                          */
+/* ==================================================================== */
+.reagent-rack { display: grid; grid-template-columns: repeat(4, 1fr); gap: 10px; width: 100%; }
+@media (max-width: 440px) { .reagent-rack { grid-template-columns: repeat(2, 1fr); } }
+
+.reagent-vial { display: flex; flex-direction: column; align-items: center; gap: 4px; padding: 12px 8px; border: 1px solid var(--line); border-radius: var(--r); background: var(--s2); cursor: pointer; transition: transform .15s ease, border-color .15s ease, box-shadow .15s ease; position: relative; user-select: none; }
+.reagent-vial:hover { transform: translateY(-3px); border-color: var(--elem-color, var(--accent)); box-shadow: 0 6px 16px rgba(0,0,0,0.25); }
+.reagent-vial:active { transform: translateY(0); }
+.reagent-vial.depleted { opacity: 0.45; cursor: not-allowed; }
+
+.vial-sym { font: 900 1.5rem var(--display); line-height: 1; color: var(--elem-color, var(--accent)); text-shadow: 0 0 12px var(--elem-color, transparent); }
+.vial-name { font-size: .74rem; font-weight: 600; color: var(--mute); }
+.vial-qty { font-size: .84rem; font-weight: 800; font-variant-numeric: tabular-nums; margin-top: 2px; }
+.vial-qty.capped { color: var(--warn); }
+.vial-quick-add { font-size: .7rem; font-weight: 700; color: var(--elem-color, var(--accent)); margin-top: 2px; background: rgba(255,255,255,0.06); padding: 2px 6px; border-radius: 4px; border: 1px solid var(--line); }
+
+/* Specific Element Color Accents */
+.elem-C { --elem-color: #94a3b8; }
+.elem-H { --elem-color: #38bdf8; }
+.elem-O { --elem-color: #f43f5e; }
+.elem-N { --elem-color: #3b82f6; }
+.elem-Cl { --elem-color: #22c55e; }
+.elem-F { --elem-color: #eab308; }
+.elem-Br { --elem-color: #ea580c; }
+.elem-I { --elem-color: #a855f7; }
+
+/* ==================================================================== */
+/* 3. COMPENDIUM & ADVANCED CATALOG                                     */
+/* ==================================================================== */
+.comp-header-bar { display: flex; flex-direction: column; gap: 12px; }
+.comp-search-row { display: flex; gap: 10px; width: 100%; }
+.lab-search-input { flex: 1; padding: 11px 16px; border-radius: var(--r); border: 1px solid var(--line-2); background: var(--s2); color: var(--text); font-size: .94rem; box-shadow: inset 0 2px 4px rgba(0,0,0,0.2); }
+.lab-search-input:focus { outline: none; border-color: var(--chemistry); }
+
+/* Quick Filter Mode Tabs */
+.quick-filter-tabs { display: flex; gap: 6px; overflow-x: auto; padding-bottom: 2px; }
+.filter-tab { padding: 6px 14px; border-radius: var(--r-sm); background: var(--s2); border: 1px solid var(--line); font-size: .8rem; font-weight: 700; color: var(--mute); cursor: pointer; white-space: nowrap; transition: all .15s ease; }
+.filter-tab:hover { color: var(--text); background: var(--s3); }
+.filter-tab.active { background: var(--accent); color: #fff; border-color: var(--accent); }
+
+/* Category Pills strip */
+.cat-strip { display: flex; gap: 6px; overflow-x: auto; padding: 4px 2px 10px; scrollbar-width: thin; -webkit-overflow-scrolling: touch; }
 .cat-pill { padding: 6px 14px; border: 1px solid var(--line); border-radius: 999px; background: var(--s2); color: var(--mute); font-size: .8rem; font-weight: 700; cursor: pointer; white-space: nowrap; transition: all .15s ease; flex-shrink: 0; }
-.cat-pill:hover { border-color: var(--accent); color: var(--text); background: var(--s3); }
-.cat-pill.active { background: var(--accent); color: #fff; border-color: var(--accent); box-shadow: 0 2px 8px color-mix(in oklab, var(--accent) 35%, transparent); }
+.cat-pill:hover { border-color: var(--chemistry); color: var(--text); background: var(--s3); }
+.cat-pill.active { background: var(--chemistry); color: #0a0c17; border-color: var(--chemistry); font-weight: 800; box-shadow: 0 2px 10px rgba(79, 214, 160, 0.4); }
 
-/* Compendium Grid - Spacious with room for 500 cards */
-.compendium-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(230px, 1fr)); gap: 14px; max-height: calc(100vh - 240px); min-height: 520px; overflow-y: auto; padding: 4px 6px 16px 2px; scrollbar-width: thin; }
-.comp-card { display: grid; gap: 8px; padding: 14px; border: 1px solid var(--line); border-radius: var(--r); background: var(--s2); position: relative; transition: transform .15s ease, border-color .15s ease, box-shadow .15s ease; align-content: start; }
-.comp-card.discovered { border-color: color-mix(in oklab, var(--accent) 40%, var(--line)); cursor: pointer; }
-.comp-card.discovered:hover { transform: translateY(-2px); border-color: var(--accent); box-shadow: 0 6px 16px rgba(0,0,0,0.2); }
-.comp-card.undiscovered { opacity: .7; border-style: dashed; }
-.comp-card .title { font: 800 1rem var(--display); display: flex; justify-content: space-between; align-items: flex-start; gap: 6px; }
-.comp-card .title .name-text { line-height: 1.25; }
-.comp-card .card-meta { display: flex; align-items: center; gap: 8px; flex-wrap: wrap; }
-.comp-card .formula { font-family: var(--display); font-weight: 700; color: var(--accent); background: var(--s3); padding: 2px 8px; border-radius: var(--r-sm); font-size: .85rem; border: 1px solid var(--line-2); }
-.comp-card .cat-badge { font-size: .75rem; color: var(--mute); background: var(--s1); padding: 2px 6px; border-radius: var(--r-sm); }
-.comp-card .fact { font-size: .78rem; color: var(--mute); line-height: 1.4; margin-top: 2px; }
-.comp-card .card-footer { display: flex; justify-content: space-between; align-items: center; font-size: .75rem; color: var(--faint); border-top: 1px solid var(--line-2); padding-top: 6px; margin-top: 4px; font-variant-numeric: tabular-nums; }
-.comp-card .disc-star { color: #eab308; font-size: .9rem; flex-shrink: 0; }
+/* 500-Compound Card Grid */
+.compendium-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(260px, 1fr)); gap: 14px; max-height: calc(100vh - 250px); min-height: 580px; overflow-y: auto; padding: 4px 8px 24px 2px; scrollbar-width: thin; }
 
-/* Crafting Animation */
-.synthesizing { animation: synth-pulse .6s infinite alternate; }
-@keyframes synth-pulse { 0% { transform: scale(1); filter: brightness(1); } 100% { transform: scale(1.03); filter: brightness(1.2); } }
+/* Real Compound Specimen Cards */
+.comp-card { display: flex; flex-direction: column; justify-content: space-between; gap: 10px; padding: 15px; border: 1px solid var(--line); border-radius: var(--r); background: var(--s2); position: relative; transition: transform .15s ease, border-color .15s ease, box-shadow .15s ease; }
+.comp-card:hover { transform: translateY(-2px); border-color: var(--line-2); box-shadow: 0 8px 24px rgba(0,0,0,0.25); }
+
+.comp-card.crafted { border-left: 4px solid var(--chemistry); }
+.comp-card.uncrafted { border-left: 4px solid var(--faint); background: rgba(23, 27, 54, 0.6); }
+.comp-card.craftable-now { border-color: rgba(79, 214, 160, 0.4); box-shadow: 0 0 12px rgba(79, 214, 160, 0.15); }
+
+.card-top { display: flex; justify-content: space-between; align-items: flex-start; gap: 8px; }
+.card-name { font: 800 1.05rem var(--display); line-height: 1.25; color: var(--text); }
+.card-star { color: #facc15; font-size: 1rem; flex-shrink: 0; }
+
+.card-formula-row { display: flex; align-items: center; gap: 8px; flex-wrap: wrap; margin-top: -2px; }
+.card-formula { font: 800 .9rem var(--display); color: var(--chemistry); background: var(--s3); padding: 3px 8px; border-radius: var(--r-sm); border: 1px solid var(--line-2); }
+.card-cat-tag { font-size: .75rem; font-weight: 700; color: var(--mute); background: var(--s1); padding: 2px 7px; border-radius: var(--r-sm); }
+
+/* Structural formula / condensed formula */
+.card-structure { font-family: monospace; font-size: .78rem; color: var(--accent-text); background: rgba(139, 147, 255, 0.08); padding: 4px 8px; border-radius: 4px; border: 1px solid rgba(139, 147, 255, 0.2); word-break: break-all; }
+
+/* Reagents Needed Pill List */
+.reagents-needed { display: flex; flex-wrap: wrap; gap: 4px; font-size: .74rem; font-weight: 700; }
+.reagent-badge { padding: 2px 6px; border-radius: 4px; background: var(--s1); border: 1px solid var(--line); color: var(--mute); }
+.reagent-badge.have { color: #34d399; border-color: rgba(52, 211, 153, 0.4); background: rgba(52, 211, 153, 0.08); }
+.reagent-badge.need { color: #fb7185; border-color: rgba(251, 113, 133, 0.35); background: rgba(251, 113, 133, 0.08); }
+
+/* Fact Note */
+.card-fact { font-size: .78rem; color: var(--mute); line-height: 1.4; background: rgba(0,0,0,0.2); padding: 6px 10px; border-radius: var(--r-sm); border-left: 2px solid var(--accent); }
+
+/* Card Interactive Action Row */
+.card-actions { display: flex; justify-content: space-between; align-items: center; gap: 8px; border-top: 1px solid var(--line); padding-top: 10px; margin-top: 4px; }
+.card-status-badge { font-size: .74rem; font-weight: 800; font-variant-numeric: tabular-nums; }
+.card-status-badge.done { color: var(--chemistry); }
+.card-status-badge.undone { color: var(--faint); }
+
+.btn-card-load { padding: 6px 12px; font-size: .78rem; font-weight: 800; border-radius: var(--r-sm); background: var(--s3); border: 1px solid var(--line-2); color: var(--text); cursor: pointer; transition: all .15s ease; display: inline-flex; align-items: center; gap: 4px; }
+.btn-card-load:hover { background: var(--accent); color: #fff; border-color: var(--accent); }
+.btn-card-synth { padding: 6px 12px; font-size: .78rem; font-weight: 800; border-radius: var(--r-sm); background: #059669; border: 1px solid #34d399; color: #fff; cursor: pointer; transition: all .15s ease; }
+.btn-card-synth:hover { background: #10b981; box-shadow: 0 0 10px rgba(16, 185, 129, 0.5); }
