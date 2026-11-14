@@ -20,6 +20,11 @@ const topics = (p, i) => [
   { id: 'pets', title: 'Pets and food', page: ['/pets', 'Pets'], blurb: `Pets level up while you study. They unlock at level ${i.pet_unlock_level}.`, cmds: [
     [`petshop [tier]`, 'Buyable pets (pshop)'], [`buypet <name>`, 'Unlock a species'], [`pets [@user]`, 'Owned pets'], [`pet [name]`, 'One pet in detail'], [`equip <name>`, 'Set your active pet'],
     [`nickname <pet> <name>`, 'Rename (nick)'], [`foodshop [tier]`, 'Pet food (fshop)'], [`buyfood <name> [qty]`, 'Buy food'], [`feed <food> [qty]`, 'Feed your pet'], [`sellfood <name> [qty]`, 'Sell back at half price']] },
+  { id: 'lab', title: 'The Lab & Organic Chemistry DLC', page: ['/lab', 'The Lab'], blurb: '30h Chemistry + 60,000 Chronocoins unlock. Harvest elements and synthesize 100 organic compounds.', cmds: [
+    [`lab [unlock]`, 'The Lab hub and unlock requirements (Lab page)'],
+    [`start oc`, 'Start an Organic Chemistry session with live element drops (also .start organic)'],
+    [`synth <name|formula>`, 'Synthesize an organic compound (synthesize, craft)'],
+    [`compounds [category]`, '100-compound compendium with JEE facts and silhouettes (compendium)']] },
   { id: 'hw', title: 'Halloween event', page: ['/halloween', 'Halloween'], blurb: 'Carve your Jack-o\'-Lantern pass by studying, collect boxes and spend candy.', cmds: [
     [`pumpkin [claim]`, 'Pass progress and rewards (pass)'], [`boxes`, 'Your Hallo-Boxes'], [`openbox <tier> [qty]`, 'Open boxes (open)'], [`candyshop`, 'Candy shop (spookyshop)'], [`buycandy <item>`, 'Buy with candy'], [`event`, 'Drop rates and reward maths']] },
   { id: 'pomo', title: 'Pomodoro', page: ['/live', 'Live'], blurb: 'A shared focus and break cycle for your voice channel.', cmds: [[`pomodoro`, 'Check the cycle in your voice channel (pomo)']] },
