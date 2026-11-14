@@ -718,5 +718,131 @@
     "category": "Alcohols",
     "smiles": "CC(C)(C)O",
     "fact": "Tertiary alcohol; Lucas test gives immediate turbidity; dehydration gives isobutylene; JEE SN1 vs SN2 comparison."
+  },
+  {
+    "id": "phenol",
+    "name": "Phenol",
+    "formula": "C6H6O",
+    "elements": {
+      "C": 6,
+      "H": 6,
+      "O": 1,
+      "N": 0,
+      "Cl": 0,
+      "F": 0,
+      "Br": 0,
+      "I": 0
+    },
+    "category": "Phenols",
+    "smiles": "Oc1ccccc1",
+    "fact": "Simplest phenol; more acidic than alcohols due to resonance stabilization of phenoxide; JEE comparing pKa of phenol vs alcohols."
+  },
+  {
+    "id": "catechol",
+    "name": "Catechol",
+    "formula": "C6H6O2",
+    "elements": {
+      "C": 6,
+      "H": 6,
+      "O": 2,
+      "N": 0,
+      "Cl": 0,
+      "F": 0,
+      "Br": 0,
+      "I": 0
+    },
+    "category": "Phenols",
+    "smiles": "Oc1ccccc1O",
+    "fact": "1,2-Dihydroxybenzene (o-dihydroxybenzene); readily oxidised; tested in JEE as an ortho isomer in phenol disubstitution."
+  },
+  {
+    "id": "p-cresol",
+    "name": "p-Cresol",
+    "formula": "C7H8O",
+    "elements": {
+      "C": 7,
+      "H": 8,
+      "O": 1,
+      "N": 0,
+      "Cl": 0,
+      "F": 0,
+      "Br": 0,
+      "I": 0
+    },
+    "category": "Phenols",
+    "smiles": "Cc1ccc(O)cc1",
+    "fact": "4-Methylphenol; methyl group activates ring toward electrophilic substitution; JEE directer effects on substituted phenols."
+  },
+  {
+    "id": "dimethyl-ether",
+    "name": "Dimethyl Ether",
+    "formula": "C2H6O",
+    "elements": {
+      "C": 2,
+      "H": 6,
+      "O": 1,
+      "N": 0,
+      "Cl": 0,
+      "F": 0,
+      "Br": 0,
+      "I": 0
+    },
+    "category": "Ethers",
+    "smiles": "COC",
+    "fact": "Methoxymetane; structural isomer of ethanol; lower boiling point than ethanol since it cannot hydrogen bond with itself."
+  },
+  {
+    "id": "diethyl-ether",
+    "name": "Diethyl Ether",
+    "formula": "C4H10O",
+    "elements": {
+      "C": 4,
+      "H": 10,
+      "O": 1,
+      "N": 0,
+      "Cl": 0,
+      "F": 0,
+      "Br": 0,
+      "I": 0
+    },
+    "category": "Ethers",
+    "smiles": "CCOCC",
+    "fact": "Classic extraction solvent; cleaved by HI to give ethyl iodide and ethanol; JEE ether cleavage mechanism."
+  },
+  {
+    "id": "anisole",
+    "name": "Anisole",
+    "formula": "C7H8O",
+    "elements": {
+      "C": 7,
+      "H": 8,
+      "O": 1,
+      "N": 0,
+      "Cl": 0,
+      "F": 0,
+      "Br": 0,
+      "I": 0
+    },
+    "category": "Ethers",
+    "smiles": "COc1ccccc1",
+    "fact": "Methoxybenzene; methoxy group is ortho/para director; JEE electrophilic aromatic substitution on activated ring."
+  },
+  {
+    "id": "tetrahydrofuran",
+    "name": "Tetrahydrofuran",
+    "formula": "C4H8O",
+    "elements": {
+      "C": 4,
+      "H": 8,
+      "O": 1,
+      "N": 0,
+      "Cl": 0,
+      "F": 0,
+      "Br": 0,
+      "I": 0
+    },
+    "category": "Ethers",
+    "smiles": "C1CCCO1",
+    "fact": "Cyclic ether widely used as aprotic solvent for Grignard reactions; JEE distinguishes it from open-chain ethers."
   }
 ]
