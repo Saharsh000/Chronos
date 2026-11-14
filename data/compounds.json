@@ -574,5 +574,149 @@
     "category": "Haloalkanes",
     "smiles": "C=CCl",
     "fact": "Chloroethene; monomer of PVC; the C-Cl bond is strengthened by resonance with the double bond, making it less reactive in SN reactions."
+  },
+  {
+    "id": "methanol",
+    "name": "Methanol",
+    "formula": "CH4O",
+    "elements": {
+      "C": 1,
+      "H": 4,
+      "O": 1,
+      "N": 0,
+      "Cl": 0,
+      "F": 0,
+      "Br": 0,
+      "I": 0
+    },
+    "category": "Alcohols",
+    "smiles": "CO",
+    "fact": "Simplest alcohol; toxic to humans; oxidised by KMnO4 to give formaldehyde then formic acid in JEE oxidation sequences."
+  },
+  {
+    "id": "ethanol",
+    "name": "Ethanol",
+    "formula": "C2H6O",
+    "elements": {
+      "C": 2,
+      "H": 6,
+      "O": 1,
+      "N": 0,
+      "Cl": 0,
+      "F": 0,
+      "Br": 0,
+      "I": 0
+    },
+    "category": "Alcohols",
+    "smiles": "CCO",
+    "fact": "Common alcohol produced by fermentation; gives iodoform (yellow ppt) with I2/NaOH \u2014 classic JEE methyl ketone test."
+  },
+  {
+    "id": "propan-1-ol",
+    "name": "Propan-1-ol",
+    "formula": "C3H8O",
+    "elements": {
+      "C": 3,
+      "H": 8,
+      "O": 1,
+      "N": 0,
+      "Cl": 0,
+      "F": 0,
+      "Br": 0,
+      "I": 0
+    },
+    "category": "Alcohols",
+    "smiles": "CCCO",
+    "fact": "Primary alcohol; oxidised to propanal and then propanoic acid; JEE Lucas test gives turbidity slowly (primary alcohol)."
+  },
+  {
+    "id": "propan-2-ol",
+    "name": "Propan-2-ol",
+    "formula": "C3H8O",
+    "elements": {
+      "C": 3,
+      "H": 8,
+      "O": 1,
+      "N": 0,
+      "Cl": 0,
+      "F": 0,
+      "Br": 0,
+      "I": 0
+    },
+    "category": "Alcohols",
+    "smiles": "CC(O)C",
+    "fact": "Secondary alcohol (isopropanol); Lucas test gives immediate turbidity; oxidised to acetone used in JEE iodoform test."
+  },
+  {
+    "id": "butan-1-ol",
+    "name": "Butan-1-ol",
+    "formula": "C4H10O",
+    "elements": {
+      "C": 4,
+      "H": 10,
+      "O": 1,
+      "N": 0,
+      "Cl": 0,
+      "F": 0,
+      "Br": 0,
+      "I": 0
+    },
+    "category": "Alcohols",
+    "smiles": "CCCCO",
+    "fact": "Four-carbon primary alcohol; JEE dehydration with H2SO4/443K gives 1-butene (major) illustrating Zaitsev rule."
+  },
+  {
+    "id": "ethylene-glycol",
+    "name": "Ethylene Glycol",
+    "formula": "C2H6O2",
+    "elements": {
+      "C": 2,
+      "H": 6,
+      "O": 2,
+      "N": 0,
+      "Cl": 0,
+      "F": 0,
+      "Br": 0,
+      "I": 0
+    },
+    "category": "Alcohols",
+    "smiles": "OCCO",
+    "fact": "1,2-Ethanediol; antifreeze agent; JEE uses it to illustrate how vicinal diols are cleaved by periodic acid."
+  },
+  {
+    "id": "glycerol",
+    "name": "Glycerol",
+    "formula": "C3H8O3",
+    "elements": {
+      "C": 3,
+      "H": 8,
+      "O": 3,
+      "N": 0,
+      "Cl": 0,
+      "F": 0,
+      "Br": 0,
+      "I": 0
+    },
+    "category": "Alcohols",
+    "smiles": "OCC(O)CO",
+    "fact": "1,2,3-Propanetriol; byproduct of soap making (saponification); tested in JEE esterification and hydrolysis problems."
+  },
+  {
+    "id": "tert-butanol",
+    "name": "Tert-Butanol",
+    "formula": "C4H10O",
+    "elements": {
+      "C": 4,
+      "H": 10,
+      "O": 1,
+      "N": 0,
+      "Cl": 0,
+      "F": 0,
+      "Br": 0,
+      "I": 0
+    },
+    "category": "Alcohols",
+    "smiles": "CC(C)(C)O",
+    "fact": "Tertiary alcohol; Lucas test gives immediate turbidity; dehydration gives isobutylene; JEE SN1 vs SN2 comparison."
   }
 ]
