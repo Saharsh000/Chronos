@@ -110,7 +110,45 @@ class Sessions(commands.Cog, name="Sessions"):
         resolved_subject = detect_subject(guild_config, channel_id)
 
         if subject:
-            subject_key = SUBJECT_ALIASES.get(normalize_subject_key(subject))
+            raw_clean = normalize_subject_key(subject)
+            if raw_clean in ("oc", "organic"):
+                # Special-case OC mode before subject resolution!
+                unlock = await self.db.get_lab_unlock(ctx.author.id, ctx.guild.id)
+                if not unlock:
+                    chem_hours = await self.db.get_lab_chemistry_hours(ctx.author.id, ctx.guild.id)
+                    curr = await self.db.get_or_create_currency(ctx.author.id, ctx.guild.id)
+                    await ctx.send(embed=embeds.error_embed(
+                        f"**The Lab is locked.**\n\n"
+                        f"Requirements to unlock Organic Chemistry mode:\n"
+                        f"• Chemistry study: **{chem_hours:.1f}h / 30.0h**\n"
+                        f"• Chronocoins: **{curr['coins']:,} / 60,000**\n\n"
+                        f"Use `{ctx.prefix}lab` to check your progress or unlock when eligible."
+                    ))
+                    return
+
+                now = int(time.time())
+                await self.db.start_session(ctx.author.id, ctx.guild.id, channel_id, "chemistry", now, track="oc")
+                self._emit(ctx.author.id, ctx.guild.id, "session_started", subject="chemistry", track="oc", source="discord")
+
+                log.info(
+                    f"SESSION START (OC) | {ctx.author} ({ctx.author.id}) in guild '{ctx.guild.name}'"
+                )
+
+                embed = embeds.base_embed(
+                    title="⚗️ Organic Chemistry Lab Session started",
+                    description=(
+                        f"Started {discord_timestamp(now, 'R')}. Lock in and synthesize!\n\n"
+                        f"🧪 Tagged as **Chemistry (OC Track)** — element atoms (C, H, O, N, Cl, F, Br, I) "
+                        f"will drop live while you study.\n"
+                        f"Check `{ctx.prefix}session` or `{ctx.prefix}lab` to view your live element yields."
+                    ),
+                    color=embeds.COLOR_STUDY,
+                )
+                embeds.set_footer(embed, f"{ctx.prefix}session for live elements · {ctx.prefix}synth to craft")
+                await ctx.send(embed=embed)
+                return
+
+            subject_key = SUBJECT_ALIASES.get(raw_clean)
             if subject_key is None:
                 await ctx.send(embed=embeds.error_embed(
                     f"Unknown subject `{subject}`. {SUBJECT_HINT}"
