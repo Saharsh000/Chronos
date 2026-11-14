@@ -389,6 +389,16 @@ CREATE TABLE IF NOT EXISTS lab_compounds (
     first_crafted_at INTEGER,
     PRIMARY KEY (user_id, guild_id, compound_id)
 );
+
+-- Lab: per-IST-day caps/state (repeat coin cap, OC minutes for rate cap)
+CREATE TABLE IF NOT EXISTS lab_daily (
+    user_id      INTEGER NOT NULL,
+    guild_id     INTEGER NOT NULL,
+    date_ist     TEXT NOT NULL,         -- YYYY-MM-DD in IST
+    repeat_coins INTEGER NOT NULL DEFAULT 0,
+    oc_minutes   INTEGER NOT NULL DEFAULT 0,  -- credited OC minutes today (for 6h/day cap)
+    PRIMARY KEY (user_id, guild_id, date_ist)
+);
 """
 
 # Columns added to `user_stats` after its original release. Applied by
