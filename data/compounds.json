@@ -5308,5 +5308,365 @@
     "category": "Ketones",
     "structure": "C10H14O",
     "fact": "Chiral monoterpenoid ketone; (R)-isomer smells of spearmint while (S)-isomer smells of caraway seeds, illustrating chiral receptor specificity."
+  },
+  {
+    "id": "pentanoic-acid",
+    "name": "Pentanoic Acid",
+    "formula": "C5H10O2",
+    "elements": {
+      "C": 5,
+      "H": 10,
+      "O": 2,
+      "N": 0,
+      "Cl": 0,
+      "F": 0,
+      "Br": 0,
+      "I": 0
+    },
+    "category": "Carboxylic-Acids",
+    "structure": "CH3(CH2)3COOH",
+    "fact": "Valeric acid; pungent liquid found in valerian root; synthesized by carboxylation of butyl Grignard reagent."
+  },
+  {
+    "id": "hexanoic-acid",
+    "name": "Hexanoic Acid",
+    "formula": "C6H12O2",
+    "elements": {
+      "C": 6,
+      "H": 12,
+      "O": 2,
+      "N": 0,
+      "Cl": 0,
+      "F": 0,
+      "Br": 0,
+      "I": 0
+    },
+    "category": "Carboxylic-Acids",
+    "structure": "CH3(CH2)4COOH",
+    "fact": "Caproic acid; six-carbon fatty acid responsible for characteristic goat odor; used in ester flavoring agents."
+  },
+  {
+    "id": "octanoic-acid",
+    "name": "Octanoic Acid",
+    "formula": "C8H16O2",
+    "elements": {
+      "C": 8,
+      "H": 16,
+      "O": 2,
+      "N": 0,
+      "Cl": 0,
+      "F": 0,
+      "Br": 0,
+      "I": 0
+    },
+    "category": "Carboxylic-Acids",
+    "structure": "CH3(CH2)6COOH",
+    "fact": "Caprylic acid; medium-chain fatty acid antimicrobial agent used in dairy sanitizers."
+  },
+  {
+    "id": "decanoic-acid",
+    "name": "Decanoic Acid",
+    "formula": "C10H20O2",
+    "elements": {
+      "C": 10,
+      "H": 20,
+      "O": 2,
+      "N": 0,
+      "Cl": 0,
+      "F": 0,
+      "Br": 0,
+      "I": 0
+    },
+    "category": "Carboxylic-Acids",
+    "structure": "CH3(CH2)8COOH",
+    "fact": "Capric acid; saturated 10-carbon carboxylic acid used industrially in synthetic ester lubricants."
+  },
+  {
+    "id": "pivalic-acid",
+    "name": "Pivalic Acid",
+    "formula": "C5H10O2",
+    "elements": {
+      "C": 5,
+      "H": 10,
+      "O": 2,
+      "N": 0,
+      "Cl": 0,
+      "F": 0,
+      "Br": 0,
+      "I": 0
+    },
+    "category": "Carboxylic-Acids",
+    "structure": "(CH3)3CCOOH",
+    "fact": "2,2-Dimethylpropanoic acid; sterically hindered neopentyl carboxylic acid that resists esterification and nucleophilic attack."
+  },
+  {
+    "id": "malonic-acid",
+    "name": "Malonic Acid",
+    "formula": "C3H4O4",
+    "elements": {
+      "C": 3,
+      "H": 4,
+      "O": 4,
+      "N": 0,
+      "Cl": 0,
+      "F": 0,
+      "Br": 0,
+      "I": 0
+    },
+    "category": "Carboxylic-Acids",
+    "structure": "CH2(COOH)2",
+    "fact": "Propanedioic acid; classic dicarboxylic acid that undergoes facile thermal decarboxylation to acetic acid."
+  },
+  {
+    "id": "succinic-acid",
+    "name": "Succinic Acid",
+    "formula": "C4H6O4",
+    "elements": {
+      "C": 4,
+      "H": 6,
+      "O": 4,
+      "N": 0,
+      "Cl": 0,
+      "F": 0,
+      "Br": 0,
+      "I": 0
+    },
+    "category": "Carboxylic-Acids",
+    "structure": "HOOC(CH2)2COOH",
+    "fact": "Butanedioic acid; key intermediate in the citric acid (Krebs) cycle, dehydrates cleanly to cyclic succinic anhydride."
+  },
+  {
+    "id": "glutaric-acid",
+    "name": "Glutaric Acid",
+    "formula": "C5H8O4",
+    "elements": {
+      "C": 5,
+      "H": 8,
+      "O": 4,
+      "N": 0,
+      "Cl": 0,
+      "F": 0,
+      "Br": 0,
+      "I": 0
+    },
+    "category": "Carboxylic-Acids",
+    "structure": "HOOC(CH2)3COOH",
+    "fact": "Pentanedioic acid; dehydrates upon heating to form stable six-membered cyclic glutaric anhydride."
+  },
+  {
+    "id": "adipic-acid",
+    "name": "Adipic Acid",
+    "formula": "C6H10O4",
+    "elements": {
+      "C": 6,
+      "H": 10,
+      "O": 4,
+      "N": 0,
+      "Cl": 0,
+      "F": 0,
+      "Br": 0,
+      "I": 0
+    },
+    "category": "Carboxylic-Acids",
+    "structure": "HOOC(CH2)4COOH",
+    "fact": "Hexanedioic acid; produced on multi-million ton scale by nitric acid oxidation of cyclohexanol/cyclohexanone for Nylon 6,6."
+  },
+  {
+    "id": "pimelic-acid",
+    "name": "Pimelic Acid",
+    "formula": "C7H12O4",
+    "elements": {
+      "C": 7,
+      "H": 12,
+      "O": 4,
+      "N": 0,
+      "Cl": 0,
+      "F": 0,
+      "Br": 0,
+      "I": 0
+    },
+    "category": "Carboxylic-Acids",
+    "structure": "HOOC(CH2)5COOH",
+    "fact": "Heptanedioic acid; biosynthesized from lysine in plants; precursor in biotin metabolic pathways."
+  },
+  {
+    "id": "suberic-acid",
+    "name": "Suberic Acid",
+    "formula": "C8H14O4",
+    "elements": {
+      "C": 8,
+      "H": 14,
+      "O": 4,
+      "N": 0,
+      "Cl": 0,
+      "F": 0,
+      "Br": 0,
+      "I": 0
+    },
+    "category": "Carboxylic-Acids",
+    "structure": "HOOC(CH2)6COOH",
+    "fact": "Octanedioic acid; originally isolated from cork (suber) by nitric acid oxidation."
+  },
+  {
+    "id": "sebacic-acid",
+    "name": "Sebacic Acid",
+    "formula": "C10H18O4",
+    "elements": {
+      "C": 10,
+      "H": 18,
+      "O": 4,
+      "N": 0,
+      "Cl": 0,
+      "F": 0,
+      "Br": 0,
+      "I": 0
+    },
+    "category": "Carboxylic-Acids",
+    "structure": "HOOC(CH2)8COOH",
+    "fact": "Decanedioic acid; prepared by alkaline cleavage of castor oil; monomer for Nylon 6,10 and dioctyl sebacate plasticizer."
+  },
+  {
+    "id": "maleic-acid",
+    "name": "Maleic Acid",
+    "formula": "C4H4O4",
+    "elements": {
+      "C": 4,
+      "H": 4,
+      "O": 4,
+      "N": 0,
+      "Cl": 0,
+      "F": 0,
+      "Br": 0,
+      "I": 0
+    },
+    "category": "Carboxylic-Acids",
+    "structure": "cis-HOOCCH=CHCOOH",
+    "fact": "(Z)-Butenedioic acid; cis-isomer that easily forms maleic anhydride upon gentle heating due to proximal carboxyls."
+  },
+  {
+    "id": "fumaric-acid",
+    "name": "Fumaric Acid",
+    "formula": "C4H4O4",
+    "elements": {
+      "C": 4,
+      "H": 4,
+      "O": 4,
+      "N": 0,
+      "Cl": 0,
+      "F": 0,
+      "Br": 0,
+      "I": 0
+    },
+    "category": "Carboxylic-Acids",
+    "structure": "trans-HOOCCH=CHCOOH",
+    "fact": "(E)-Butenedioic acid; trans-isomer, non-toxic food acidulant, does not form an anhydride without high temperature isomerization."
+  },
+  {
+    "id": "phthalic-acid",
+    "name": "Phthalic Acid",
+    "formula": "C8H6O4",
+    "elements": {
+      "C": 8,
+      "H": 6,
+      "O": 4,
+      "N": 0,
+      "Cl": 0,
+      "F": 0,
+      "Br": 0,
+      "I": 0
+    },
+    "category": "Carboxylic-Acids",
+    "structure": "1,2-C6H4(COOH)2",
+    "fact": "Benzene-1,2-dicarboxylic acid; readily forms cyclic phthalic anhydride; starting material for phenolphthalein dye."
+  },
+  {
+    "id": "isophthalic-acid",
+    "name": "Isophthalic Acid",
+    "formula": "C8H6O4",
+    "elements": {
+      "C": 8,
+      "H": 6,
+      "O": 4,
+      "N": 0,
+      "Cl": 0,
+      "F": 0,
+      "Br": 0,
+      "I": 0
+    },
+    "category": "Carboxylic-Acids",
+    "structure": "1,3-C6H4(COOH)2",
+    "fact": "Benzene-1,3-dicarboxylic acid; meta-isomer used in unsaturated polyester resins and aramid fibers (Nomex)."
+  },
+  {
+    "id": "terephthalic-acid",
+    "name": "Terephthalic Acid",
+    "formula": "C8H6O4",
+    "elements": {
+      "C": 8,
+      "H": 6,
+      "O": 4,
+      "N": 0,
+      "Cl": 0,
+      "F": 0,
+      "Br": 0,
+      "I": 0
+    },
+    "category": "Carboxylic-Acids",
+    "structure": "1,4-C6H4(COOH)2",
+    "fact": "Benzene-1,4-dicarboxylic acid; para-isomer produced by catalytic aerial oxidation of p-xylene; monomer for Dacron/PET polyester."
+  },
+  {
+    "id": "salicylic-acid",
+    "name": "Salicylic Acid",
+    "formula": "C7H6O3",
+    "elements": {
+      "C": 7,
+      "H": 6,
+      "O": 3,
+      "N": 0,
+      "Cl": 0,
+      "F": 0,
+      "Br": 0,
+      "I": 0
+    },
+    "category": "Carboxylic-Acids",
+    "structure": "2-HOC6H4COOH",
+    "fact": "2-Hydroxybenzoic acid; prepared by the Kolbe-Schmitt reaction of sodium phenoxide with CO2 under pressure; acetylated to aspirin."
+  },
+  {
+    "id": "mandelic-acid",
+    "name": "Mandelic Acid",
+    "formula": "C8H8O3",
+    "elements": {
+      "C": 8,
+      "H": 8,
+      "O": 3,
+      "N": 0,
+      "Cl": 0,
+      "F": 0,
+      "Br": 0,
+      "I": 0
+    },
+    "category": "Carboxylic-Acids",
+    "structure": "C6H5CH(OH)COOH",
+    "fact": "2-Hydroxy-2-phenylacetic acid; synthesized by acid hydrolysis of benzaldehyde cyanohydrin."
+  },
+  {
+    "id": "tartaric-acid",
+    "name": "Tartaric Acid",
+    "formula": "C4H6O6",
+    "elements": {
+      "C": 4,
+      "H": 6,
+      "O": 6,
+      "N": 0,
+      "Cl": 0,
+      "F": 0,
+      "Br": 0,
+      "I": 0
+    },
+    "category": "Carboxylic-Acids",
+    "structure": "HOOCCH(OH)CH(OH)COOH",
+    "fact": "2,3-Dihydroxysuccinic acid; Louis Pasteur's historical resolution of its sodium ammonium salt launched the science of stereochemistry."
   }
 ]
