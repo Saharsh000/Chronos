@@ -550,7 +550,8 @@ class Database:
         tables = [
             "user_stats", "subject_stats", "user_currency", "user_inventory",
             "achievements_unlocked", "user_pets", "user_daily", "user_cooldowns",
-            "halloween_pass", "user_trivia_stats",
+            "halloween_pass", "user_trivia_stats", "lab_unlocks", "lab_elements",
+            "lab_compounds", "lab_daily", "lab_discoveries",
         ]
         total_synced = 0
         for table in tables:
