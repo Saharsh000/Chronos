@@ -66,7 +66,6 @@ CATEGORY_TITLES = {
     "Dyes-Indicators": "Chromophore Chemist",
     "Reagents-Catalysts": "Catalysis Commander",
     "Pharmaceuticals": "Pharmacology Pioneer",
-    "Coordination-Ligands": "Ligand Luminary",
 }
 
 MILESTONE_REWARDS = {
