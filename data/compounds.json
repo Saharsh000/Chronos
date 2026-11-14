@@ -5668,5 +5668,365 @@
     "category": "Carboxylic-Acids",
     "structure": "HOOCCH(OH)CH(OH)COOH",
     "fact": "2,3-Dihydroxysuccinic acid; Louis Pasteur's historical resolution of its sodium ammonium salt launched the science of stereochemistry."
+  },
+  {
+    "id": "benzoyl-chloride",
+    "name": "Benzoyl Chloride",
+    "formula": "C7H5ClO",
+    "elements": {
+      "C": 7,
+      "H": 5,
+      "O": 1,
+      "N": 0,
+      "Cl": 1,
+      "F": 0,
+      "Br": 0,
+      "I": 0
+    },
+    "category": "Acid-Derivatives",
+    "structure": "C6H5COCl",
+    "fact": "Key reagent in the Schotten-Baumann reaction for benzoylation of amines and phenols in alkaline medium."
+  },
+  {
+    "id": "oxalyl-chloride",
+    "name": "Oxalyl Chloride",
+    "formula": "C2Cl2O2",
+    "elements": {
+      "C": 2,
+      "H": 0,
+      "O": 2,
+      "N": 0,
+      "Cl": 2,
+      "F": 0,
+      "Br": 0,
+      "I": 0
+    },
+    "category": "Acid-Derivatives",
+    "structure": "(COCl)2",
+    "fact": "Prepared by treating oxalic acid with PCl5; classic reagent for Swern oxidation of alcohols to aldehydes."
+  },
+  {
+    "id": "propionyl-chloride",
+    "name": "Propionyl Chloride",
+    "formula": "C3H5ClO",
+    "elements": {
+      "C": 3,
+      "H": 5,
+      "O": 1,
+      "N": 0,
+      "Cl": 1,
+      "F": 0,
+      "Br": 0,
+      "I": 0
+    },
+    "category": "Acid-Derivatives",
+    "structure": "CH3CH2COCl",
+    "fact": "Aliphatic acyl chloride used in Friedel-Crafts acylation of aromatics to yield propiophenones."
+  },
+  {
+    "id": "butyryl-chloride",
+    "name": "Butyryl Chloride",
+    "formula": "C4H7ClO",
+    "elements": {
+      "C": 4,
+      "H": 7,
+      "O": 1,
+      "N": 0,
+      "Cl": 1,
+      "F": 0,
+      "Br": 0,
+      "I": 0
+    },
+    "category": "Acid-Derivatives",
+    "structure": "CH3(CH2)2COCl",
+    "fact": "Butanoyl chloride; reactive acyl halide that hydrolyzes violently in water with evolution of HCl gas."
+  },
+  {
+    "id": "succinic-anhydride",
+    "name": "Succinic Anhydride",
+    "formula": "C4H4O3",
+    "elements": {
+      "C": 4,
+      "H": 4,
+      "O": 3,
+      "N": 0,
+      "Cl": 0,
+      "F": 0,
+      "Br": 0,
+      "I": 0
+    },
+    "category": "Acid-Derivatives",
+    "structure": "C4H4O3",
+    "fact": "Cyclic five-membered anhydride produced by dehydration of succinic acid; reacts with benzene in Haworth phenanthrene synthesis."
+  },
+  {
+    "id": "maleic-anhydride",
+    "name": "Maleic Anhydride",
+    "formula": "C4H2O3",
+    "elements": {
+      "C": 4,
+      "H": 2,
+      "O": 3,
+      "N": 0,
+      "Cl": 0,
+      "F": 0,
+      "Br": 0,
+      "I": 0
+    },
+    "category": "Acid-Derivatives",
+    "structure": "C4H2O3",
+    "fact": "Highly reactive, planar electron-deficient dienophile produced by catalytic oxidation of benzene or butane."
+  },
+  {
+    "id": "phthalic-anhydride",
+    "name": "Phthalic Anhydride",
+    "formula": "C8H4O3",
+    "elements": {
+      "C": 8,
+      "H": 4,
+      "O": 3,
+      "N": 0,
+      "Cl": 0,
+      "F": 0,
+      "Br": 0,
+      "I": 0
+    },
+    "category": "Acid-Derivatives",
+    "structure": "C8H4O3",
+    "fact": "Produced by catalytic vapor-phase oxidation of o-xylene or naphthalene over V2O5; precursor to plasticizers and glyptal resins."
+  },
+  {
+    "id": "gamma-butyrolactone",
+    "name": "gamma-Butyrolactone",
+    "formula": "C4H6O2",
+    "elements": {
+      "C": 4,
+      "H": 6,
+      "O": 2,
+      "N": 0,
+      "Cl": 0,
+      "F": 0,
+      "Br": 0,
+      "I": 0
+    },
+    "category": "Acid-Derivatives",
+    "structure": "C4H6O2",
+    "fact": "GBL; cyclic ester (lactone) formed spontaneously by intramolecular esterification of 4-hydroxybutanoic acid."
+  },
+  {
+    "id": "gamma-valerolactone",
+    "name": "gamma-Valerolactone",
+    "formula": "C5H8O2",
+    "elements": {
+      "C": 5,
+      "H": 8,
+      "O": 2,
+      "N": 0,
+      "Cl": 0,
+      "F": 0,
+      "Br": 0,
+      "I": 0
+    },
+    "category": "Acid-Derivatives",
+    "structure": "C5H8O2",
+    "fact": "Sustainable biomass-derived platform lactone synthesized by hydrogenation of levulinic acid."
+  },
+  {
+    "id": "coumarin",
+    "name": "Coumarin",
+    "formula": "C9H6O2",
+    "elements": {
+      "C": 9,
+      "H": 6,
+      "O": 2,
+      "N": 0,
+      "Cl": 0,
+      "F": 0,
+      "Br": 0,
+      "I": 0
+    },
+    "category": "Acid-Derivatives",
+    "structure": "C9H6O2",
+    "fact": "Benzo-alpha-pyrone; naturally occurring aromatic lactone with sweet vanilla-like aroma of freshly cut hay; synthesized via Perkin reaction."
+  },
+  {
+    "id": "succinimide",
+    "name": "Succinimide",
+    "formula": "C4H5NO2",
+    "elements": {
+      "C": 4,
+      "H": 5,
+      "O": 2,
+      "N": 1,
+      "Cl": 0,
+      "F": 0,
+      "Br": 0,
+      "I": 0
+    },
+    "category": "Acid-Derivatives",
+    "structure": "C4H5NO2",
+    "fact": "Cyclic five-membered dicarboximide; bromination yields N-bromosuccinimide (NBS) for allylic/benzylic bromination."
+  },
+  {
+    "id": "phthalimide",
+    "name": "Phthalimide",
+    "formula": "C8H5NO2",
+    "elements": {
+      "C": 8,
+      "H": 5,
+      "O": 2,
+      "N": 1,
+      "Cl": 0,
+      "F": 0,
+      "Br": 0,
+      "I": 0
+    },
+    "category": "Acid-Derivatives",
+    "structure": "C8H5NO2",
+    "fact": "Key starting material in the Gabriel phthalimide synthesis of pure primary aliphatic amines without tertiary amine contamination."
+  },
+  {
+    "id": "glutarimide",
+    "name": "Glutarimide",
+    "formula": "C5H7NO2",
+    "elements": {
+      "C": 5,
+      "H": 7,
+      "O": 2,
+      "N": 1,
+      "Cl": 0,
+      "F": 0,
+      "Br": 0,
+      "I": 0
+    },
+    "category": "Acid-Derivatives",
+    "structure": "C5H7NO2",
+    "fact": "Six-membered cyclic imide; structural core of piperidinedione pharmaceuticals such as thalidomide and cycloheximide."
+  },
+  {
+    "id": "methyl-benzoate",
+    "name": "Methyl Benzoate",
+    "formula": "C8H8O2",
+    "elements": {
+      "C": 8,
+      "H": 8,
+      "O": 2,
+      "N": 0,
+      "Cl": 0,
+      "F": 0,
+      "Br": 0,
+      "I": 0
+    },
+    "category": "Acid-Derivatives",
+    "structure": "C6H5COOCH3",
+    "fact": "Essence of Niobe; pleasant fruity aromatic ester synthesized by Fischer esterification of benzoic acid with methanol."
+  },
+  {
+    "id": "ethyl-benzoate",
+    "name": "Ethyl Benzoate",
+    "formula": "C9H10O2",
+    "elements": {
+      "C": 9,
+      "H": 10,
+      "O": 2,
+      "N": 0,
+      "Cl": 0,
+      "F": 0,
+      "Br": 0,
+      "I": 0
+    },
+    "category": "Acid-Derivatives",
+    "structure": "C6H5COOCH2CH3",
+    "fact": "Characteristic fruity ester used in artificial cherry and blackcurrant flavorings."
+  },
+  {
+    "id": "benzyl-acetate",
+    "name": "Benzyl Acetate",
+    "formula": "C9H10O2",
+    "elements": {
+      "C": 9,
+      "H": 10,
+      "O": 2,
+      "N": 0,
+      "Cl": 0,
+      "F": 0,
+      "Br": 0,
+      "I": 0
+    },
+    "category": "Acid-Derivatives",
+    "structure": "CH3COOCH2C6H5",
+    "fact": "Jasmine aroma ester; major fragrance component extracted from jasmine, gardenia, and ylang-ylang flowers."
+  },
+  {
+    "id": "phenyl-salicylate",
+    "name": "Phenyl Salicylate",
+    "formula": "C13H10O3",
+    "elements": {
+      "C": 13,
+      "H": 10,
+      "O": 3,
+      "N": 0,
+      "Cl": 0,
+      "F": 0,
+      "Br": 0,
+      "I": 0
+    },
+    "category": "Acid-Derivatives",
+    "structure": "2-HOC6H4COOC6H5",
+    "fact": "Salol; internal antiseptic and sunscreen coating formed by heating salicylic acid with phenol in the presence of POCl3."
+  },
+  {
+    "id": "methyl-salicylate",
+    "name": "Methyl Salicylate",
+    "formula": "C8H8O3",
+    "elements": {
+      "C": 8,
+      "H": 8,
+      "O": 3,
+      "N": 0,
+      "Cl": 0,
+      "F": 0,
+      "Br": 0,
+      "I": 0
+    },
+    "category": "Acid-Derivatives",
+    "structure": "2-HOC6H4COOCH3",
+    "fact": "Oil of wintergreen; sweet medicinal fragrance ester prepared by esterifying salicylic acid; rubefacient pain relief balm."
+  },
+  {
+    "id": "dimethyl-phthalate",
+    "name": "Dimethyl Phthalate",
+    "formula": "C10H10O4",
+    "elements": {
+      "C": 10,
+      "H": 10,
+      "O": 4,
+      "N": 0,
+      "Cl": 0,
+      "F": 0,
+      "Br": 0,
+      "I": 0
+    },
+    "category": "Acid-Derivatives",
+    "structure": "1,2-C6H4(COOCH3)2",
+    "fact": "Aromatic diester plasticizer and historically significant insect repellent (DMP)."
+  },
+  {
+    "id": "diethyl-malonate",
+    "name": "Diethyl Malonate",
+    "formula": "C7H12O4",
+    "elements": {
+      "C": 7,
+      "H": 12,
+      "O": 4,
+      "N": 0,
+      "Cl": 0,
+      "F": 0,
+      "Br": 0,
+      "I": 0
+    },
+    "category": "Acid-Derivatives",
+    "structure": "CH2(COOCH2CH3)2",
+    "fact": "Malonic ester; classic beta-dicarbonyl reagent whose acidic methylene protons (pKa ~13) drive the malonic ester alkylation synthesis."
   }
 ]
