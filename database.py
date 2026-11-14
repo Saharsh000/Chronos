@@ -3379,6 +3379,61 @@ class Database:
         await self.conn.commit()
         return {"success": True, "already_unlocked": False, "unlocked_at": now}
 
+    async def get_lab_elements(self, user_id: int, guild_id: int) -> dict[str, int]:
+        """Fetch current stock for all 8 Lab elements (defaulting to 0 if not present)."""
+        cur = await self.conn.execute(
+            "SELECT element, quantity FROM lab_elements WHERE user_id = ? AND guild_id = ?",
+            (user_id, guild_id),
+        )
+        rows = await cur.fetchall()
+        inv = {e: 0 for e in lab_catalog.ELEMENT_LIST}
+        for r in rows:
+            if r["element"] in inv:
+                inv[r["element"]] = r["quantity"]
+        return inv
+
+    async def add_lab_elements(
+        self, user_id: int, guild_id: int, deltas: dict[str, int]
+    ) -> tuple[dict[str, int], list[str]]:
+        """Add (or deduct) elements to a user's inventory.
+        Enforces lab_catalog.ELEMENT_INVENTORY_CAP (500) per element.
+        Returns:
+            (actual_added_dict, list_of_capped_elements)
+        """
+        current = await self.get_lab_elements(user_id, guild_id)
+        actual_added = {e: 0 for e in lab_catalog.ELEMENT_LIST}
+        capped = []
+
+        for elem, delta in deltas.items():
+            if elem not in current or delta == 0:
+                continue
+            cur_qty = current[elem]
+            if delta > 0:
+                if cur_qty >= lab_catalog.ELEMENT_INVENTORY_CAP:
+                    capped.append(elem)
+                    actual_added[elem] = 0
+                    continue
+                new_qty = min(lab_catalog.ELEMENT_INVENTORY_CAP, cur_qty + delta)
+                if new_qty == lab_catalog.ELEMENT_INVENTORY_CAP and (cur_qty + delta) >= lab_catalog.ELEMENT_INVENTORY_CAP:
+                    capped.append(elem)
+                actual_added[elem] = new_qty - cur_qty
+            else:
+                new_qty = max(0, cur_qty + delta)
+                actual_added[elem] = new_qty - cur_qty
+
+            await self.conn.execute(
+                """
+                INSERT INTO lab_elements (user_id, guild_id, element, quantity)
+                VALUES (?, ?, ?, ?)
+                ON CONFLICT(user_id, guild_id, element) DO UPDATE SET quantity = ?
+                """,
+                (user_id, guild_id, elem, new_qty, new_qty),
+            )
+
+        await self.conn.commit()
+        return actual_added, capped
+
+
 
 
 
