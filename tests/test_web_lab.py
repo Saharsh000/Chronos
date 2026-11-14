@@ -92,7 +92,7 @@ class WebLabTests(WebCase):
         self.assertEqual(inv["C"], 4)
         self.assertEqual(inv["H"], 6)
 
-    async def test_compendium_hides_undiscovered(self):
+    async def test_compendium_lists_all_compounds(self):
         # Unlock lab
         await self._give_chem_hours(UID, 32.0)
         await self.db.add_coins(UID, GID, 90000)
@@ -103,11 +103,13 @@ class WebLabTests(WebCase):
         self.assertEqual(comp_data["total_compounds"], 500)
         self.assertEqual(comp_data["total_discovered"], 0)
 
-        # First entry should be undiscovered and have no formula or fact
+        # First entry should be uncrafted but have its name, formula, and elements visible
         c0 = comp_data["compounds"][0]
         self.assertFalse(c0["discovered"])
-        self.assertNotIn("formula", c0)
-        self.assertNotIn("fact", c0)
+        self.assertIn("name", c0)
+        self.assertIn("formula", c0)
+        self.assertIn("elements", c0)
+        self.assertIn("fact", c0)
 
     async def test_start_session_oc_mode_requires_unlock(self):
         st, data = await self.post("/api/session/start", {"mode": "oc"})

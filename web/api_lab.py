@@ -196,29 +196,22 @@ async def get_compendium(c: Ctx):
         disc_info = discoveries.get(cid)
         first_discoverer_uid = disc_info["user_id"] if disc_info else None
 
-        if discovered:
-            compounds_out.append({
-                "id": cid,
-                "name": comp["name"],
-                "formula": comp["formula"],
-                "category": comp["category"],
-                "elements": comp["elements"],
-                "smiles": comp.get("smiles"),
-                "fact": comp["fact"],
-                "discovered": True,
-                "times_crafted": user_compounds[cid]["times_crafted"],
-                "first_crafted_at": user_compounds[cid]["first_crafted_at"],
-                "first_discoverer_id": first_discoverer_uid,
-                "is_your_discovery": (first_discoverer_uid == c.uid),
-            })
-        else:
-            compounds_out.append({
-                "id": cid,
-                "category": comp["category"],
-                "total_atoms": sum(comp["elements"].values()),
-                "discovered": False,
-                "first_discoverer_id": first_discoverer_uid,
-            })
+        compounds_out.append({
+            "id": cid,
+            "name": comp["name"],
+            "formula": comp["formula"],
+            "structure": comp.get("structure") or comp.get("smiles") or comp["formula"],
+            "category": comp["category"],
+            "elements": comp["elements"],
+            "smiles": comp.get("smiles"),
+            "fact": comp["fact"],
+            "total_atoms": sum(comp["elements"].values()),
+            "discovered": discovered,
+            "times_crafted": user_compounds[cid]["times_crafted"] if discovered else 0,
+            "first_crafted_at": user_compounds[cid]["first_crafted_at"] if discovered else None,
+            "first_discoverer_id": first_discoverer_uid,
+            "is_your_discovery": (first_discoverer_uid == c.uid),
+        })
 
     return {
         "compounds": compounds_out,
