@@ -3517,6 +3517,164 @@ class Database:
         rows = await cur.fetchall()
         return {r["compound_id"]: dict(r) for r in rows}
 
+    async def get_lab_compounds(
+        self, user_id: int, guild_id: int
+    ) -> dict[str, dict[str, Any]]:
+        """Return all compounds synthesized by this user in this guild, mapped by compound_id."""
+        cur = await self.conn.execute(
+            "SELECT * FROM lab_compounds WHERE user_id = ? AND guild_id = ?",
+            (user_id, guild_id),
+        )
+        rows = await cur.fetchall()
+        return {r["compound_id"]: dict(r) for r in rows}
+
+    async def get_lab_compound(
+        self, user_id: int, guild_id: int, compound_id: str
+    ) -> Optional[dict[str, Any]]:
+        """Return synthesis record for a specific compound."""
+        cur = await self.conn.execute(
+            "SELECT * FROM lab_compounds WHERE user_id = ? AND guild_id = ? AND compound_id = ?",
+            (user_id, guild_id, compound_id),
+        )
+        row = await cur.fetchone()
+        return dict(row) if row else None
+
+    async def get_lab_collection_count(
+        self, user_id: int, guild_id: int
+    ) -> int:
+        """Total distinct compounds synthesized by this user."""
+        cur = await self.conn.execute(
+            "SELECT COUNT(DISTINCT compound_id) FROM lab_compounds WHERE user_id = ? AND guild_id = ? AND times_crafted > 0",
+            (user_id, guild_id),
+        )
+        row = await cur.fetchone()
+        return row[0] if row else 0
+
+    async def craft_compound(
+        self, user_id: int, guild_id: int, compound_id: str, now: Optional[int] = None
+    ) -> dict[str, Any]:
+        """Synthesize an organic compound in The Lab.
+        Consumes exact element counts, awards coins/XP, checks server discovery,
+        category completions, collection milestones, and achievements.
+        """
+        now = now if now is not None else int(time.time())
+        unlock = await self.get_lab_unlock(user_id, guild_id)
+        if not unlock:
+            raise ValueError("lab_locked")
+
+        compound = lab_catalog.COMPOUND_BY_ID.get(compound_id)
+        if not compound:
+            raise ValueError(f"unknown_compound:{compound_id}")
+
+        inv = await self.get_lab_elements(user_id, guild_id)
+        reqs = compound["elements"]
+        for elem, needed in reqs.items():
+            if needed > 0 and inv.get(elem, 0) < needed:
+                raise ValueError(f"insufficient_{elem}:{inv.get(elem, 0)}/{needed}")
+
+        # Deduct elements
+        deduct_deltas = {elem: -needed for elem, needed in reqs.items() if needed > 0}
+        await self.add_lab_elements(user_id, guild_id, deduct_deltas)
+
+        # Check existing collection state
+        existing = await self.get_lab_compound(user_id, guild_id, compound_id)
+        first_time = (existing is None or existing["times_crafted"] == 0)
+
+        # Calculate synthesis rewards
+        if first_time:
+            coins_earned = lab_catalog.reward_coins_first(compound)
+            xp_earned = lab_catalog.reward_xp_first(compound)
+            repeat_coins_requested = 0
+            repeat_coins_credited = 0
+        else:
+            repeat_coins_requested = lab_catalog.reward_coins_repeat(compound)
+            repeat_coins_credited = await self.add_lab_daily_repeat_coins(user_id, guild_id, repeat_coins_requested)
+            coins_earned = repeat_coins_credited
+            xp_earned = lab_catalog.reward_xp_repeat(compound)
+
+        # Payout coins and XP
+        if coins_earned > 0:
+            await self.add_coins(user_id, guild_id, coins_earned)
+        if xp_earned > 0:
+            await self.add_xp(user_id, guild_id, xp_earned)
+
+        # Update lab_compounds
+        await self.conn.execute(
+            """
+            INSERT INTO lab_compounds (user_id, guild_id, compound_id, times_crafted, first_crafted_at)
+            VALUES (?, ?, ?, 1, ?)
+            ON CONFLICT(user_id, guild_id, compound_id) DO UPDATE SET times_crafted = times_crafted + 1
+            """,
+            (user_id, guild_id, compound_id, now),
+        )
+
+        # Check server discovery
+        cur_disc = await self.conn.execute(
+            """
+            INSERT OR IGNORE INTO lab_discoveries (guild_id, compound_id, user_id, discovered_at)
+            VALUES (?, ?, ?, ?)
+            """,
+            (guild_id, compound_id, user_id, now),
+        )
+        is_discoverer = (cur_disc.rowcount > 0)
+        await self.conn.commit()
+
+        # Check category completion
+        cat = compound["category"]
+        cat_compounds = [c for c in lab_catalog.COMPOUNDS if c["category"] == cat]
+        user_compounds = await self.get_lab_compounds(user_id, guild_id)
+        newly_completed_category = False
+        cat_title = None
+
+        if first_time:
+            other_cat_ids = [c["id"] for c in cat_compounds if c["id"] != compound_id]
+            if all(cid in user_compounds for cid in other_cat_ids):
+                newly_completed_category = True
+                cat_title = lab_catalog.CATEGORY_TITLES.get(cat)
+                # Category completion bonus: 1,000 coins + Title
+                await self.add_coins(user_id, guild_id, 1000)
+                if cat_title:
+                    item_id = f"title_{cat.lower().replace('-', '_')}"
+                    await self.add_item(user_id, guild_id, item_id, 1)
+
+        # Check milestones (25, 50, 75, 100)
+        milestone_reward = None
+        unique_count = len(user_compounds)
+        if first_time and unique_count in lab_catalog.MILESTONE_REWARDS:
+            ms = lab_catalog.MILESTONE_REWARDS[unique_count]
+            milestone_reward = {"count": unique_count, **ms}
+            if ms["type"] == "item":
+                await self.add_item(user_id, guild_id, ms["item_id"], ms["quantity"])
+            elif ms["type"] == "title":
+                item_id = f"title_{ms['title'].lower().replace(' ', '_')}"
+                await self.add_item(user_id, guild_id, item_id, 1)
+            elif ms["type"] == "grandmaster":
+                await self.add_coins(user_id, guild_id, ms["coins"])
+                await self.add_item(user_id, guild_id, "title_grandmaster_chemist", 1)
+
+        # Check achievements
+        new_achievements = await self.check_achievements(user_id, guild_id)
+
+        times_crafted = (existing["times_crafted"] + 1) if existing else 1
+        return {
+            "compound": compound,
+            "first_time": first_time,
+            "times_crafted": times_crafted,
+            "is_discoverer": is_discoverer,
+            "coins_earned": coins_earned,
+            "xp_earned": xp_earned,
+            "repeat_coins_requested": repeat_coins_requested,
+            "repeat_coins_credited": repeat_coins_credited,
+            "repeat_cap_reached": (repeat_coins_requested > repeat_coins_credited),
+            "newly_completed_category": newly_completed_category,
+            "category": cat,
+            "category_title": cat_title,
+            "unique_compounds_count": unique_count,
+            "milestone_reward": milestone_reward,
+            "new_achievements": [a.id for a in new_achievements],
+        }
+
+
 
 
 
