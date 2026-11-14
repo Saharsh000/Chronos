@@ -1,4 +1,4 @@
-// The Lab DLC interactive view: Element Tray, Reaction Flask, and 100-Compound Compendium.
+// The Lab DLC interactive view: Element Tray, Reaction Flask, and 500-Compound Compendium.
 import { state, h, get, post, mount, on, num } from '/static/core/core.js';
 import { toast, confirmBox, errToast, act, celebrate, pageHead, bar } from '/static/core/ui.js';
 
@@ -6,6 +6,7 @@ export default async function lab(root, ctx) {
   let labData = null;
   let compendiumData = null;
   let selectedCategory = 'All';
+  let searchQuery = '';
   let flaskAtoms = { C: 0, H: 0, O: 0, N: 0, Cl: 0, F: 0, Br: 0, I: 0 };
 
   const loadData = async () => {
@@ -58,8 +59,8 @@ export default async function lab(root, ctx) {
       onClick: async (e) => {
         if (!labData.can_unlock) return;
         const ok = await confirmBox(
-          'Spend 60,000 Chronocoins to permanently unlock The Lab and Organic Chemistry mode?',
-          { title: 'Unlock The Lab', confirm: 'Unlock (60,000 Coins)' }
+          `Spend ${num(reqCoins)} Chronocoins to permanently unlock The Lab and Organic Chemistry mode?`,
+          { title: 'Unlock The Lab', confirm: `Unlock (${num(reqCoins)} Coins)` }
         );
         if (!ok) return;
 
@@ -74,11 +75,11 @@ export default async function lab(root, ctx) {
           }
         });
       },
-    }, 'Unlock The Lab (60,000 Coins)');
+    }, `Unlock The Lab (${num(reqCoins)} Coins)`);
 
     const lockedEl = h('div', { class: 'lab-locked' },
       h('h1', 'The Lab (Locked)'),
-      h('p', 'The Lab is a prestigious research workshop for serious chemistry scholars. Unlock it to harvest elements and synthesize 100 JEE organic compounds.'),
+      h('p', 'The Lab is a prestigious research workshop for serious chemistry scholars. Unlock it to harvest elements and synthesize 500 JEE organic compounds across 21 categories.'),
       h('div', { class: 'lab-reqs' },
         h('div', { class: 'req-item' },
           h('div', { class: 'req-header' }, h('span', 'Chemistry Study Time'), h('span', `${chemHours.toFixed(1)}h / ${reqHours}h (${chemPct}%)`)),
@@ -105,6 +106,7 @@ export default async function lab(root, ctx) {
 
       return h('div', {
         class: `elem-card ${available <= 0 ? 'disabled' : ''}`,
+        title: `Click to add 1 ${elem} to flask`,
         onClick: () => {
           if (available > 0) {
             flaskAtoms[elem] = inFlask + 1;
@@ -170,7 +172,7 @@ export default async function lab(root, ctx) {
       )
     );
 
-    // 3. Compendium Grid
+    // 3. Compendium Search & Category Filters
     const categories = ['All', ...(compendiumData?.categories || [])];
     const catPills = categories.map((cat) => {
       return h('button', {
@@ -182,9 +184,17 @@ export default async function lab(root, ctx) {
       }, cat);
     });
 
+    const qLower = searchQuery.trim().toLowerCase();
     const filteredCompounds = (compendiumData?.compounds || []).filter((c) => {
-      if (selectedCategory === 'All') return true;
-      return c.category === selectedCategory;
+      if (selectedCategory !== 'All' && c.category !== selectedCategory) return false;
+      if (qLower) {
+        const nameMatch = c.name?.toLowerCase().includes(qLower);
+        const formulaMatch = c.formula?.toLowerCase().includes(qLower);
+        const catMatch = c.category?.toLowerCase().includes(qLower);
+        const factMatch = c.fact?.toLowerCase().includes(qLower);
+        if (!nameMatch && !formulaMatch && !catMatch && !factMatch) return false;
+      }
+      return true;
     });
 
     const compoundCards = filteredCompounds.map((c) => {
@@ -193,15 +203,21 @@ export default async function lab(root, ctx) {
           class: 'comp-card undiscovered',
           title: 'Undiscovered compound. Experiment in the flask to reveal!',
         },
-          h('div', { class: 'title' }, h('span', '???'), h('span', { class: 'cat' }, c.category)),
-          h('div', { class: 'fact' }, `Atoms: ${c.total_atoms} · Craft to reveal formula and JEE fact.`)
+          h('div', { class: 'title' },
+            h('span', { class: 'name-text' }, '???'),
+            h('span', { class: 'cat-badge' }, c.category)
+          ),
+          h('div', { class: 'card-meta' },
+            h('span', { class: 'formula' }, `${c.total_atoms} Atoms`)
+          ),
+          h('div', { class: 'fact' }, 'Craft this compound in the reaction flask to reveal its identity, formula, and JEE fact.')
         );
       }
 
       return h('div', {
         class: 'comp-card discovered',
+        title: `Click to load ${c.name} recipe into the flask`,
         onClick: () => {
-          // Pre-load required atoms into flask if in stock
           if (c.elements) {
             flaskAtoms = { ...c.elements };
             render();
@@ -210,13 +226,18 @@ export default async function lab(root, ctx) {
         },
       },
         h('div', { class: 'title' },
-          h('span', c.name),
+          h('span', { class: 'name-text' }, c.name),
           c.is_your_discovery ? h('span', { class: 'disc-star', title: 'Server first discovery by you!' }, '⭐') : null
         ),
-        h('div', { class: 'formula' }, c.formula),
-        h('div', { class: 'cat' }, c.category),
+        h('div', { class: 'card-meta' },
+          h('span', { class: 'formula' }, c.formula),
+          h('span', { class: 'cat-badge' }, c.category)
+        ),
         h('div', { class: 'fact' }, c.fact),
-        h('div', { class: 'times' }, `Crafted: ${c.times_crafted}x`)
+        h('div', { class: 'card-footer' },
+          h('span', { class: 'times' }, `Crafted: ${c.times_crafted}×`),
+          h('span', { class: 'mute', style: { fontSize: '.72rem' } }, 'Load Recipe ➜')
+        )
       );
     });
 
@@ -230,11 +251,29 @@ export default async function lab(root, ctx) {
       flaskEl
     );
 
+    const searchInput = h('input', {
+      type: 'text',
+      class: 'lab-search',
+      placeholder: 'Search 500 compounds by name, formula, or JEE fact...',
+      value: searchQuery,
+      onInput: (e) => {
+        searchQuery = e.target.value;
+        render();
+      },
+    });
+
+    const statusText = searchQuery.trim()
+      ? `${filteredCompounds.length} matching (${labData.collection_count} / ${labData.total_compounds} Discovered)`
+      : `${labData.collection_count} / ${labData.total_compounds} Discovered`;
+
     const rightPanel = h('div', { class: 'lab-panel' },
       h('div', { class: 'lab-panel-head' },
-        h('h2', 'Compendium'),
-        h('span', { class: 'mute', style: { fontSize: '.85rem' } }, `${labData.collection_count} / ${labData.total_compounds} Discovered`)),
-      h('div', { class: 'cat-filters' }, ...catPills),
+        h('h2', '500-Compound Compendium'),
+        h('span', { class: 'mute', style: { fontSize: '.85rem' } }, statusText)),
+      h('div', { class: 'comp-controls' },
+        searchInput,
+        h('div', { class: 'cat-filters' }, ...catPills)
+      ),
       h('div', { class: 'compendium-grid' }, ...compoundCards)
     );
 
@@ -242,7 +281,7 @@ export default async function lab(root, ctx) {
 
     mount(root,
       h('div', { class: 'lab-wrap' },
-        pageHead('The Lab', 'Organic Chemistry Synthesis & Compendium'),
+        pageHead('The Lab', 'Organic Chemistry Synthesis & 500-Compound Compendium'),
         layout
       )
     );
