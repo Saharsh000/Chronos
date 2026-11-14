@@ -3,9 +3,9 @@
 Simulates player progression in Organic Chemistry (OC) study mode:
   1. Expected OC minutes to synthesize first compound (Target: <= 2 min)
   2. Expected OC minutes to complete each category
-  3. Expected OC minutes and hours to collect all 100 compounds once (Target: 8 - 12 hours)
-  4. Average OC minutes to acquire each individual compound (Target: <= 30 min)
-  5. Total first-time coin rewards sum vs 60,000 unlock price (Target: ~45,000 +/- 5,000)
+  3. Expected OC minutes and hours to collect all 500 compounds once (Target: 40 - 80 hours)
+  4. Average OC minutes to acquire each individual compound (Target: <= 30 min isolated)
+  5. Total first-time coin rewards sum vs 60,000 unlock price
   6. Daily repeat-craft income comparison with dedicated study day economy
 """
 import copy
@@ -22,11 +22,11 @@ from utils import lab as lab_catalog
 
 # Target constants
 NUM_USERS = 500  # Number of simulated players
-MAX_MINUTES = 2000  # Cutoff safety
+MAX_MINUTES = 10000  # Cutoff safety (500 compounds can take ~5000+ OC minutes)
 
 
 def simulate_user(compounds_catalog):
-    """Simulate a single player starting from 0 elements until all 100 compounds are crafted."""
+    """Simulate a single player starting from 0 elements until all 500 compounds are crafted."""
     inventory = {e: 0 for e in lab_catalog.ELEMENT_LIST}
     unlocked_compounds = set()
     category_compounds = {}
@@ -102,7 +102,7 @@ def simulate_single_compound_isolated(compound, trials=200):
 def main():
     print("=" * 70)
     print("CHRONOS DLC: THE LAB & ORGANIC CHEMISTRY MODE — BALANCE SIMULATION")
-    print(f"Simulating {NUM_USERS} players across 100 JEE Organic Chemistry compounds...")
+    print(f"Simulating {NUM_USERS} players across 500 JEE Organic Chemistry compounds...")
     print("=" * 70)
 
     compounds = lab_catalog.COMPOUNDS
@@ -139,10 +139,10 @@ def main():
         c_avg = sum(t_list) / len(t_list) if t_list else 0
         print(f"{cat:<22} | {c_avg:<12.1f} | {c_avg/60.0:<10.2f}")
 
-    print("\n--- 3. FULL 100-COMPOUND COLLECTION ---")
-    print(f"Target: 8.0 to 12.0 hours (480 to 720 minutes)")
+    print("\n--- 3. FULL 500-COMPOUND COLLECTION ---")
+    print(f"Target: 40.0 to 80.0 hours (2400 to 4800 minutes)")
     print(f"Simulated average: {avg_all_min:.1f} minutes ({avg_all_hours:.2f} hours)")
-    print(f"Target met: {480 <= avg_all_min <= 720 or 7.0 <= avg_all_hours <= 13.0}")
+    print(f"Target met: {2400 <= avg_all_min <= 4800 or 40.0 <= avg_all_hours <= 80.0}")
 
     print("\n--- 4. SINGLE COMPOUND ISOLATED CRAFT TIME ---")
     print("Testing heaviest/rarest compounds to verify no single compound exceeds ~30 min...")
@@ -163,10 +163,10 @@ def main():
 
     print("\n--- 5. REWARDS & UNLOCK PRICE VALIDATION ---")
     first_time_sum = sum(lab_catalog.reward_coins_first(c) for c in compounds)
-    print(f"Total first-time coin rewards (all 100): {first_time_sum:,} Chronocoins")
+    print(f"Total first-time coin rewards (all 500): {first_time_sum:,} Chronocoins")
     print(f"Unlock price: {lab_catalog.LAB_UNLOCK_PRICE:,} Chronocoins")
     print(f"Ratio: {first_time_sum / lab_catalog.LAB_UNLOCK_PRICE * 100:.1f}%")
-    print("Verdict: The unlock is NOT self-funding (costs 60k, pays ~45k over entire journey).")
+    print("Verdict: The unlock is NOT self-funding (rewards are earned over the full journey).")
 
     print("\n--- 6. DAILY REPEAT INCOME & ECONOMY COMPARISON ---")
     # Dedicated study day breakdown:
