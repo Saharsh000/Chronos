@@ -1175,6 +1175,8 @@ class Database:
             "guild_id": session["guild_id"],
             "channel_id": session["channel_id"],
             "subject": session["subject"],
+            "track": session.get("track"),
+            "credited_elements": json.loads(session.get("credited_elements") or "{}"),
             "duration": duration,
             "xp_earned": total_xp_earned,
             "coins_earned": total_coins_earned,
