@@ -25,7 +25,7 @@ class WebLabTests(WebCase):
         self.assertEqual(st, 200)
         self.assertFalse(data["unlocked"])
         self.assertEqual(data["required_chemistry_hours"], 30.0)
-        self.assertEqual(data["required_coins"], 60000)
+        self.assertEqual(data["required_coins"], 80000)
         self.assertFalse(data["can_unlock"])
 
     async def test_unlock_lab_insufficient_hours(self):
@@ -43,7 +43,7 @@ class WebLabTests(WebCase):
 
     async def test_unlock_lab_success(self):
         await self._give_chem_hours(UID, 32.0)
-        await self.db.add_coins(UID, GID, 70000)
+        await self.db.add_coins(UID, GID, 90000)
         st, data = await self.post("/api/lab/unlock")
         self.assertEqual(st, 200)
         self.assertTrue(data["unlocked"])
@@ -52,11 +52,11 @@ class WebLabTests(WebCase):
         st_status, status_data = await self.get("/api/lab")
         self.assertEqual(st_status, 200)
         self.assertTrue(status_data["unlocked"])
-        self.assertEqual(status_data["coins"], 10000)  # 70k - 60k
+        self.assertEqual(status_data["coins"], 10000)  # 90k - 80k
 
     async def test_unlock_lab_already_unlocked(self):
         await self._give_chem_hours(UID, 32.0)
-        await self.db.add_coins(UID, GID, 70000)
+        await self.db.add_coins(UID, GID, 90000)
         await self.post("/api/lab/unlock")
 
         # Second attempt
@@ -67,7 +67,7 @@ class WebLabTests(WebCase):
     async def test_synth_dry_run_and_confirm(self):
         # Unlock lab
         await self._give_chem_hours(UID, 32.0)
-        await self.db.add_coins(UID, GID, 70000)
+        await self.db.add_coins(UID, GID, 90000)
         await self.post("/api/lab/unlock")
 
         # Add elements for methane (1 C, 4 H)
@@ -95,7 +95,7 @@ class WebLabTests(WebCase):
     async def test_compendium_hides_undiscovered(self):
         # Unlock lab
         await self._give_chem_hours(UID, 32.0)
-        await self.db.add_coins(UID, GID, 70000)
+        await self.db.add_coins(UID, GID, 90000)
         await self.post("/api/lab/unlock")
 
         st, comp_data = await self.get("/api/lab/compendium")
@@ -116,7 +116,7 @@ class WebLabTests(WebCase):
 
     async def test_start_session_oc_mode_success(self):
         await self._give_chem_hours(UID, 32.0)
-        await self.db.add_coins(UID, GID, 70000)
+        await self.db.add_coins(UID, GID, 90000)
         await self.post("/api/lab/unlock")
 
         st, data = await self.post("/api/session/start", {"mode": "oc"})

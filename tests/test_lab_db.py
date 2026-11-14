@@ -54,27 +54,27 @@ class TestLabDatabase(unittest.IsolatedAsyncioTestCase):
 
     async def test_lab_unlock_deducts_coins(self):
         await self._give_chem_hours(UID, 30.0)
-        await self.db.add_coins(UID, GID, 70000)
+        await self.db.add_coins(UID, GID, 90000)
         res = await self.db.set_lab_unlock(UID, GID)
         self.assertTrue(res["success"])
         self.assertFalse(res["already_unlocked"])
 
         curr = await self.db.get_or_create_currency(UID, GID)
-        self.assertEqual(curr["coins"], 10000)  # 70k - 60k = 10k
+        self.assertEqual(curr["coins"], 10000)  # 90k - 80k = 10k
 
         unlock = await self.db.get_lab_unlock(UID, GID)
         self.assertIsNotNone(unlock)
 
     async def test_lab_unlock_idempotent(self):
         await self._give_chem_hours(UID, 30.0)
-        await self.db.add_coins(UID, GID, 70000)
+        await self.db.add_coins(UID, GID, 90000)
         await self.db.set_lab_unlock(UID, GID)
 
         # Second call should not deduct coins again
         res2 = await self.db.set_lab_unlock(UID, GID)
         self.assertTrue(res2["already_unlocked"])
         curr = await self.db.get_or_create_currency(UID, GID)
-        self.assertEqual(curr["coins"], 10000)
+        self.assertEqual(curr["coins"], 10000)  # 90k - 80k
 
     async def test_add_lab_elements_cap_at_500(self):
         added, capped = await self.db.add_lab_elements(UID, GID, {"C": 450, "H": 600})
@@ -97,7 +97,7 @@ class TestLabDatabase(unittest.IsolatedAsyncioTestCase):
     async def test_craft_compound_lifecycle(self):
         # Unlock lab
         await self._give_chem_hours(UID, 30.0)
-        await self.db.add_coins(UID, GID, 60000)
+        await self.db.add_coins(UID, GID, 80000)
         await self.db.set_lab_unlock(UID, GID)
 
         # Add methane elements (1 C, 4 H)
@@ -125,7 +125,7 @@ class TestLabDatabase(unittest.IsolatedAsyncioTestCase):
     async def test_craft_compound_discoverer_flag(self):
         # User 1 unlocks and crafts methane
         await self._give_chem_hours(UID, 30.0)
-        await self.db.add_coins(UID, GID, 60000)
+        await self.db.add_coins(UID, GID, 80000)
         await self.db.set_lab_unlock(UID, GID)
         await self.db.add_lab_elements(UID, GID, {"C": 10, "H": 20})
         res1 = await self.db.craft_compound(UID, GID, "methane")
@@ -133,7 +133,7 @@ class TestLabDatabase(unittest.IsolatedAsyncioTestCase):
 
         # User 2 unlocks and crafts methane
         await self._give_chem_hours(UID2, 30.0)
-        await self.db.add_coins(UID2, GID, 60000)
+        await self.db.add_coins(UID2, GID, 80000)
         await self.db.set_lab_unlock(UID2, GID)
         await self.db.add_lab_elements(UID2, GID, {"C": 10, "H": 20})
         res2 = await self.db.craft_compound(UID2, GID, "methane")
