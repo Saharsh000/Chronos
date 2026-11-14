@@ -475,7 +475,7 @@ A 500-player Monte Carlo simulation was executed via `tools/lab_sim.py` using ca
 | **All 500 Compounds** | 40–80 h (prestige) | **>33 h at 2000 min cutoff** | **By design** |
 | **Max Single Compound Isolated** | ≤ 30.0 min | **26.7 min** (C₂F₄) | **PASS** |
 | **Total First-time Coins (All 500)** | > 100,000 | **311,250 coins** | **PASS** |
-| **Unlock Price Self-Funding** | Cost 60,000 | **518% returned over full journey** | **PASS** |
+| **Unlock Price Self-Funding** | Cost 80,000 | **518% returned over full journey** | **PASS** |
 | **Repeat Craft Daily Cap** | scaled | **5,000 coins/day** | **PASS** |
 
 ### 10.2 Single Compound Isolated Times (Starting from Empty Inventory)

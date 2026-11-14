@@ -56,7 +56,7 @@
   * **Candy Currency & Shop** (`.candyshop`): Spend study-earned 🍬 Candy on exclusive pets (*Pumpkaboo*), JEE titles, and Sugar Rush boosts.
 
 ### 🧪 The Lab & Organic Chemistry DLC
-* **Premium Unlock** (`.lab unlock`): Requires 30 hours of all-time Chemistry study + 60,000 Chronocoins.
+* **Premium Unlock** (`.lab unlock`): Requires 30 hours of all-time Chemistry study + 80,000 Chronocoins.
 * **Organic Chemistry Track** (`.start oc` / `.start organic`): Study organic chemistry to harvest 8 elemental precursors (`C, H, O, N, Cl, F, Br, I`) every credited minute.
 * **Chemical Synthesis** (`.synth <compound>`): Synthesize **500 organic compounds** across 21 categories (Alkanes → Pharmaceuticals) using exact elemental stoichiometry — from simple methane to complex steroids and alkaloids.
 * **Comprehensive Compendium** (`.compounds`): Track discovered compounds with condensed structural formulas, JEE facts, and craft counters.
