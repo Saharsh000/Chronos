@@ -2241,6 +2241,20 @@ class Database:
         pass_row = await cur_pass.fetchone()
         pass_level = halloween_catalog.get_current_pass_level(pass_row["study_seconds"])["level"] if pass_row else 0
 
+        cur_lab_unlock = await self.conn.execute(
+            "SELECT unlocked_at FROM lab_unlocks WHERE user_id = ? AND guild_id = ?",
+            (user_id, guild_id),
+        )
+        lab_unlocked = (await cur_lab_unlock.fetchone()) is not None
+
+        cur_compounds = await self.conn.execute(
+            "SELECT COUNT(DISTINCT compound_id) AS unique_c, COALESCE(SUM(times_crafted), 0) AS total_c FROM lab_compounds WHERE user_id = ? AND guild_id = ?",
+            (user_id, guild_id),
+        )
+        comp_row = await cur_compounds.fetchone()
+        lab_unique_compounds = comp_row["unique_c"] if comp_row else 0
+        lab_compounds_crafted = comp_row["total_c"] if comp_row else 0
+
         return {
             "total_seconds": stats["total_seconds"],
             "level": stats["level"],
@@ -2253,6 +2267,9 @@ class Database:
             "boxes_opened": currency["boxes_opened"],
             "items_purchased": currency["items_purchased"],
             "candy_earned": currency.get("candy", 0),
+            "lab_unlocked": lab_unlocked,
+            "lab_unique_compounds": lab_unique_compounds,
+            "lab_compounds_crafted": lab_compounds_crafted,
             "subject_seconds": subject_seconds,
             "early_bird_count": row["early_bird"] or 0 if row else 0,
             "night_owl_count": row["night_owl"] or 0 if row else 0,
