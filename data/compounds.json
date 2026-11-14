@@ -4228,5 +4228,365 @@
     "category": "Phenols",
     "structure": "2-(hydroxymethyl)phenol",
     "fact": "Saligenin; aglycone of salicin from willow bark, possessing mild analgesic and antipyretic activity."
+  },
+  {
+    "id": "dipropyl-ether",
+    "name": "Dipropyl Ether",
+    "formula": "C6H14O",
+    "elements": {
+      "C": 6,
+      "H": 14,
+      "O": 1,
+      "N": 0,
+      "Cl": 0,
+      "F": 0,
+      "Br": 0,
+      "I": 0
+    },
+    "category": "Ethers",
+    "structure": "(CH3CH2CH2)2O",
+    "fact": "Symmetrical aliphatic ether prepared by bimolecular dehydration of propan-1-ol at 140\u00b0C with conc. H2SO4."
+  },
+  {
+    "id": "diisopropyl-ether",
+    "name": "Diisopropyl Ether",
+    "formula": "C6H14O",
+    "elements": {
+      "C": 6,
+      "H": 14,
+      "O": 1,
+      "N": 0,
+      "Cl": 0,
+      "F": 0,
+      "Br": 0,
+      "I": 0
+    },
+    "category": "Ethers",
+    "structure": "((CH3)2CH)2O",
+    "fact": "Volatile ether prone to rapid dangerous organic peroxide formation upon air exposure."
+  },
+  {
+    "id": "dibutyl-ether",
+    "name": "Dibutyl Ether",
+    "formula": "C8H18O",
+    "elements": {
+      "C": 8,
+      "H": 18,
+      "O": 1,
+      "N": 0,
+      "Cl": 0,
+      "F": 0,
+      "Br": 0,
+      "I": 0
+    },
+    "category": "Ethers",
+    "structure": "(CH3(CH2)3)2O",
+    "fact": "High-boiling aliphatic ether solvent for Grignard reagents and organolithium reactions."
+  },
+  {
+    "id": "mtbe",
+    "name": "MTBE",
+    "formula": "C5H12O",
+    "elements": {
+      "C": 5,
+      "H": 12,
+      "O": 1,
+      "N": 0,
+      "Cl": 0,
+      "F": 0,
+      "Br": 0,
+      "I": 0
+    },
+    "category": "Ethers",
+    "structure": "(CH3)3COCH3",
+    "fact": "Methyl tert-butyl ether; octane-boosting gasoline additive synthesized by acid-catalyzed addition of methanol to isobutylene."
+  },
+  {
+    "id": "etbe",
+    "name": "ETBE",
+    "formula": "C6H14O",
+    "elements": {
+      "C": 6,
+      "H": 14,
+      "O": 1,
+      "N": 0,
+      "Cl": 0,
+      "F": 0,
+      "Br": 0,
+      "I": 0
+    },
+    "category": "Ethers",
+    "structure": "(CH3)3COCH2CH3",
+    "fact": "Ethyl tert-butyl ether; bio-based gasoline oxygenate prepared from bioethanol and isobutylene."
+  },
+  {
+    "id": "phenetole",
+    "name": "Phenetole",
+    "formula": "C8H10O",
+    "elements": {
+      "C": 8,
+      "H": 10,
+      "O": 1,
+      "N": 0,
+      "Cl": 0,
+      "F": 0,
+      "Br": 0,
+      "I": 0
+    },
+    "category": "Ethers",
+    "structure": "C6H5OCH2CH3",
+    "fact": "Ethyl phenyl ether; synthesized via Williamson ether synthesis by reacting sodium phenoxide with ethyl bromide."
+  },
+  {
+    "id": "diphenyl-ether",
+    "name": "Diphenyl Ether",
+    "formula": "C12H10O",
+    "elements": {
+      "C": 12,
+      "H": 10,
+      "O": 1,
+      "N": 0,
+      "Cl": 0,
+      "F": 0,
+      "Br": 0,
+      "I": 0
+    },
+    "category": "Ethers",
+    "structure": "(C6H5)2O",
+    "fact": "Thermally robust diaryl ether used with biphenyl in eutectic Dowtherm A heat transfer fluids."
+  },
+  {
+    "id": "dioxane",
+    "name": "Dioxane",
+    "formula": "C4H8O2",
+    "elements": {
+      "C": 4,
+      "H": 8,
+      "O": 2,
+      "N": 0,
+      "Cl": 0,
+      "F": 0,
+      "Br": 0,
+      "I": 0
+    },
+    "category": "Ethers",
+    "structure": "C4H8O2",
+    "fact": "1,4-Dioxane; versatile aprotic cyclic diether miscible with water, prepared by dehydrating ethylene glycol."
+  },
+  {
+    "id": "trioxane",
+    "name": "Trioxane",
+    "formula": "C3H6O3",
+    "elements": {
+      "C": 3,
+      "H": 6,
+      "O": 3,
+      "N": 0,
+      "Cl": 0,
+      "F": 0,
+      "Br": 0,
+      "I": 0
+    },
+    "category": "Ethers",
+    "structure": "C3H6O3",
+    "fact": "1,3,5-Trioxane; cyclic trimer of formaldehyde used as fuel solid and precursor to polyoxymethylene engineering plastics."
+  },
+  {
+    "id": "12-crown-4",
+    "name": "12-Crown-4",
+    "formula": "C8H16O4",
+    "elements": {
+      "C": 8,
+      "H": 16,
+      "O": 4,
+      "N": 0,
+      "Cl": 0,
+      "F": 0,
+      "Br": 0,
+      "I": 0
+    },
+    "category": "Ethers",
+    "structure": "(C2H4O)4",
+    "fact": "Cyclic tetramer of ethylene oxide; crown ether tailored to selectively complex lithium cations (Li+)."
+  },
+  {
+    "id": "15-crown-5",
+    "name": "15-Crown-5",
+    "formula": "C10H20O5",
+    "elements": {
+      "C": 10,
+      "H": 20,
+      "O": 5,
+      "N": 0,
+      "Cl": 0,
+      "F": 0,
+      "Br": 0,
+      "I": 0
+    },
+    "category": "Ethers",
+    "structure": "(C2H4O)5",
+    "fact": "Cyclic pentamer of ethylene oxide; crown ether with cavity size matched for selective sodium cation (Na+) encapsulation."
+  },
+  {
+    "id": "18-crown-6",
+    "name": "18-Crown-6",
+    "formula": "C12H24O6",
+    "elements": {
+      "C": 12,
+      "H": 24,
+      "O": 6,
+      "N": 0,
+      "Cl": 0,
+      "F": 0,
+      "Br": 0,
+      "I": 0
+    },
+    "category": "Ethers",
+    "structure": "(C2H4O)6",
+    "fact": "Nobel-prize winning crown ether that strongly complexes potassium cations (K+), solubilizing KMnO4 in benzene ('purple benzene')."
+  },
+  {
+    "id": "dimethoxymethane",
+    "name": "Dimethoxymethane",
+    "formula": "C3H8O2",
+    "elements": {
+      "C": 3,
+      "H": 8,
+      "O": 2,
+      "N": 0,
+      "Cl": 0,
+      "F": 0,
+      "Br": 0,
+      "I": 0
+    },
+    "category": "Ethers",
+    "structure": "CH2(OCH3)2",
+    "fact": "Methylal; simplest formal acetal synthesized by condensing formaldehyde with two equivalents of methanol."
+  },
+  {
+    "id": "1,1-diethoxyethane",
+    "name": "1,1-Diethoxyethane",
+    "formula": "C6H14O2",
+    "elements": {
+      "C": 6,
+      "H": 14,
+      "O": 2,
+      "N": 0,
+      "Cl": 0,
+      "F": 0,
+      "Br": 0,
+      "I": 0
+    },
+    "category": "Ethers",
+    "structure": "CH3CH(OCH2CH3)2",
+    "fact": "Diethyl acetal; stable to bases and nucleophiles, used as protecting group for the aldehyde carbonyl function."
+  },
+  {
+    "id": "ethylene-oxide",
+    "name": "Ethylene Oxide",
+    "formula": "C2H4O",
+    "elements": {
+      "C": 2,
+      "H": 4,
+      "O": 1,
+      "N": 0,
+      "Cl": 0,
+      "F": 0,
+      "Br": 0,
+      "I": 0
+    },
+    "category": "Ethers",
+    "structure": "C2H4O",
+    "fact": "Oxirane; highly strained three-membered cyclic ether that undergoes ring opening with nucleophiles under mild conditions."
+  },
+  {
+    "id": "propylene-oxide",
+    "name": "Propylene Oxide",
+    "formula": "C3H6O",
+    "elements": {
+      "C": 3,
+      "H": 6,
+      "O": 1,
+      "N": 0,
+      "Cl": 0,
+      "F": 0,
+      "Br": 0,
+      "I": 0
+    },
+    "category": "Ethers",
+    "structure": "C3H6O",
+    "fact": "Methyloxirane; chiral epoxide produced industrially for polyether polyols used in polyurethane foams."
+  },
+  {
+    "id": "tetrahydropyran",
+    "name": "Tetrahydropyran",
+    "formula": "C5H10O",
+    "elements": {
+      "C": 5,
+      "H": 10,
+      "O": 1,
+      "N": 0,
+      "Cl": 0,
+      "F": 0,
+      "Br": 0,
+      "I": 0
+    },
+    "category": "Ethers",
+    "structure": "C5H10O",
+    "fact": "Saturated six-membered cyclic ether (oxacyclohexane); ring framework of pyranose carbohydrate sugars."
+  },
+  {
+    "id": "oxetane",
+    "name": "Oxetane",
+    "formula": "C3H6O",
+    "elements": {
+      "C": 3,
+      "H": 6,
+      "O": 1,
+      "N": 0,
+      "Cl": 0,
+      "F": 0,
+      "Br": 0,
+      "I": 0
+    },
+    "category": "Ethers",
+    "structure": "C3H6O",
+    "fact": "Four-membered strained cyclic ether that undergoes cationic ring-opening polymerization to polyethers."
+  },
+  {
+    "id": "eucalyptol",
+    "name": "Eucalyptol",
+    "formula": "C10H18O",
+    "elements": {
+      "C": 10,
+      "H": 18,
+      "O": 1,
+      "N": 0,
+      "Cl": 0,
+      "F": 0,
+      "Br": 0,
+      "I": 0
+    },
+    "category": "Ethers",
+    "structure": "C10H18O",
+    "fact": "1,8-Cineole; bicyclic monoterpenoid ether with fresh camphoraceous odor found abundantly in eucalyptus oil."
+  },
+  {
+    "id": "diglyme",
+    "name": "Diglyme",
+    "formula": "C6H14O3",
+    "elements": {
+      "C": 6,
+      "H": 14,
+      "O": 3,
+      "N": 0,
+      "Cl": 0,
+      "F": 0,
+      "Br": 0,
+      "I": 0
+    },
+    "category": "Ethers",
+    "structure": "(CH3OCH2CH2)2O",
+    "fact": "Bis(2-methoxyethyl) ether; tridentate high-boiling coordinating diether solvent for hydroboration and reduction reactions."
   }
 ]
