@@ -3624,7 +3624,7 @@ class Database:
         if coins_earned > 0:
             await self.add_coins(user_id, guild_id, coins_earned)
         if xp_earned > 0:
-            await self.add_xp(user_id, guild_id, xp_earned)
+            await self.grant_xp(user_id, guild_id, xp_earned)
 
         # Update lab_compounds
         await self.conn.execute(
