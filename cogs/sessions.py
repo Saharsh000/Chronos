@@ -270,6 +270,19 @@ class Sessions(commands.Cog, name="Sessions"):
                 value=f"Level {result['old_level']} → **Level {result['new_level']}** — {t_str}",
                 inline=False,
             )
+
+        if result.get("track") == "oc":
+            elems_earned = result.get("credited_elements") or {}
+            elem_strs = [f"**{e}**: +{qty}" for e, qty in elems_earned.items() if qty > 0]
+            if elem_strs:
+                elem_summary = " · ".join(elem_strs)
+            else:
+                elem_summary = "No elements earned (session under 1 credited minute)."
+            embed.add_field(
+                name="⚗️ Elements Harvested (OC Mode)",
+                value=f"{elem_summary}\n*Use `{ctx.prefix}synth` or `{ctx.prefix}lab` to view & craft compounds.*",
+                inline=False,
+            )
         embeds.set_footer(embed, f"{ctx.prefix}stats to see your updated profile")
         if card_file:
             await ctx.send(file=card_file, embed=embed)
