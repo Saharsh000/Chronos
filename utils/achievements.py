@@ -609,6 +609,59 @@ ACHIEVEMENTS: list[Achievement] = [
         check=lambda c: c["achievements_count"] >= 150,
         reward_coins=6000,
     ),
+
+    # ------------------------------------------------------------------ #
+    # The Lab DLC Achievements
+    # ------------------------------------------------------------------ #
+    Achievement(
+        id="lab_unlock", name="Lab License", emoji="\u2697\uFE0F",
+        description="Unlock The Lab DLC.",
+        category="The Lab",
+        check=lambda c: bool(c.get("lab_unlocked")),
+        reward_coins=500,
+    ),
+    Achievement(
+        id="lab_first_synth", name="First Synthesis", emoji="\U0001F9EA",
+        description="Synthesize your first organic compound in The Lab.",
+        category="The Lab",
+        check=lambda c: c.get("lab_compounds_crafted", 0) >= 1,
+        reward_coins=200,
+    ),
+    Achievement(
+        id="lab_10_compounds", name="Budding Chemist", emoji="\U0001F52C",
+        description="Synthesize 10 unique organic compounds.",
+        category="The Lab",
+        check=lambda c: c.get("lab_unique_compounds", 0) >= 10,
+        reward_coins=500,
+    ),
+    Achievement(
+        id="lab_25_compounds", name="Compound Collector", emoji="\U0001F9EB",
+        description="Synthesize 25 unique organic compounds.",
+        category="The Lab",
+        check=lambda c: c.get("lab_unique_compounds", 0) >= 25,
+        reward_coins=1000,
+    ),
+    Achievement(
+        id="lab_50_compounds", name="Organic Enthusiast", emoji="\U0001F4A1",
+        description="Synthesize 50 unique organic compounds.",
+        category="The Lab",
+        check=lambda c: c.get("lab_unique_compounds", 0) >= 50,
+        reward_coins=2000,
+    ),
+    Achievement(
+        id="lab_75_compounds", name="Synthesis Expert", emoji="\U0001F396\uFE0F",
+        description="Synthesize 75 unique organic compounds.",
+        category="The Lab",
+        check=lambda c: c.get("lab_unique_compounds", 0) >= 75,
+        reward_coins=3000,
+    ),
+    Achievement(
+        id="lab_100_compounds", name="Grandmaster Chemist", emoji="\U0001F451",
+        description="Synthesize all 100 unique organic compounds in The Lab.",
+        category="The Lab",
+        check=lambda c: c.get("lab_unique_compounds", 0) >= 100,
+        reward_coins=5000,
+    ),
 ]
 
 
@@ -617,7 +670,7 @@ ACHIEVEMENTS_BY_ID: dict[str, Achievement] = {a.id: a for a in ACHIEVEMENTS}
 CATEGORY_ORDER: list[str] = [
     "Time Studied", "Sessions", "Streaks", "Daily Streaks", "Tiers",
     "Subjects", "Marathon", "Chapters", "Subtopics", "Books", "PYQs",
-    "Revisions", "Economy", "Pets", "Halloween", "Special", "Meta",
+    "Revisions", "Economy", "Pets", "Halloween", "The Lab", "Special", "Meta",
 ]
 
 
