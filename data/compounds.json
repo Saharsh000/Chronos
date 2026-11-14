@@ -844,5 +844,167 @@
     "category": "Ethers",
     "smiles": "C1CCCO1",
     "fact": "Cyclic ether widely used as aprotic solvent for Grignard reactions; JEE distinguishes it from open-chain ethers."
+  },
+  {
+    "id": "methanal",
+    "name": "Methanal",
+    "formula": "CH2O",
+    "elements": {
+      "C": 1,
+      "H": 2,
+      "O": 1,
+      "N": 0,
+      "Cl": 0,
+      "F": 0,
+      "Br": 0,
+      "I": 0
+    },
+    "category": "Aldehydes",
+    "smiles": "C=O",
+    "fact": "Formaldehyde; simplest aldehyde with no alpha-H undergoes Cannizzaro reaction; JEE distinguishing Cannizzaro vs aldol."
+  },
+  {
+    "id": "ethanal",
+    "name": "Ethanal",
+    "formula": "C2H4O",
+    "elements": {
+      "C": 2,
+      "H": 4,
+      "O": 1,
+      "N": 0,
+      "Cl": 0,
+      "F": 0,
+      "Br": 0,
+      "I": 0
+    },
+    "category": "Aldehydes",
+    "smiles": "CC=O",
+    "fact": "Acetaldehyde; gives iodoform with I2/NaOH; undergoes aldol condensation; JEE nucleophilic addition mechanism."
+  },
+  {
+    "id": "propanal",
+    "name": "Propanal",
+    "formula": "C3H6O",
+    "elements": {
+      "C": 3,
+      "H": 6,
+      "O": 1,
+      "N": 0,
+      "Cl": 0,
+      "F": 0,
+      "Br": 0,
+      "I": 0
+    },
+    "category": "Aldehydes",
+    "smiles": "CCC=O",
+    "fact": "Three-carbon aldehyde; Tollens test gives silver mirror; JEE comparison of oxidation states between alcohols and aldehydes."
+  },
+  {
+    "id": "butanal",
+    "name": "Butanal",
+    "formula": "C4H8O",
+    "elements": {
+      "C": 4,
+      "H": 8,
+      "O": 1,
+      "N": 0,
+      "Cl": 0,
+      "F": 0,
+      "Br": 0,
+      "I": 0
+    },
+    "category": "Aldehydes",
+    "smiles": "CCCC=O",
+    "fact": "Butyraldehyde; aldol condensation gives 2-ethyl-2-butenal; JEE mechanism of base-catalysed aldol condensation."
+  },
+  {
+    "id": "benzaldehyde",
+    "name": "Benzaldehyde",
+    "formula": "C7H6O",
+    "elements": {
+      "C": 7,
+      "H": 6,
+      "O": 1,
+      "N": 0,
+      "Cl": 0,
+      "F": 0,
+      "Br": 0,
+      "I": 0
+    },
+    "category": "Aldehydes",
+    "smiles": "O=Cc1ccccc1",
+    "fact": "Aromatic aldehyde with no alpha-H; undergoes Cannizzaro and benzoin condensation; JEE classic named reactions."
+  },
+  {
+    "id": "propanone",
+    "name": "Propanone",
+    "formula": "C3H6O",
+    "elements": {
+      "C": 3,
+      "H": 6,
+      "O": 1,
+      "N": 0,
+      "Cl": 0,
+      "F": 0,
+      "Br": 0,
+      "I": 0
+    },
+    "category": "Ketones",
+    "smiles": "CC(C)=O",
+    "fact": "Acetone; simplest ketone; gives iodoform test positive; important JEE solvent and reagent in nucleophilic addition."
+  },
+  {
+    "id": "butanone",
+    "name": "Butanone",
+    "formula": "C4H8O",
+    "elements": {
+      "C": 4,
+      "H": 8,
+      "O": 1,
+      "N": 0,
+      "Cl": 0,
+      "F": 0,
+      "Br": 0,
+      "I": 0
+    },
+    "category": "Ketones",
+    "smiles": "CCC(C)=O",
+    "fact": "Methyl ethyl ketone; JEE tests which alpha-C (more or less substituted) is preferentially halogenated under acid vs base."
+  },
+  {
+    "id": "acetophenone",
+    "name": "Acetophenone",
+    "formula": "C8H8O",
+    "elements": {
+      "C": 8,
+      "H": 8,
+      "O": 1,
+      "N": 0,
+      "Cl": 0,
+      "F": 0,
+      "Br": 0,
+      "I": 0
+    },
+    "category": "Ketones",
+    "smiles": "CC(=O)c1ccccc1",
+    "fact": "Methyl phenyl ketone; gives positive iodoform test; JEE Clemmensen reduction converts it to ethylbenzene."
+  },
+  {
+    "id": "cyclohexanone",
+    "name": "Cyclohexanone",
+    "formula": "C6H10O",
+    "elements": {
+      "C": 6,
+      "H": 10,
+      "O": 1,
+      "N": 0,
+      "Cl": 0,
+      "F": 0,
+      "Br": 0,
+      "I": 0
+    },
+    "category": "Ketones",
+    "smiles": "O=C1CCCCC1",
+    "fact": "Cyclic ketone; starting material for caprolactam (nylon-6); JEE Beckmann rearrangement produces caprolactam."
   }
 ]
