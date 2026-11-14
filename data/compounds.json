@@ -178,5 +178,167 @@
     "category": "Alkanes",
     "smiles": "CC(C)(C)C",
     "fact": "2,2-dimethylpropane; has only primary C-H bonds and a single quaternary carbon; important JEE isomer example."
+  },
+  {
+    "id": "ethene",
+    "name": "Ethene",
+    "formula": "C2H4",
+    "elements": {
+      "C": 2,
+      "H": 4,
+      "O": 0,
+      "N": 0,
+      "Cl": 0,
+      "F": 0,
+      "Br": 0,
+      "I": 0
+    },
+    "category": "Alkenes",
+    "smiles": "C=C",
+    "fact": "Simplest alkene with sp2 carbons; plant hormone that ripens fruit; central to JEE electrophilic addition reactions."
+  },
+  {
+    "id": "propene",
+    "name": "Propene",
+    "formula": "C3H6",
+    "elements": {
+      "C": 3,
+      "H": 6,
+      "O": 0,
+      "N": 0,
+      "Cl": 0,
+      "F": 0,
+      "Br": 0,
+      "I": 0
+    },
+    "category": "Alkenes",
+    "smiles": "CC=C",
+    "fact": "Three-carbon alkene; Markovnikov addition of HBr gives 2-bromopropane; key JEE regiochemistry example."
+  },
+  {
+    "id": "1-butene",
+    "name": "1-Butene",
+    "formula": "C4H8",
+    "elements": {
+      "C": 4,
+      "H": 8,
+      "O": 0,
+      "N": 0,
+      "Cl": 0,
+      "F": 0,
+      "Br": 0,
+      "I": 0
+    },
+    "category": "Alkenes",
+    "smiles": "CCC=C",
+    "fact": "Terminal alkene; undergoes Wacker oxidation to butanone; JEE tests its comparison with 2-butene stability."
+  },
+  {
+    "id": "isobutylene",
+    "name": "Isobutylene",
+    "formula": "C4H8",
+    "elements": {
+      "C": 4,
+      "H": 8,
+      "O": 0,
+      "N": 0,
+      "Cl": 0,
+      "F": 0,
+      "Br": 0,
+      "I": 0
+    },
+    "category": "Alkenes",
+    "smiles": "CC(=C)C",
+    "fact": "2-Methylpropene; a highly substituted alkene more stable than 1-butene; JEE Zaitsev rule example."
+  },
+  {
+    "id": "1,3-butadiene",
+    "name": "1,3-Butadiene",
+    "formula": "C4H6",
+    "elements": {
+      "C": 4,
+      "H": 6,
+      "O": 0,
+      "N": 0,
+      "Cl": 0,
+      "F": 0,
+      "Br": 0,
+      "I": 0
+    },
+    "category": "Alkenes",
+    "smiles": "C=CC=C",
+    "fact": "Conjugated diene; monomer of synthetic rubber; JEE Diels-Alder reactions require understanding its s-cis conformation."
+  },
+  {
+    "id": "isoprene",
+    "name": "Isoprene",
+    "formula": "C5H8",
+    "elements": {
+      "C": 5,
+      "H": 8,
+      "O": 0,
+      "N": 0,
+      "Cl": 0,
+      "F": 0,
+      "Br": 0,
+      "I": 0
+    },
+    "category": "Alkenes",
+    "smiles": "CC(=C)C=C",
+    "fact": "2-Methylbuta-1,3-diene; building block of natural rubber and terpenes; tested in JEE polymer and natural product chapters."
+  },
+  {
+    "id": "ethyne",
+    "name": "Ethyne",
+    "formula": "C2H2",
+    "elements": {
+      "C": 2,
+      "H": 2,
+      "O": 0,
+      "N": 0,
+      "Cl": 0,
+      "F": 0,
+      "Br": 0,
+      "I": 0
+    },
+    "category": "Alkynes",
+    "smiles": "C#C",
+    "fact": "Simplest alkyne with sp carbons; acidic terminal H reacts with Na to give sodium acetylide; classic JEE acidity comparison."
+  },
+  {
+    "id": "propyne",
+    "name": "Propyne",
+    "formula": "C3H4",
+    "elements": {
+      "C": 3,
+      "H": 4,
+      "O": 0,
+      "N": 0,
+      "Cl": 0,
+      "F": 0,
+      "Br": 0,
+      "I": 0
+    },
+    "category": "Alkynes",
+    "smiles": "CC#C",
+    "fact": "Three-carbon terminal alkyne; reacts with AgNO3 to form silver acetylide precipitate; standard JEE qualitative test."
+  },
+  {
+    "id": "1-butyne",
+    "name": "1-Butyne",
+    "formula": "C4H6",
+    "elements": {
+      "C": 4,
+      "H": 6,
+      "O": 0,
+      "N": 0,
+      "Cl": 0,
+      "F": 0,
+      "Br": 0,
+      "I": 0
+    },
+    "category": "Alkynes",
+    "smiles": "CCC#C",
+    "fact": "Terminal alkyne isomeric with 1,3-butadiene; JEE tests distinguishing terminal vs internal alkynes by reaction with Tollens."
   }
 ]
