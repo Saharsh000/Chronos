@@ -109,3 +109,38 @@ def top3_embed(member: dict[str, Any], user_id: int, perk: dict[str, Any], rank:
     e.set_thumbnail(url=member["avatar"])
     embeds.set_footer(e, "Leaderboard Top 3 Perks · Resets daily at 00:00 IST", VIA)
     return e
+
+
+def lab_discovery_embed(member: dict[str, Any], user_id: int, compound: dict[str, Any]):
+    e = embeds.base_embed(
+        title="🔬 Server First Discovery!",
+        description=(
+            f"**<@{user_id}>** is the first in the server to synthesize **{compound['name']}** (`{compound['formula']}`)!\n\n"
+            f"*\"{compound['fact']}\"*"
+        ),
+        color=embeds.COLOR_LEVELUP,
+    )
+    embeds.set_footer(e, "The Lab · Organic Compound Synthesis", VIA)
+    return _author(e, member)
+
+
+def lab_category_completed_embed(member: dict[str, Any], user_id: int, category: str, title: Optional[str]):
+    t_str = f" and unlocked the title **{title}**" if title else ""
+    e = embeds.base_embed(
+        title="⚗️ Category Complete!",
+        description=f"Congratulations to **<@{user_id}>** for synthesizing all compounds in the **{category}** collection{t_str}! (+1,000 Chronocoins)",
+        color=embeds.COLOR_SUCCESS,
+    )
+    embeds.set_footer(e, "The Lab · Category Mastery", VIA)
+    return _author(e, member)
+
+
+def lab_milestone_embed(member: dict[str, Any], user_id: int, count: int, reward_desc: str):
+    e = embeds.base_embed(
+        title="🏆 Synthesis Milestone Reached!",
+        description=f"**<@{user_id}>** has synthesized **{count} / 100** unique organic compounds in The Lab!\n\n**Reward:** {reward_desc}",
+        color=embeds.COLOR_MILESTONE,
+    )
+    embeds.set_footer(e, "The Lab · Synthesis Milestones", VIA)
+    return _author(e, member)
+
