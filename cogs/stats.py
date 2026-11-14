@@ -125,7 +125,18 @@ class Stats(commands.Cog, name="Stats"):
         embed.add_field(name="Started", value=discord_timestamp(session["start_time"], "R"), inline=True)
         if session.get("subject"):
             info = SUBJECT_INFO[session["subject"]]
-            embed.add_field(name="Subject", value=f"{info['emoji']} {info['label']}", inline=True)
+            subj_label = f"{info['emoji']} {info['label']}"
+            if session.get("track") == "oc":
+                subj_label += " (OC Track)"
+            embed.add_field(name="Subject", value=subj_label, inline=True)
+
+        if session.get("track") == "oc":
+            import json
+            raw_elems = session.get("credited_elements")
+            elems = json.loads(raw_elems) if raw_elems else {}
+            elem_strs = [f"**{e}**: {qty}" for e, qty in elems.items() if qty > 0]
+            elem_summary = " · ".join(elem_strs) if elem_strs else "No elements rolled yet (under 1 min credited)"
+            embed.add_field(name="⚗️ Harvested Elements", value=elem_summary, inline=False)
         await ctx.send(embed=embed)
 
     @commands.command(name="active", aliases=["whosactive", "online"])
