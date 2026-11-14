@@ -7018,5 +7018,365 @@
     "category": "Aromatics",
     "structure": "C6H5CH2CH2C6H5",
     "fact": "1,2-Diphenylethane; formed by Wurtz coupling of benzyl chloride with sodium metal or catalytic dimerization of benzyl radicals."
+  },
+  {
+    "id": "o-dichlorobenzene",
+    "name": "o-Dichlorobenzene",
+    "formula": "C6H4Cl2",
+    "elements": {
+      "C": 6,
+      "H": 4,
+      "O": 0,
+      "N": 0,
+      "Cl": 2,
+      "F": 0,
+      "Br": 0,
+      "I": 0
+    },
+    "category": "Haloalkanes",
+    "structure": "1,2-C6H4Cl2",
+    "fact": "1,2-Dichlorobenzene; high-boiling industrial solvent and insecticide precursor synthesized by catalytic chlorination of benzene."
+  },
+  {
+    "id": "m-dichlorobenzene",
+    "name": "m-Dichlorobenzene",
+    "formula": "C6H4Cl2",
+    "elements": {
+      "C": 6,
+      "H": 4,
+      "O": 0,
+      "N": 0,
+      "Cl": 2,
+      "F": 0,
+      "Br": 0,
+      "I": 0
+    },
+    "category": "Haloalkanes",
+    "structure": "1,3-C6H4Cl2",
+    "fact": "1,3-Dichlorobenzene; minor isomer formed during electrophilic chlorination, separated by selective crystallization."
+  },
+  {
+    "id": "p-dichlorobenzene",
+    "name": "p-Dichlorobenzene",
+    "formula": "C6H4Cl2",
+    "elements": {
+      "C": 6,
+      "H": 4,
+      "O": 0,
+      "N": 0,
+      "Cl": 2,
+      "F": 0,
+      "Br": 0,
+      "I": 0
+    },
+    "category": "Haloalkanes",
+    "structure": "1,4-C6H4Cl2",
+    "fact": "Paradichlorobenzene (moth crystals); crystalline subliming solid with zero net dipole moment due to inversion symmetry."
+  },
+  {
+    "id": "1,2,4-trichlorobenzene",
+    "name": "1,2,4-Trichlorobenzene",
+    "formula": "C6H3Cl3",
+    "elements": {
+      "C": 6,
+      "H": 3,
+      "O": 0,
+      "N": 0,
+      "Cl": 3,
+      "F": 0,
+      "Br": 0,
+      "I": 0
+    },
+    "category": "Haloalkanes",
+    "structure": "1,2,4-C6H3Cl3",
+    "fact": "Unsymmetrical trichlorobenzene isomer used as high-temperature dielectric fluid and dye carrier."
+  },
+  {
+    "id": "hexachlorobenzene",
+    "name": "Hexachlorobenzene",
+    "formula": "C6Cl6",
+    "elements": {
+      "C": 6,
+      "H": 0,
+      "O": 0,
+      "N": 0,
+      "Cl": 6,
+      "F": 0,
+      "Br": 0,
+      "I": 0
+    },
+    "category": "Haloalkanes",
+    "structure": "C6Cl6",
+    "fact": "Fully chlorinated persistent aromatic hydrocarbon previously used as agricultural seed dressing fungicide."
+  },
+  {
+    "id": "2-chlorotoluene",
+    "name": "2-Chlorotoluene",
+    "formula": "C7H7Cl",
+    "elements": {
+      "C": 7,
+      "H": 7,
+      "O": 0,
+      "N": 0,
+      "Cl": 1,
+      "F": 0,
+      "Br": 0,
+      "I": 0
+    },
+    "category": "Haloalkanes",
+    "structure": "2-ClC6H4CH3",
+    "fact": "o-Chlorotoluene; prepared by Sandmeyer reaction of o-toluidine with cuprous chloride (CuCl)."
+  },
+  {
+    "id": "4-chlorotoluene",
+    "name": "4-Chlorotoluene",
+    "formula": "C7H7Cl",
+    "elements": {
+      "C": 7,
+      "H": 7,
+      "O": 0,
+      "N": 0,
+      "Cl": 1,
+      "F": 0,
+      "Br": 0,
+      "I": 0
+    },
+    "category": "Haloalkanes",
+    "structure": "4-ClC6H4CH3",
+    "fact": "p-Chlorotoluene; synthesized alongside ortho isomer during catalytic ring-chlorination of toluene in the presence of FeCl3."
+  },
+  {
+    "id": "benzyl-chloride",
+    "name": "Benzyl Chloride",
+    "formula": "C7H7Cl",
+    "elements": {
+      "C": 7,
+      "H": 7,
+      "O": 0,
+      "N": 0,
+      "Cl": 1,
+      "F": 0,
+      "Br": 0,
+      "I": 0
+    },
+    "category": "Haloalkanes",
+    "structure": "C6H5CH2Cl",
+    "fact": "Formed by side-chain free radical chlorination of boiling toluene under UV light; undergoes facile SN2 nucleophilic substitution."
+  },
+  {
+    "id": "benzal-chloride",
+    "name": "Benzal Chloride",
+    "formula": "C7H6Cl2",
+    "elements": {
+      "C": 7,
+      "H": 6,
+      "O": 0,
+      "N": 0,
+      "Cl": 2,
+      "F": 0,
+      "Br": 0,
+      "I": 0
+    },
+    "category": "Haloalkanes",
+    "structure": "C6H5CHCl2",
+    "fact": "Dichloromethylbenzene; geminal benzylic dichloride that cleanly hydrolyzes with aqueous alkali to yield benzaldehyde."
+  },
+  {
+    "id": "benzotrichloride",
+    "name": "Benzotrichloride",
+    "formula": "C7H5Cl3",
+    "elements": {
+      "C": 7,
+      "H": 5,
+      "O": 0,
+      "N": 0,
+      "Cl": 3,
+      "F": 0,
+      "Br": 0,
+      "I": 0
+    },
+    "category": "Haloalkanes",
+    "structure": "C6H5CCl3",
+    "fact": "Trichloromethylbenzene; completely chlorinates benzylic carbon; acid hydrolysis yields benzoic acid and 3 equivalents of HCl."
+  },
+  {
+    "id": "4-bromotoluene",
+    "name": "4-Bromotoluene",
+    "formula": "C7H7Br",
+    "elements": {
+      "C": 7,
+      "H": 7,
+      "O": 0,
+      "N": 0,
+      "Cl": 0,
+      "F": 0,
+      "Br": 1,
+      "I": 0
+    },
+    "category": "Haloalkanes",
+    "structure": "4-BrC6H4CH3",
+    "fact": "p-Bromotoluene; crystalline solid prepared by brominating toluene in the dark with iron catalyst; precursor to p-tolyl Grignard reagent."
+  },
+  {
+    "id": "1-bromonaphthalene",
+    "name": "1-Bromonaphthalene",
+    "formula": "C10H7Br",
+    "elements": {
+      "C": 10,
+      "H": 7,
+      "O": 0,
+      "N": 0,
+      "Cl": 0,
+      "F": 0,
+      "Br": 1,
+      "I": 0
+    },
+    "category": "Haloalkanes",
+    "structure": "1-C10H7Br",
+    "fact": "Formed selectively by electrophilic bromination of naphthalene at alpha-position due to greater resonance stability of the arenium intermediate."
+  },
+  {
+    "id": "2-bromonaphthalene",
+    "name": "2-Bromonaphthalene",
+    "formula": "C10H7Br",
+    "elements": {
+      "C": 10,
+      "H": 7,
+      "O": 0,
+      "N": 0,
+      "Cl": 0,
+      "F": 0,
+      "Br": 1,
+      "I": 0
+    },
+    "category": "Haloalkanes",
+    "structure": "2-C10H7Br",
+    "fact": "Synthesized via Sandmeyer reaction of 2-naphthylamine; starting material for 2-naphthylboronic acid in Suzuki cross-coupling."
+  },
+  {
+    "id": "1-chloronaphthalene",
+    "name": "1-Chloronaphthalene",
+    "formula": "C10H7Cl",
+    "elements": {
+      "C": 10,
+      "H": 7,
+      "O": 0,
+      "N": 0,
+      "Cl": 1,
+      "F": 0,
+      "Br": 0,
+      "I": 0
+    },
+    "category": "Haloalkanes",
+    "structure": "1-C10H7Cl",
+    "fact": "High refractive index immersion oil liquid prepared by direct chlorination of naphthalene."
+  },
+  {
+    "id": "iodobenzene",
+    "name": "Iodobenzene",
+    "formula": "C6H5I",
+    "elements": {
+      "C": 6,
+      "H": 5,
+      "O": 0,
+      "N": 0,
+      "Cl": 0,
+      "F": 0,
+      "Br": 0,
+      "I": 1
+    },
+    "category": "Haloalkanes",
+    "structure": "C6H5I",
+    "fact": "Prepared by treating benzenediazonium chloride with potassium iodide (KI) solution without requiring copper catalysis."
+  },
+  {
+    "id": "4-iodotoluene",
+    "name": "4-Iodotoluene",
+    "formula": "C7H7I",
+    "elements": {
+      "C": 7,
+      "H": 7,
+      "O": 0,
+      "N": 0,
+      "Cl": 0,
+      "F": 0,
+      "Br": 0,
+      "I": 1
+    },
+    "category": "Haloalkanes",
+    "structure": "4-IC6H4CH3",
+    "fact": "Key aryl iodide substrate in transition-metal cross couplings; crystalline solid with high reactivity in oxidative addition."
+  },
+  {
+    "id": "fluorobenzene",
+    "name": "Fluorobenzene",
+    "formula": "C6H5F",
+    "elements": {
+      "C": 6,
+      "H": 5,
+      "O": 0,
+      "N": 0,
+      "Cl": 0,
+      "F": 1,
+      "Br": 0,
+      "I": 0
+    },
+    "category": "Haloalkanes",
+    "structure": "C6H5F",
+    "fact": "Synthesized by the Balz-Schiemann thermal decomposition of benzenediazonium tetrafluoroborate (C6H5N2+ BF4-)."
+  },
+  {
+    "id": "4-fluorotoluene",
+    "name": "4-Fluorotoluene",
+    "formula": "C7H7F",
+    "elements": {
+      "C": 7,
+      "H": 7,
+      "O": 0,
+      "N": 0,
+      "Cl": 0,
+      "F": 1,
+      "Br": 0,
+      "I": 0
+    },
+    "category": "Haloalkanes",
+    "structure": "4-FC6H4CH3",
+    "fact": "Synthesized via Schiemann reaction from p-toluidine; non-polar aryl fluoride with metabolic stability in medicinal chemistry."
+  },
+  {
+    "id": "1,4-dibromobenzene",
+    "name": "1,4-Dibromobenzene",
+    "formula": "C6H4Br2",
+    "elements": {
+      "C": 6,
+      "H": 4,
+      "O": 0,
+      "N": 0,
+      "Cl": 0,
+      "F": 0,
+      "Br": 2,
+      "I": 0
+    },
+    "category": "Haloalkanes",
+    "structure": "1,4-C6H4Br2",
+    "fact": "Symmetrical p-dibromobenzene; bifunctional monomer used in Ullmann and Yamamoto coupling to synthesize poly(p-phenylene)."
+  },
+  {
+    "id": "2,4,6-tribromophenol",
+    "name": "2,4,6-Tribromophenol",
+    "formula": "C6H3Br3O",
+    "elements": {
+      "C": 6,
+      "H": 3,
+      "O": 1,
+      "N": 0,
+      "Cl": 0,
+      "F": 0,
+      "Br": 3,
+      "I": 0
+    },
+    "category": "Phenols",
+    "structure": "2,4,6-Br3C6H2OH",
+    "fact": "White crystalline precipitate formed instantly upon adding bromine water to phenol in the qualitative analytical test."
   }
 ]
