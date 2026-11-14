@@ -32,7 +32,7 @@ ASSET_DIRS = ("icons", "discord_emojis")
 # site still boots while pieces are being added.
 API_MODULES = [
     "api_session", "api_stats", "api_economy", "api_pets", "api_progress",
-    "api_notes", "api_trivia", "api_admin",  # "api_halloween" commented out
+    "api_notes", "api_trivia", "api_admin", "api_lab",  # "api_halloween" commented out
 ]
 
 CSP = (
