@@ -4588,5 +4588,365 @@
     "category": "Ethers",
     "structure": "(CH3OCH2CH2)2O",
     "fact": "Bis(2-methoxyethyl) ether; tridentate high-boiling coordinating diether solvent for hydroboration and reduction reactions."
+  },
+  {
+    "id": "pentanal",
+    "name": "Pentanal",
+    "formula": "C5H10O",
+    "elements": {
+      "C": 5,
+      "H": 10,
+      "O": 1,
+      "N": 0,
+      "Cl": 0,
+      "F": 0,
+      "Br": 0,
+      "I": 0
+    },
+    "category": "Aldehydes",
+    "structure": "CH3(CH2)3CHO",
+    "fact": "Valeraldehyde; 5-carbon straight-chain aliphatic aldehyde with pungent fruity odor."
+  },
+  {
+    "id": "hexanal",
+    "name": "Hexanal",
+    "formula": "C6H12O",
+    "elements": {
+      "C": 6,
+      "H": 12,
+      "O": 1,
+      "N": 0,
+      "Cl": 0,
+      "F": 0,
+      "Br": 0,
+      "I": 0
+    },
+    "category": "Aldehydes",
+    "structure": "CH3(CH2)4CHO",
+    "fact": "Fresh green-grass aroma aldehyde formed by oxidative degradation of linoleic acid."
+  },
+  {
+    "id": "heptanal",
+    "name": "Heptanal",
+    "formula": "C7H14O",
+    "elements": {
+      "C": 7,
+      "H": 14,
+      "O": 1,
+      "N": 0,
+      "Cl": 0,
+      "F": 0,
+      "Br": 0,
+      "I": 0
+    },
+    "category": "Aldehydes",
+    "structure": "CH3(CH2)5CHO",
+    "fact": "Oenanthaldehyde; produced industrially by pyrolytic vacuum distillation of castor oil."
+  },
+  {
+    "id": "octanal",
+    "name": "Octanal",
+    "formula": "C8H16O",
+    "elements": {
+      "C": 8,
+      "H": 16,
+      "O": 1,
+      "N": 0,
+      "Cl": 0,
+      "F": 0,
+      "Br": 0,
+      "I": 0
+    },
+    "category": "Aldehydes",
+    "structure": "CH3(CH2)6CHO",
+    "fact": "Citrus aroma aldehyde occurring naturally in orange peel essential oils; used in perfumery."
+  },
+  {
+    "id": "nonanal",
+    "name": "Nonanal",
+    "formula": "C9H18O",
+    "elements": {
+      "C": 9,
+      "H": 18,
+      "O": 1,
+      "N": 0,
+      "Cl": 0,
+      "F": 0,
+      "Br": 0,
+      "I": 0
+    },
+    "category": "Aldehydes",
+    "structure": "CH3(CH2)7CHO",
+    "fact": "Pelargonic aldehyde; floral-rose scent component used in classic floral perfume accords."
+  },
+  {
+    "id": "decanal",
+    "name": "Decanal",
+    "formula": "C10H20O",
+    "elements": {
+      "C": 10,
+      "H": 20,
+      "O": 1,
+      "N": 0,
+      "Cl": 0,
+      "F": 0,
+      "Br": 0,
+      "I": 0
+    },
+    "category": "Aldehydes",
+    "structure": "CH3(CH2)8CHO",
+    "fact": "Capraldehyde; important aroma chemical imparting sweet orange rind nuance."
+  },
+  {
+    "id": "isobutyraldehyde",
+    "name": "Isobutyraldehyde",
+    "formula": "C4H8O",
+    "elements": {
+      "C": 4,
+      "H": 8,
+      "O": 1,
+      "N": 0,
+      "Cl": 0,
+      "F": 0,
+      "Br": 0,
+      "I": 0
+    },
+    "category": "Aldehydes",
+    "structure": "(CH3)2CHCHO",
+    "fact": "2-Methylpropanal; branched isomer formed during hydroformylation (oxo process) of propene."
+  },
+  {
+    "id": "pivalaldehyde",
+    "name": "Pivalaldehyde",
+    "formula": "C5H10O",
+    "elements": {
+      "C": 5,
+      "H": 10,
+      "O": 1,
+      "N": 0,
+      "Cl": 0,
+      "F": 0,
+      "Br": 0,
+      "I": 0
+    },
+    "category": "Aldehydes",
+    "structure": "(CH3)3CCHO",
+    "fact": "2,2-Dimethylpropanal; lacks alpha-hydrogens, cleanly undergoing Cannizzaro disproportionation."
+  },
+  {
+    "id": "acrolein",
+    "name": "Acrolein",
+    "formula": "C3H4O",
+    "elements": {
+      "C": 3,
+      "H": 4,
+      "O": 1,
+      "N": 0,
+      "Cl": 0,
+      "F": 0,
+      "Br": 0,
+      "I": 0
+    },
+    "category": "Aldehydes",
+    "structure": "CH2=CHCHO",
+    "fact": "Propenal; simplest alpha,beta-unsaturated aldehyde, formed by thermal dehydration of glycerol with KHSO4."
+  },
+  {
+    "id": "crotonaldehyde",
+    "name": "Crotonaldehyde",
+    "formula": "C4H6O",
+    "elements": {
+      "C": 4,
+      "H": 6,
+      "O": 1,
+      "N": 0,
+      "Cl": 0,
+      "F": 0,
+      "Br": 0,
+      "I": 0
+    },
+    "category": "Aldehydes",
+    "structure": "CH3CH=CHCHO",
+    "fact": "But-2-enal; formed by self-aldol condensation of acetaldehyde followed by acid-catalyzed dehydration."
+  },
+  {
+    "id": "cinnamaldehyde",
+    "name": "Cinnamaldehyde",
+    "formula": "C9H8O",
+    "elements": {
+      "C": 9,
+      "H": 8,
+      "O": 1,
+      "N": 0,
+      "Cl": 0,
+      "F": 0,
+      "Br": 0,
+      "I": 0
+    },
+    "category": "Aldehydes",
+    "structure": "C6H5CH=CHCHO",
+    "fact": "trans-3-Phenylpropenal; active essential oil giving cinnamon its characteristic warm flavor and scent."
+  },
+  {
+    "id": "salicylaldehyde",
+    "name": "Salicylaldehyde",
+    "formula": "C7H6O2",
+    "elements": {
+      "C": 7,
+      "H": 6,
+      "O": 2,
+      "N": 0,
+      "Cl": 0,
+      "F": 0,
+      "Br": 0,
+      "I": 0
+    },
+    "category": "Aldehydes",
+    "structure": "2-HOC6H4CHO",
+    "fact": "Prepared by Reimer-Tiemann reaction of phenol with chloroform in aqueous sodium hydroxide."
+  },
+  {
+    "id": "p-nitrobenzaldehyde",
+    "name": "p-Nitrobenzaldehyde",
+    "formula": "C7H5NO3",
+    "elements": {
+      "C": 7,
+      "H": 5,
+      "O": 3,
+      "N": 1,
+      "Cl": 0,
+      "F": 0,
+      "Br": 0,
+      "I": 0
+    },
+    "category": "Aldehydes",
+    "structure": "4-NO2C6H4CHO",
+    "fact": "Strongly activated aromatic aldehyde used in Indigo synthesis via the Baeyer-Drewson reaction."
+  },
+  {
+    "id": "anisaldehyde",
+    "name": "Anisaldehyde",
+    "formula": "C8H8O2",
+    "elements": {
+      "C": 8,
+      "H": 8,
+      "O": 2,
+      "N": 0,
+      "Cl": 0,
+      "F": 0,
+      "Br": 0,
+      "I": 0
+    },
+    "category": "Aldehydes",
+    "structure": "4-CH3OC6H4CHO",
+    "fact": "4-Methoxybenzaldehyde; sweet hawthorn aroma, TLC stain reagent for terpenes and steroids."
+  },
+  {
+    "id": "glyoxal",
+    "name": "Glyoxal",
+    "formula": "C2H2O2",
+    "elements": {
+      "C": 2,
+      "H": 2,
+      "O": 2,
+      "N": 0,
+      "Cl": 0,
+      "F": 0,
+      "Br": 0,
+      "I": 0
+    },
+    "category": "Aldehydes",
+    "structure": "OCHCHO",
+    "fact": "Simplest dialdehyde; yellow liquid produced by catalytic vapor-phase oxidation of ethylene glycol."
+  },
+  {
+    "id": "succinaldehyde",
+    "name": "Succinaldehyde",
+    "formula": "C4H6O2",
+    "elements": {
+      "C": 4,
+      "H": 6,
+      "O": 2,
+      "N": 0,
+      "Cl": 0,
+      "F": 0,
+      "Br": 0,
+      "I": 0
+    },
+    "category": "Aldehydes",
+    "structure": "OHC(CH2)2CHO",
+    "fact": "Butanedial; versatile precursor used in Robinson's classic one-pot tropinone alkaloid synthesis."
+  },
+  {
+    "id": "glutaraldehyde",
+    "name": "Glutaraldehyde",
+    "formula": "C5H8O2",
+    "elements": {
+      "C": 5,
+      "H": 8,
+      "O": 2,
+      "N": 0,
+      "Cl": 0,
+      "F": 0,
+      "Br": 0,
+      "I": 0
+    },
+    "category": "Aldehydes",
+    "structure": "OHC(CH2)3CHO",
+    "fact": "Pentanedial; potent dialdehyde chemical sterilant and protein cross-linking fixative for electron microscopy."
+  },
+  {
+    "id": "terephthalaldehyde",
+    "name": "Terephthalaldehyde",
+    "formula": "C8H6O2",
+    "elements": {
+      "C": 8,
+      "H": 6,
+      "O": 2,
+      "N": 0,
+      "Cl": 0,
+      "F": 0,
+      "Br": 0,
+      "I": 0
+    },
+    "category": "Aldehydes",
+    "structure": "1,4-C6H4(CHO)2",
+    "fact": "Symmetrical aromatic dialdehyde used as rigid cross-linker in covalent organic frameworks (COFs)."
+  },
+  {
+    "id": "furfural",
+    "name": "Furfural",
+    "formula": "C5H4O2",
+    "elements": {
+      "C": 5,
+      "H": 4,
+      "O": 2,
+      "N": 0,
+      "Cl": 0,
+      "F": 0,
+      "Br": 0,
+      "I": 0
+    },
+    "category": "Aldehydes",
+    "structure": "2-furaldehyde",
+    "fact": "Heterocyclic aromatic aldehyde derived from agricultural pentosan biomass by acid hydrolysis."
+  },
+  {
+    "id": "citral",
+    "name": "Citral",
+    "formula": "C10H16O",
+    "elements": {
+      "C": 10,
+      "H": 16,
+      "O": 1,
+      "N": 0,
+      "Cl": 0,
+      "F": 0,
+      "Br": 0,
+      "I": 0
+    },
+    "category": "Aldehydes",
+    "structure": "(CH3)2C=CH(CH2)2C(CH3)=CHCHO",
+    "fact": "Geranial/neral mixture; unsaturated monoterpene aldehyde with strong lemon odor, found in lemongrass oil."
   }
 ]
