@@ -57,13 +57,23 @@ export default async function home(root, ctx) {
       const start = h('button', { class: 'btn primary lg', onClick: (e) => act(e.currentTarget, async () => {
         await post('/api/session/start', { subject: pick || undefined }); await refreshSession(); await load();
       }) }, ico('focus_clock', 22), 'Start session');
+      const startOC = h('button', { class: 'btn secondary lg', title: 'Start Organic Chemistry session in The Lab', onClick: (e) => act(e.currentTarget, async () => {
+        try {
+          await post('/api/session/start', { mode: 'oc' });
+          await refreshSession();
+          await load();
+        } catch (err) {
+          errToast(err);
+        }
+      }) }, ico('potion_flask', 22), 'Start OC');
       mount(side,
         h('div', h('h1', 'Lock in.'), h('p', { class: 'mute', style: { marginTop: '8px', maxWidth: '44ch' } },
           'Pick a subject and start. It posts to your Discord check-in channel exactly like a bot session, and the bot keeps crediting XP while you\'re away from this tab.')),
         h('div', { class: 'subject-pick' }, subjBtns),
         S.voice ? h('p', { class: 'faint' }, `You\'re in the voice room "${S.voice}" - the subject is picked from it unless you choose one.`) : h('p', { class: 'faint' }, 'No subject chosen: it\'s tagged General.'),
-        h('div', { class: 'row' }, start, effects));
+        h('div', { class: 'row' }, start, startOC, effects));
     } else {
+      const ocTag = sess.track === 'oc' ? h('a', { class: 'tag accent', href: '/lab', style: { textDecoration: 'none' } }, ico('potion_flask', 16), 'The Lab (OC Track)') : null;
       const xpNode = h('span', { class: 'pill' }, ico('chronos_xp', 26), h('span', { id: 'g-xp' }, num(sess.credited_xp)));
       const coinNode = h('span', { class: 'pill' }, ico('chronocoin', 26), h('span', { id: 'g-coin' }, num(sess.credited_coins)));
       const stop = h('button', { class: 'btn danger lg', onClick: (e) => act(e.currentTarget, () => stopSession()) }, 'Stop session');
@@ -72,7 +82,7 @@ export default async function home(root, ctx) {
         h('div', h('h1', sess.subject ? `${sess.subject.label} session` : 'Session running'),
           h('p', { class: 'mute', style: { marginTop: '8px' } }, sess.channel ? `In ${sess.channel}. ` : '', 'Safe to close this tab - the bot keeps tracking.')),
         h('div', { class: 'live-gain' }, xpNode, coinNode),
-        h('div', { class: 'row' }, checkin, stop, effects));
+        h('div', { class: 'row' }, checkin, stop, ocTag, effects));
     }
   }
 
