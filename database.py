@@ -379,6 +379,16 @@ CREATE TABLE IF NOT EXISTS lab_elements (
     quantity INTEGER NOT NULL DEFAULT 0,
     PRIMARY KEY (user_id, guild_id, element)
 );
+
+-- Lab: synthesized compound collection (counts, not consumed)
+CREATE TABLE IF NOT EXISTS lab_compounds (
+    user_id          INTEGER NOT NULL,
+    guild_id         INTEGER NOT NULL,
+    compound_id      TEXT NOT NULL,
+    times_crafted    INTEGER NOT NULL DEFAULT 0,
+    first_crafted_at INTEGER,
+    PRIMARY KEY (user_id, guild_id, compound_id)
+);
 """
 
 # Columns added to `user_stats` after its original release. Applied by
