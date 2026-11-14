@@ -3433,6 +3433,69 @@ class Database:
         await self.conn.commit()
         return actual_added, capped
 
+    def _get_ist_date(self) -> str:
+        """Current date string (YYYY-MM-DD) in IST."""
+        return dt.datetime.now(config.IST).strftime("%Y-%m-%d")
+
+    async def get_lab_daily(
+        self, user_id: int, guild_id: int, date_ist: Optional[str] = None
+    ) -> dict[str, Any]:
+        """Fetch daily Lab stats (repeat coins & OC minutes) for the given or current IST date."""
+        date_str = date_ist or self._get_ist_date()
+        cur = await self.conn.execute(
+            "SELECT * FROM lab_daily WHERE user_id = ? AND guild_id = ? AND date_ist = ?",
+            (user_id, guild_id, date_str),
+        )
+        row = await cur.fetchone()
+        if row:
+            return dict(row)
+        return {"user_id": user_id, "guild_id": guild_id, "date_ist": date_str, "repeat_coins": 0, "oc_minutes": 0}
+
+    async def add_lab_daily_oc_minutes(
+        self, user_id: int, guild_id: int, minutes: int, date_ist: Optional[str] = None
+    ) -> int:
+        """Increment credited OC minutes for today in IST. Returns the new daily total."""
+        date_str = date_ist or self._get_ist_date()
+        cur = await self.conn.execute(
+            """
+            INSERT INTO lab_daily (user_id, guild_id, date_ist, repeat_coins, oc_minutes)
+            VALUES (?, ?, ?, 0, ?)
+            ON CONFLICT(user_id, guild_id, date_ist) DO UPDATE SET oc_minutes = oc_minutes + excluded.oc_minutes
+            RETURNING oc_minutes
+            """,
+            (user_id, guild_id, date_str, minutes),
+        )
+        row = await cur.fetchone()
+        await self.conn.commit()
+        return row["oc_minutes"] if row else minutes
+
+    async def add_lab_daily_repeat_coins(
+        self, user_id: int, guild_id: int, coins: int, date_ist: Optional[str] = None
+    ) -> int:
+        """Credit repeat synthesis coins subject to DAILY_REPEAT_COIN_CAP (1000/day).
+        Returns actual coins credited (may be less than requested if cap reached).
+        """
+        if coins <= 0:
+            return 0
+        date_str = date_ist or self._get_ist_date()
+        daily = await self.get_lab_daily(user_id, guild_id, date_str)
+        cur_repeat = daily["repeat_coins"]
+        allowed = max(0, min(coins, lab_catalog.DAILY_REPEAT_COIN_CAP - cur_repeat))
+        if allowed <= 0:
+            return 0
+
+        await self.conn.execute(
+            """
+            INSERT INTO lab_daily (user_id, guild_id, date_ist, repeat_coins, oc_minutes)
+            VALUES (?, ?, ?, ?, 0)
+            ON CONFLICT(user_id, guild_id, date_ist) DO UPDATE SET repeat_coins = repeat_coins + ?
+            """,
+            (user_id, guild_id, date_str, allowed, allowed),
+        )
+        await self.conn.commit()
+        return allowed
+
+
 
 
 
