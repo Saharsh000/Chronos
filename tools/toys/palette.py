@@ -115,6 +115,12 @@ def get_finish_palette(finish_id: str) -> dict[str, tuple[int, int, int, int]]:
         "f": c("#f5cb98"),             # Flesh / face base
         "F": c("#e49870"),             # Flesh dark / rosy cheek blush
 
+        "y": c("#ffd028"),             # Duck yellow base
+        "Y": c("#e29c12"),             # Duck yellow shadow
+
+        "v": c("#3fe0e0"),             # Visor / glass cyan base
+        "V": c("#168a98"),             # Visor / glass cyan dark
+
         "k": c("#8a4e23"),             # Wood / brown base
         "K": c("#542d10"),             # Wood / brown dark
 

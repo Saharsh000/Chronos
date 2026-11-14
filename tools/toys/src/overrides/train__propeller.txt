@@ -3,8 +3,8 @@
 ...##.##....##..
 ..#####.....#M#.
 .#LLPPD#....#M#.
-.#LwwPD#####mm#.
-.#LwwPDLLPPmmm#.
+.#LvvPD#####mm#.
+.#LvvPDLLPPmmm#.
 .#LPPPDLLPPmmm#.
 .#LPPPDLLPPmmm#.
 .#LLLLPPAAAAAA#.

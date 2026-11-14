@@ -3,9 +3,9 @@
 .#aA#......#aA#.
 .#AA########AA#.
 ..#LLPPPPPDDD#..
-..#LePePPLePe#..
-..#LPPP##PPPD#..
-..#LPPPAAPPPD#..
+..#LeWePPLeWe#..
+..#Lff####ffD#..
+..#Lfff##fffD#..
 ...#LLPPAAPPD#..
 ..#LLPPPAAPPDD#.
 ..#LLPPAAAAPDD#.
