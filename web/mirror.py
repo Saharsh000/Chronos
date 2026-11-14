@@ -10,6 +10,7 @@ from typing import Any, Optional
 
 import config
 from utils import embeds, emojis
+from utils import lab as lab_catalog
 from utils.subjects import SUBJECT_INFO
 from utils.time_format import discord_timestamp, format_duration
 
@@ -138,7 +139,7 @@ def lab_category_completed_embed(member: dict[str, Any], user_id: int, category:
 def lab_milestone_embed(member: dict[str, Any], user_id: int, count: int, reward_desc: str):
     e = embeds.base_embed(
         title="🏆 Synthesis Milestone Reached!",
-        description=f"**<@{user_id}>** has synthesized **{count} / 100** unique organic compounds in The Lab!\n\n**Reward:** {reward_desc}",
+        description=f"**<@{user_id}>** has synthesized **{count} / {len(lab_catalog.COMPOUNDS)}** unique organic compounds in The Lab!\n\n**Reward:** {reward_desc}",
         color=embeds.COLOR_MILESTONE,
     )
     embeds.set_footer(e, "The Lab · Synthesis Milestones", VIA)

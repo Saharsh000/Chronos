@@ -36,8 +36,9 @@ class ConfirmLabUnlockView(ChronosView):
         self.cog = cog
         self.ctx = ctx
         self.confirmed = False
+        self.confirm_btn.label = f"Unlock The Lab ({lab_catalog.LAB_UNLOCK_PRICE:,} Coins)"
 
-    @discord.ui.button(label="Unlock The Lab (60,000 Coins)", style=discord.ButtonStyle.success, emoji="⚗️")
+    @discord.ui.button(label="Unlock The Lab", style=discord.ButtonStyle.success, emoji="⚗️")
     async def confirm_btn(self, interaction: discord.Interaction, button: discord.ui.Button):
         for child in self.children:
             child.disabled = True
@@ -52,7 +53,7 @@ class ConfirmLabUnlockView(ChronosView):
                     f"Welcome to **The Lab**, <@{self.ctx.author.id}>!\n\n"
                     f"⚗️ **Organic Chemistry Mode (`.start oc`)** is now unlocked!\n"
                     f"🧪 Earn elements (C, H, O, N, Cl, F, Br, I) live while studying Chemistry.\n"
-                    f"🔬 Synthesize 100 syllabus compounds with `.synth <name or formula>`.\n"
+                    f"🔬 Synthesize {len(lab_catalog.COMPOUNDS)} syllabus compounds with `.synth <name or formula>`.\n"
                     f"📖 Track your collection with `.compounds`."
                 ),
                 color=embeds.COLOR_LEVELUP,
@@ -175,7 +176,7 @@ class Lab(commands.Cog, name="The Lab"):
                     "**Unlocks:**\n"
                     "• Organic Chemistry study track (`.start oc`)\n"
                     "• Live element harvesting (C, H, O, N, Cl, F, Br, I)\n"
-                    "• 100 JEE Organic Compound synthesis & compendium (`.synth`, `.compounds`)\n"
+                    f"• {len(lab_catalog.COMPOUNDS)} JEE Organic Compound synthesis & compendium (`.synth`, `.compounds`)\n"
                     "• Collectible titles, badges, and milestone rewards\n\n"
                     "**Requirements:**"
                 ),
@@ -222,8 +223,8 @@ class Lab(commands.Cog, name="The Lab"):
             title="⚗️ The Lab — Organic Chemistry Hub",
             description=(
                 f"Welcome back, Chemist <@{ctx.author.id}>!\n"
-                f"Collection Progress: **{unique_count} / 100** unique compounds "
-                f"({unique_count}%) · Total Synthesized: **{total_crafted}**"
+                f"Collection Progress: **{unique_count} / {len(lab_catalog.COMPOUNDS)}** unique compounds "
+                f"({int(unique_count / len(lab_catalog.COMPOUNDS) * 100)}%) · Total Synthesized: **{total_crafted}**"
             ),
             color=embeds.COLOR_STUDY,
         )
@@ -273,7 +274,7 @@ class Lab(commands.Cog, name="The Lab"):
     @lab_cmd.command(name="unlock")
     @commands.guild_only()
     async def lab_unlock_cmd(self, ctx: commands.Context) -> None:
-        """Unlock The Lab for 60,000 Chronocoins after 30h of Chemistry study."""
+        """Unlock The Lab for Chronocoins after 30h of Chemistry study."""
         existing = await self.db.get_lab_unlock(ctx.author.id, ctx.guild.id)
         if existing:
             await ctx.send(embed=embeds.info_embed("Already Unlocked", "You have already unlocked The Lab!"))
@@ -293,7 +294,7 @@ class Lab(commands.Cog, name="The Lab"):
         embed = embeds.base_embed(
             title="⚗️ Confirm Lab Unlock",
             description=(
-                f"Are you ready to spend **60,000 Chronocoins** to permanently unlock **The Lab**?\n\n"
+                f"Are you ready to spend **{lab_catalog.LAB_UNLOCK_PRICE:,} Chronocoins** to permanently unlock **The Lab**?\n\n"
                 f"Current balance: **{curr['coins']:,} Chronocoins**\n"
                 f"Remaining after unlock: **{curr['coins'] - lab_catalog.LAB_UNLOCK_PRICE:,} Chronocoins**"
             ),
@@ -338,7 +339,7 @@ class Lab(commands.Cog, name="The Lab"):
             sugg_str = f"\nDid you mean: {', '.join(suggestions)}?" if suggestions else ""
             await ctx.send(embed=embeds.error_embed(
                 f"Unknown compound `{query}`.{sugg_str}\n"
-                f"Use `{ctx.prefix}compounds` to browse all 100 synthesizable compounds."
+                f"Use `{ctx.prefix}compounds` to browse all {len(lab_catalog.COMPOUNDS)} synthesizable compounds."
             ))
             return
 
@@ -442,7 +443,7 @@ class Lab(commands.Cog, name="The Lab"):
             description="\n".join(desc_lines),
             color=embeds.COLOR_SUCCESS,
         )
-        embeds.set_footer(embed, f"Times crafted: {res['times_crafted']} · Total unique: {res['unique_compounds_count']}/100")
+        embeds.set_footer(embed, f"Times crafted: {res['times_crafted']} · Total unique: {res['unique_compounds_count']}/{len(lab_catalog.COMPOUNDS)}")
         await msg.edit(embed=embed, view=None)
 
         # Mirror Proactive Announcements to check-in channel
@@ -475,7 +476,7 @@ class Lab(commands.Cog, name="The Lab"):
     @commands.command(name="compounds", aliases=["compendium", "comp"])
     @commands.guild_only()
     async def compounds_cmd(self, ctx: commands.Context, *, category: Optional[str] = None) -> None:
-        """Browse the 100-compound Organic Chemistry Compendium.
+        f"""Browse the {len(lab_catalog.COMPOUNDS)}-compound Organic Chemistry Compendium.
         Usage: `.compounds` (overview) or `.compounds Alkanes`
         """
         user_compounds = await self.db.get_lab_compounds(ctx.author.id, ctx.guild.id)
@@ -486,8 +487,8 @@ class Lab(commands.Cog, name="The Lab"):
             embed = embeds.base_embed(
                 title="📖 Organic Chemistry Compendium",
                 description=(
-                    f"Collection: **{len(user_compounds)} / 100** compounds discovered "
-                    f"({len(user_compounds)}%)\n\n"
+                    f"Collection: **{len(user_compounds)} / {len(lab_catalog.COMPOUNDS)}** compounds discovered "
+                    f"({int(len(user_compounds) / len(lab_catalog.COMPOUNDS) * 100)}%)\n\n"
                     f"Select or specify a category to view individual entries:\n"
                     f"`{ctx.prefix}compounds <category>`"
                 ),

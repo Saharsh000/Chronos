@@ -5,7 +5,7 @@ CSRF-protected endpoints mirroring all bot Lab features to Chronoweb:
   - POST /api/lab/unlock: unlock The Lab (pays 60k coins atomically)
   - GET  /api/lab/elements: element inventory
   - POST /api/lab/synth: dry-run inspection & confirmed molecular synthesis
-  - GET  /api/lab/compendium: 100-compound compendium with ??? silhouettes & facts
+  - GET  /api/lab/compendium: 500-compound compendium with ??? silhouettes & facts
   - GET  /api/lab/discoveries: server-wide first discoverers map
 """
 from __future__ import annotations
@@ -87,7 +87,7 @@ async def unlock_lab(c: Ctx):
         if "chemistry" in err_msg:
             raise fail("Insufficient chemistry hours. 30.0 hours required.", 400, "insufficient_chemistry_hours")
         if "chronocoins" in err_msg:
-            raise fail("Insufficient Chronocoins. 60,000 coins required.", 400, "insufficient_coins")
+            raise fail(f"Insufficient Chronocoins. {lab_catalog.LAB_UNLOCK_PRICE:,} coins required.", 400, "insufficient_coins")
         raise fail(str(ex), 400, "unlock_failed")
 
     c.emit("lab_unlocked")

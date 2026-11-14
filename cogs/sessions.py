@@ -28,6 +28,7 @@ from discord.ext import commands, tasks
 import config
 from utils import embeds
 from utils import emojis
+from utils import lab as lab_catalog
 from utils.stats_card import render_session_summary_card_sync
 from utils.subjects import SUBJECT_ALIASES, SUBJECT_HINT, SUBJECT_INFO, detect_subject, normalize_subject_key
 from utils.time_format import discord_timestamp, format_duration
@@ -121,7 +122,7 @@ class Sessions(commands.Cog, name="Sessions"):
                         f"**The Lab is locked.**\n\n"
                         f"Requirements to unlock Organic Chemistry mode:\n"
                         f"• Chemistry study: **{chem_hours:.1f}h / 30.0h**\n"
-                        f"• Chronocoins: **{curr['coins']:,} / 60,000**\n\n"
+                        f"• Chronocoins: **{curr['coins']:,} / {lab_catalog.LAB_UNLOCK_PRICE:,}**\n\n"
                         f"Use `{ctx.prefix}lab` to check your progress or unlock when eligible."
                     ))
                     return

@@ -13,6 +13,7 @@ import time
 from typing import Any, Optional
 
 import config
+from utils import lab as lab_catalog
 from utils.subjects import SUBJECT_ALIASES, SUBJECT_HINT, SUBJECT_INFO, detect_subject, normalize_subject_key
 from utils.xp import xp_progress
 
@@ -106,7 +107,7 @@ async def start_session(c: Ctx):
             chem_hours = await c.db.get_lab_chemistry_hours(c.uid, c.gid)
             curr = await c.db.get_or_create_currency(c.uid, c.gid)
             raise fail(
-                f"The Lab is locked. Chemistry: {chem_hours:.1f}h / 30h, Coins: {curr['coins']:,} / 60,000.",
+                f"The Lab is locked. Chemistry: {chem_hours:.1f}h / 30h, Coins: {curr['coins']:,} / {lab_catalog.LAB_UNLOCK_PRICE:,}.",
                 403,
                 "lab_locked",
                 chemistry_hours=chem_hours,
