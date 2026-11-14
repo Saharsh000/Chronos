@@ -1030,18 +1030,23 @@ class Database:
         # (returns None) if the user has no pet equipped in this guild.
         pet_result = await self.grant_pet_xp(session["user_id"], session["guild_id"], delta_pet_xp)
 
-        # Jack-o'-Lantern Season Pass: credit active study seconds
-        pass_res = await self.credit_halloween_study(session["user_id"], session["guild_id"], delta_seconds)
+        # Jack-o'-Lantern Season Pass & study drops — only while event is live
+        pass_res: dict = {}
+        hallo_box_dropped: str | None = None
+        candy_earned: int = 0
+        if config.HALLOWEEN_EVENT:
+            # Credit active study seconds to the season pass
+            pass_res = await self.credit_halloween_study(session["user_id"], session["guild_id"], delta_seconds)
 
-        # Roll for a surprise Hallo-Box drop while studying (~1 box every 15-20 min)!
-        hallo_box_dropped = halloween_catalog.roll_study_hallo_box(new_minutes)
-        if hallo_box_dropped:
-            await self.add_item(session["user_id"], session["guild_id"], hallo_box_dropped, 1)
+            # Roll for a surprise Hallo-Box drop while studying (~1 box every 15-20 min)!
+            hallo_box_dropped = halloween_catalog.roll_study_hallo_box(new_minutes)
+            if hallo_box_dropped:
+                await self.add_item(session["user_id"], session["guild_id"], hallo_box_dropped, 1)
 
-        # Roll for direct Candy drops earned while studying!
-        candy_earned = halloween_catalog.roll_study_candy(new_minutes)
-        if candy_earned > 0:
-            await self._add_candy_raw(session["user_id"], session["guild_id"], candy_earned)
+            # Roll for direct Candy drops earned while studying!
+            candy_earned = halloween_catalog.roll_study_candy(new_minutes)
+            if candy_earned > 0:
+                await self._add_candy_raw(session["user_id"], session["guild_id"], candy_earned)
 
         return {
             "user_id": session["user_id"],

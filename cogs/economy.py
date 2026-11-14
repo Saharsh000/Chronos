@@ -894,26 +894,27 @@ class Economy(commands.Cog, name="Economy"):
             embed.add_field(name="\U0001F381 Bonus!", value="A free Mystery Box was added to your inventory!", inline=False)
 
         # HALLOWEEN EVENT: Daily Candy & Hallo-Box Reward
-        daily_candy = random.randint(30, 60)
-        await self.db.add_candy(ctx.author.id, ctx.guild.id, daily_candy)
+        if config.HALLOWEEN_EVENT:
+            daily_candy = random.randint(30, 60)
+            await self.db.add_candy(ctx.author.id, ctx.guild.id, daily_candy)
 
-        streak = result["daily_streak"]
-        if streak >= 30:
-            daily_box = "hbox_epic"
-        elif streak >= 7:
-            daily_box = "hbox_rare"
-        elif random.random() < 0.35:
-            daily_box = "hbox_uncommon"
-        else:
-            daily_box = "hbox_common"
+            streak = result["daily_streak"]
+            if streak >= 30:
+                daily_box = "hbox_epic"
+            elif streak >= 7:
+                daily_box = "hbox_rare"
+            elif random.random() < 0.35:
+                daily_box = "hbox_uncommon"
+            else:
+                daily_box = "hbox_common"
 
-        await self.db.add_item(ctx.author.id, ctx.guild.id, daily_box, 1)
-        box_info = halloween_catalog.get_box(daily_box)
-        embed.add_field(
-            name=f"{box_info['emoji']} Daily Hallo-Box & Candy!",
-            value=f"You received a **{box_info['name']}** + **+{daily_candy} \U0001F36C Candy**!\nOpen instantly with `{ctx.prefix}openbox {box_info['tier']}`.",
-            inline=False,
-        )
+            await self.db.add_item(ctx.author.id, ctx.guild.id, daily_box, 1)
+            box_info = halloween_catalog.get_box(daily_box)
+            embed.add_field(
+                name=f"{box_info['emoji']} Daily Hallo-Box & Candy!",
+                value=f"You received a **{box_info['name']}** + **+{daily_candy} \U0001F36C Candy**!\nOpen instantly with `{ctx.prefix}openbox {box_info['tier']}`.",
+                inline=False,
+            )
 
         if result["leveled_up"]:
             embed.add_field(
@@ -1031,7 +1032,7 @@ class Economy(commands.Cog, name="Economy"):
         embed.add_field(name="💰 New balance", value=f"{result['new_balance']:,} {coin_e}", inline=True)
 
         # HALLOWEEN EVENT: Chance to find a Hallo-Box + Candy while working
-        if random.random() < 0.35:
+        if config.HALLOWEEN_EVENT and random.random() < 0.35:
             work_box = random.choices(["hbox_common", "hbox_uncommon", "hbox_rare"], weights=[0.75, 0.20, 0.05])[0]
             work_candy = random.randint(8, 18)
             await self.db.add_item(ctx.author.id, ctx.guild.id, work_box, 1)
@@ -1099,7 +1100,7 @@ class Economy(commands.Cog, name="Economy"):
         embeds.set_footer(embed, f"Role: {scenario.role} \u00B7 {ctx.prefix}beg")
 
         # HALLOWEEN EVENT: Chance to receive a Hallo-Box + Candy while begging
-        if random.random() < 0.25:
+        if config.HALLOWEEN_EVENT and random.random() < 0.25:
             beg_box = "hbox_common" if random.random() < 0.85 else "hbox_uncommon"
             beg_candy = random.randint(4, 10)
             await self.db.add_item(ctx.author.id, ctx.guild.id, beg_box, 1)
@@ -1138,16 +1139,17 @@ class Economy(commands.Cog, name="Economy"):
         embed.add_field(name="🎁 Bonus", value="Free Mystery Box", inline=True)
 
         # HALLOWEEN EVENT: Guaranteed High-Tier Hallo-Box & Big Candy Stash
-        weekly_box = "hbox_legendary" if random.random() < 0.20 else "hbox_epic"
-        weekly_candy = random.randint(180, 300)
-        await self.db.add_item(ctx.author.id, ctx.guild.id, weekly_box, 1)
-        await self.db.add_candy(ctx.author.id, ctx.guild.id, weekly_candy)
-        box_info = halloween_catalog.get_box(weekly_box)
-        embed.add_field(
-            name=f"{box_info['emoji']} Weekly Hallo-Box Jackpot!",
-            value=f"Received a prestigious **{box_info['name']}** + **+{weekly_candy} \U0001F36C Candy**!\nOpen with `{ctx.prefix}openbox {box_info['tier']}`.",
-            inline=False,
-        )
+        if config.HALLOWEEN_EVENT:
+            weekly_box = "hbox_legendary" if random.random() < 0.20 else "hbox_epic"
+            weekly_candy = random.randint(180, 300)
+            await self.db.add_item(ctx.author.id, ctx.guild.id, weekly_box, 1)
+            await self.db.add_candy(ctx.author.id, ctx.guild.id, weekly_candy)
+            box_info = halloween_catalog.get_box(weekly_box)
+            embed.add_field(
+                name=f"{box_info['emoji']} Weekly Hallo-Box Jackpot!",
+                value=f"Received a prestigious **{box_info['name']}** + **+{weekly_candy} \U0001F36C Candy**!\nOpen with `{ctx.prefix}openbox {box_info['tier']}`.",
+                inline=False,
+            )
 
         log.info(f"WEEKLY CLAIM  | {ctx.author} ({ctx.author.id}) claimed in guild {ctx.guild.id} (coins={result['coins']})")
         await ctx.send(embed=embed)

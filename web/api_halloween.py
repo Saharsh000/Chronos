@@ -7,6 +7,7 @@ from __future__ import annotations
 import logging
 from typing import Any
 
+import config
 from utils import food as food_catalog
 from utils import halloween as hc
 from utils import pets as pet_catalog

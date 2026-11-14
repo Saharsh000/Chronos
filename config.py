@@ -161,3 +161,9 @@ WEB_GUILD_ID = int(os.getenv("WEB_GUILD_ID", "0") or 0)
 WEB_GUILD_NAME = os.getenv("WEB_GUILD_NAME", "bored af").strip()
 # Local testing only: enables /auth/dev. NEVER enable on the live host.
 WEB_DEV_MODE = os.getenv("WEB_DEV_MODE", "0").strip().lower() in ("1", "true", "yes", "on")
+
+# --- Halloween Event ---------------------------------------------------------
+# Set HALLOWEEN_EVENT=0 in .env / hosting env to turn off new drops & pass progress.
+# Set HALLOWEEN_COG_ENABLED=0 once the 24h grace period ends to unload the commands.
+HALLOWEEN_EVENT = os.getenv("HALLOWEEN_EVENT", "0").strip().lower() in ("1", "true", "yes", "on")
+HALLOWEEN_COG_ENABLED = os.getenv("HALLOWEEN_COG_ENABLED", "1").strip().lower() in ("1", "true", "yes", "on")
