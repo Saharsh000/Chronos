@@ -47,7 +47,7 @@ export default async function lab(root, ctx) {
     const chemHours = labData.chemistry_hours || 0;
     const reqHours = labData.required_chemistry_hours || 30.0;
     const coins = labData.coins || 0;
-    const reqCoins = labData.required_coins || 60000;
+    const reqCoins = labData.required_coins || 80000;
 
     const chemPct = Math.min(100, Math.round((chemHours / reqHours) * 100));
     const coinsPct = Math.min(100, Math.round((coins / reqCoins) * 100));
