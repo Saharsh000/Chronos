@@ -124,6 +124,32 @@ def get_finish_palette(finish_id: str) -> dict[str, tuple[int, int, int, int]]:
         "k": c("#8a4e23"),             # Wood / brown base
         "K": c("#542d10"),             # Wood / brown dark
 
+        # Brown fur ramp (teddy)
+        "b": c("#b46a36"),             # Brown fur base
+        "B": c("#6e3914"),             # Brown fur dark / shadow
+        "l": c("#d9925e"),             # Brown fur light / muzzle
+
+        # Crimson red ramp (soldier coat, train cab, rocket nose, paint)
+        "r": c("#d82436"),             # Crimson red base
+        "R": c("#7a0f1d"),             # Crimson red dark
+        "p": c("#ea5665"),             # Crimson red light
+
+        # Gold / brass ramp (epaulets, bells, hubcaps, windup key)
+        "j": c("#f8c538"),             # Gold base
+        "J": c("#ad7a10"),             # Gold dark
+
+        # Blue / sapphire (doll dress, frost finish)
+        "c": c("#3ba8e0"),             # Blue base
+        "C": c("#195682"),             # Blue dark
+
+        # Green / emerald (pine finish, scarf)
+        "u": c("#288e4e"),             # Green base
+        "U": c("#144e27"),             # Green dark
+
+        # Violet / purple (violet finish)
+        "x": c("#8642bd"),             # Violet base
+        "X": c("#4a1873"),             # Violet dark
+
         # Glow core colors
         "*": c("#ffffcc"),             # Glow bulb core / bright sparkle
         "+": c("#ffcc22"),             # Golden glow radiant aura
