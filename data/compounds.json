@@ -3868,5 +3868,365 @@
     "category": "Alcohols",
     "structure": "C6H5CH=CHCH2OH",
     "fact": "3-Phenylprop-2-en-1-ol; aromatic allylic alcohol with sweet floral balsamic odor occurring in storax and Peru balsam."
+  },
+  {
+    "id": "o-cresol",
+    "name": "o-Cresol",
+    "formula": "C7H8O",
+    "elements": {
+      "C": 7,
+      "H": 8,
+      "O": 1,
+      "N": 0,
+      "Cl": 0,
+      "F": 0,
+      "Br": 0,
+      "I": 0
+    },
+    "category": "Phenols",
+    "structure": "2-CH3C6H4OH",
+    "fact": "2-Methylphenol; ortho-isomer extracted from coal tar; used as disinfectant and chemical intermediate."
+  },
+  {
+    "id": "m-cresol",
+    "name": "m-Cresol",
+    "formula": "C7H8O",
+    "elements": {
+      "C": 7,
+      "H": 8,
+      "O": 1,
+      "N": 0,
+      "Cl": 0,
+      "F": 0,
+      "Br": 0,
+      "I": 0
+    },
+    "category": "Phenols",
+    "structure": "3-CH3C6H4OH",
+    "fact": "3-Methylphenol; meta-isomer precursor to thymol and various agrochemicals."
+  },
+  {
+    "id": "resorcinol",
+    "name": "Resorcinol",
+    "formula": "C6H6O2",
+    "elements": {
+      "C": 6,
+      "H": 6,
+      "O": 2,
+      "N": 0,
+      "Cl": 0,
+      "F": 0,
+      "Br": 0,
+      "I": 0
+    },
+    "category": "Phenols",
+    "structure": "1,3-C6H4(OH)2",
+    "fact": "Benzene-1,3-diol; gives dark violet coloration with neutral FeCl3; component of resorcinol-formaldehyde adhesives."
+  },
+  {
+    "id": "hydroquinone",
+    "name": "Hydroquinone",
+    "formula": "C6H6O2",
+    "elements": {
+      "C": 6,
+      "H": 6,
+      "O": 2,
+      "N": 0,
+      "Cl": 0,
+      "F": 0,
+      "Br": 0,
+      "I": 0
+    },
+    "category": "Phenols",
+    "structure": "1,4-C6H4(OH)2",
+    "fact": "Benzene-1,4-diol; readily oxidized to p-benzoquinone; used as photographic reducing developer."
+  },
+  {
+    "id": "pyrogallol",
+    "name": "Pyrogallol",
+    "formula": "C6H6O3",
+    "elements": {
+      "C": 6,
+      "H": 6,
+      "O": 3,
+      "N": 0,
+      "Cl": 0,
+      "F": 0,
+      "Br": 0,
+      "I": 0
+    },
+    "category": "Phenols",
+    "structure": "1,2,3-C6H3(OH)3",
+    "fact": "Benzene-1,2,3-triol; alkaline solution rapidly and quantitatively absorbs atmospheric oxygen."
+  },
+  {
+    "id": "phloroglucinol",
+    "name": "Phloroglucinol",
+    "formula": "C6H6O3",
+    "elements": {
+      "C": 6,
+      "H": 6,
+      "O": 3,
+      "N": 0,
+      "Cl": 0,
+      "F": 0,
+      "Br": 0,
+      "I": 0
+    },
+    "category": "Phenols",
+    "structure": "1,3,5-C6H3(OH)3",
+    "fact": "Benzene-1,3,5-triol; classic example of keto-enol tautomerism between aromatic triol and cyclohexanetrione."
+  },
+  {
+    "id": "1-naphthol",
+    "name": "1-Naphthol",
+    "formula": "C10H8O",
+    "elements": {
+      "C": 10,
+      "H": 8,
+      "O": 1,
+      "N": 0,
+      "Cl": 0,
+      "F": 0,
+      "Br": 0,
+      "I": 0
+    },
+    "category": "Phenols",
+    "structure": "1-C10H7OH",
+    "fact": "alpha-Naphthol; used in Molisch's test for carbohydrates, developing a purple ring at the acid interface."
+  },
+  {
+    "id": "2-naphthol",
+    "name": "2-Naphthol",
+    "formula": "C10H8O",
+    "elements": {
+      "C": 10,
+      "H": 8,
+      "O": 1,
+      "N": 0,
+      "Cl": 0,
+      "F": 0,
+      "Br": 0,
+      "I": 0
+    },
+    "category": "Phenols",
+    "structure": "2-C10H7OH",
+    "fact": "beta-Naphthol; couples with benzene diazonium chloride in basic medium to form brilliant orange-red dye Sudan I."
+  },
+  {
+    "id": "o-nitrophenol",
+    "name": "o-Nitrophenol",
+    "formula": "C6H5NO3",
+    "elements": {
+      "C": 6,
+      "H": 5,
+      "O": 3,
+      "N": 1,
+      "Cl": 0,
+      "F": 0,
+      "Br": 0,
+      "I": 0
+    },
+    "category": "Phenols",
+    "structure": "2-NO2C6H4OH",
+    "fact": "Volatile with steam due to intramolecular hydrogen bonding (chelation), enabling separation from p-nitrophenol."
+  },
+  {
+    "id": "p-nitrophenol",
+    "name": "p-Nitrophenol",
+    "formula": "C6H5NO3",
+    "elements": {
+      "C": 6,
+      "H": 5,
+      "O": 3,
+      "N": 1,
+      "Cl": 0,
+      "F": 0,
+      "Br": 0,
+      "I": 0
+    },
+    "category": "Phenols",
+    "structure": "4-NO2C6H4OH",
+    "fact": "Higher boiling point and non-steam-volatile due to strong intermolecular hydrogen bonding."
+  },
+  {
+    "id": "2,4-dinitrophenol",
+    "name": "2,4-Dinitrophenol",
+    "formula": "C6H4N2O5",
+    "elements": {
+      "C": 6,
+      "H": 4,
+      "O": 5,
+      "N": 2,
+      "Cl": 0,
+      "F": 0,
+      "Br": 0,
+      "I": 0
+    },
+    "category": "Phenols",
+    "structure": "2,4-(NO2)2C6H3OH",
+    "fact": "2,4-DNP; cellular metabolic poison that uncouples oxidative phosphorylation across mitochondrial membranes."
+  },
+  {
+    "id": "picric-acid",
+    "name": "Picric Acid",
+    "formula": "C6H3N3O7",
+    "elements": {
+      "C": 6,
+      "H": 3,
+      "O": 7,
+      "N": 3,
+      "Cl": 0,
+      "F": 0,
+      "Br": 0,
+      "I": 0
+    },
+    "category": "Phenols",
+    "structure": "2,4,6-(NO2)3C6H2OH",
+    "fact": "2,4,6-Trinitrophenol; intensely acidic phenol (pKa 0.38) due to strong resonance stabilization by three nitro groups."
+  },
+  {
+    "id": "thymol",
+    "name": "Thymol",
+    "formula": "C10H14O",
+    "elements": {
+      "C": 10,
+      "H": 14,
+      "O": 1,
+      "N": 0,
+      "Cl": 0,
+      "F": 0,
+      "Br": 0,
+      "I": 0
+    },
+    "category": "Phenols",
+    "structure": "5-methyl-2-(propan-2-yl)phenol",
+    "fact": "Natural monoterpenoid phenol found in thyme oil; antiseptic active ingredient in mouthwashes."
+  },
+  {
+    "id": "carvacrol",
+    "name": "Carvacrol",
+    "formula": "C10H14O",
+    "elements": {
+      "C": 10,
+      "H": 14,
+      "O": 1,
+      "N": 0,
+      "Cl": 0,
+      "F": 0,
+      "Br": 0,
+      "I": 0
+    },
+    "category": "Phenols",
+    "structure": "2-methyl-5-(propan-2-yl)phenol",
+    "fact": "Isomer of thymol with pungent oregano odor; inhibits bacterial cell membrane integrity."
+  },
+  {
+    "id": "bht",
+    "name": "BHT",
+    "formula": "C15H24O",
+    "elements": {
+      "C": 15,
+      "H": 24,
+      "O": 1,
+      "N": 0,
+      "Cl": 0,
+      "F": 0,
+      "Br": 0,
+      "I": 0
+    },
+    "category": "Phenols",
+    "structure": "2,6-di-tert-butyl-4-methylphenol",
+    "fact": "Butylated hydroxytoluene; sterically hindered lipophilic phenolic antioxidant that scavenges free radicals."
+  },
+  {
+    "id": "guaiacol",
+    "name": "Guaiacol",
+    "formula": "C7H8O2",
+    "elements": {
+      "C": 7,
+      "H": 8,
+      "O": 2,
+      "N": 0,
+      "Cl": 0,
+      "F": 0,
+      "Br": 0,
+      "I": 0
+    },
+    "category": "Phenols",
+    "structure": "2-CH3OC6H4OH",
+    "fact": "2-Methoxyphenol; naturally occurring aroma component formed by pyrolysis of wood lignin."
+  },
+  {
+    "id": "eugenol",
+    "name": "Eugenol",
+    "formula": "C10H12O2",
+    "elements": {
+      "C": 10,
+      "H": 12,
+      "O": 2,
+      "N": 0,
+      "Cl": 0,
+      "F": 0,
+      "Br": 0,
+      "I": 0
+    },
+    "category": "Phenols",
+    "structure": "4-allyl-2-methoxyphenol",
+    "fact": "Major aroma constituent of clove oil (~80%); used as dental analgesic and antiseptic."
+  },
+  {
+    "id": "isoeugenol",
+    "name": "Isoeugenol",
+    "formula": "C10H12O2",
+    "elements": {
+      "C": 10,
+      "H": 12,
+      "O": 2,
+      "N": 0,
+      "Cl": 0,
+      "F": 0,
+      "Br": 0,
+      "I": 0
+    },
+    "category": "Phenols",
+    "structure": "2-methoxy-4-(prop-1-en-1-yl)phenol",
+    "fact": "Formed by base-catalyzed isomerization of eugenol; industrial precursor to artificial vanillin."
+  },
+  {
+    "id": "4-aminophenol",
+    "name": "4-Aminophenol",
+    "formula": "C6H7NO",
+    "elements": {
+      "C": 6,
+      "H": 7,
+      "O": 1,
+      "N": 1,
+      "Cl": 0,
+      "F": 0,
+      "Br": 0,
+      "I": 0
+    },
+    "category": "Phenols",
+    "structure": "4-H2NC6H4OH",
+    "fact": "Synthesized by electrolytic reduction of nitrobenzene in acidic medium via phenylhydroxylamine rearrangement."
+  },
+  {
+    "id": "salicyl-alcohol",
+    "name": "Salicyl Alcohol",
+    "formula": "C7H8O2",
+    "elements": {
+      "C": 7,
+      "H": 8,
+      "O": 2,
+      "N": 0,
+      "Cl": 0,
+      "F": 0,
+      "Br": 0,
+      "I": 0
+    },
+    "category": "Phenols",
+    "structure": "2-(hydroxymethyl)phenol",
+    "fact": "Saligenin; aglycone of salicin from willow bark, possessing mild analgesic and antipyretic activity."
   }
 ]
