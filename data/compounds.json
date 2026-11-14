@@ -1258,5 +1258,293 @@
     "category": "Acid-Derivatives",
     "smiles": "CC(N)=O",
     "fact": "Simplest amide; Hofmann bromamide reaction converts it to methylamine; JEE amide hydrolysis and Hofmann degradation."
+  },
+  {
+    "id": "methylamine",
+    "name": "Methylamine",
+    "formula": "CH5N",
+    "elements": {
+      "C": 1,
+      "H": 5,
+      "O": 0,
+      "N": 1,
+      "Cl": 0,
+      "F": 0,
+      "Br": 0,
+      "I": 0
+    },
+    "category": "Nitrogen-Compounds",
+    "smiles": "CN",
+    "fact": "Primary aliphatic amine; more basic than ammonia due to +I effect of methyl; JEE basicity order of amines."
+  },
+  {
+    "id": "dimethylamine",
+    "name": "Dimethylamine",
+    "formula": "C2H7N",
+    "elements": {
+      "C": 2,
+      "H": 7,
+      "O": 0,
+      "N": 1,
+      "Cl": 0,
+      "F": 0,
+      "Br": 0,
+      "I": 0
+    },
+    "category": "Nitrogen-Compounds",
+    "smiles": "CNC",
+    "fact": "Secondary amine; most basic among methylamines in aqueous solution; JEE Hinsberg test distinguishes primary, secondary, tertiary amines."
+  },
+  {
+    "id": "trimethylamine",
+    "name": "Trimethylamine",
+    "formula": "C3H9N",
+    "elements": {
+      "C": 3,
+      "H": 9,
+      "O": 0,
+      "N": 1,
+      "Cl": 0,
+      "F": 0,
+      "Br": 0,
+      "I": 0
+    },
+    "category": "Nitrogen-Compounds",
+    "smiles": "CN(C)C",
+    "fact": "Tertiary amine; least basic of the trimethyl series in water due to solvation effects; JEE aqueous vs gas-phase basicity discussion."
+  },
+  {
+    "id": "ethylamine",
+    "name": "Ethylamine",
+    "formula": "C2H7N",
+    "elements": {
+      "C": 2,
+      "H": 7,
+      "O": 0,
+      "N": 1,
+      "Cl": 0,
+      "F": 0,
+      "Br": 0,
+      "I": 0
+    },
+    "category": "Nitrogen-Compounds",
+    "smiles": "CCN",
+    "fact": "Primary amine; reacts with HNO2 to give unstable diazonium ion that decomposes to alcohol; JEE diazotization of aliphatic amines."
+  },
+  {
+    "id": "aniline",
+    "name": "Aniline",
+    "formula": "C6H7N",
+    "elements": {
+      "C": 6,
+      "H": 7,
+      "O": 0,
+      "N": 1,
+      "Cl": 0,
+      "F": 0,
+      "Br": 0,
+      "I": 0
+    },
+    "category": "Nitrogen-Compounds",
+    "smiles": "Nc1ccccc1",
+    "fact": "Primary aromatic amine; less basic than aliphatic amines; diazotization at 0-5 C gives benzenediazonium used in JEE coupling reactions."
+  },
+  {
+    "id": "acetonitrile",
+    "name": "Acetonitrile",
+    "formula": "C2H3N",
+    "elements": {
+      "C": 2,
+      "H": 3,
+      "O": 0,
+      "N": 1,
+      "Cl": 0,
+      "F": 0,
+      "Br": 0,
+      "I": 0
+    },
+    "category": "Nitrogen-Compounds",
+    "smiles": "CC#N",
+    "fact": "Methyl cyanide; polar aprotic solvent; hydrolysis gives acetic acid; JEE conversion of halide to nitrile then acid."
+  },
+  {
+    "id": "nitromethane",
+    "name": "Nitromethane",
+    "formula": "CH3NO2",
+    "elements": {
+      "C": 1,
+      "H": 3,
+      "O": 2,
+      "N": 1,
+      "Cl": 0,
+      "F": 0,
+      "Br": 0,
+      "I": 0
+    },
+    "category": "Nitrogen-Compounds",
+    "smiles": "C[N+](=O)[O-]",
+    "fact": "Simplest nitro compound; reduced by Fe/HCl or H2/Pd to give methylamine; JEE reduction of nitro compounds."
+  },
+  {
+    "id": "urea",
+    "name": "Urea",
+    "formula": "CH4N2O",
+    "elements": {
+      "C": 1,
+      "H": 4,
+      "O": 1,
+      "N": 2,
+      "Cl": 0,
+      "F": 0,
+      "Br": 0,
+      "I": 0
+    },
+    "category": "Nitrogen-Compounds",
+    "smiles": "NC(N)=O",
+    "fact": "Diamide of carbonic acid; first organic compound synthesized from inorganic material (Wohler, 1828); pivotal in JEE organic chemistry history."
+  },
+  {
+    "id": "benzene",
+    "name": "Benzene",
+    "formula": "C6H6",
+    "elements": {
+      "C": 6,
+      "H": 6,
+      "O": 0,
+      "N": 0,
+      "Cl": 0,
+      "F": 0,
+      "Br": 0,
+      "I": 0
+    },
+    "category": "Aromatics",
+    "smiles": "c1ccccc1",
+    "fact": "Archetypal aromatic compound; Huckel rule (6 pi electrons); undergoes EAS not addition; central to JEE aromatic chemistry."
+  },
+  {
+    "id": "toluene",
+    "name": "Toluene",
+    "formula": "C7H8",
+    "elements": {
+      "C": 7,
+      "H": 8,
+      "O": 0,
+      "N": 0,
+      "Cl": 0,
+      "F": 0,
+      "Br": 0,
+      "I": 0
+    },
+    "category": "Aromatics",
+    "smiles": "Cc1ccccc1",
+    "fact": "Methylbenzene; methyl group activates ring and directs ortho/para; side-chain oxidation with KMnO4 gives benzoic acid in JEE."
+  },
+  {
+    "id": "o-xylene",
+    "name": "o-Xylene",
+    "formula": "C8H10",
+    "elements": {
+      "C": 8,
+      "H": 10,
+      "O": 0,
+      "N": 0,
+      "Cl": 0,
+      "F": 0,
+      "Br": 0,
+      "I": 0
+    },
+    "category": "Aromatics",
+    "smiles": "Cc1ccccc1C",
+    "fact": "1,2-Dimethylbenzene; oxidised by KMnO4 to phthalic acid; JEE isomers of xylene and their oxidation products."
+  },
+  {
+    "id": "styrene",
+    "name": "Styrene",
+    "formula": "C8H8",
+    "elements": {
+      "C": 8,
+      "H": 8,
+      "O": 0,
+      "N": 0,
+      "Cl": 0,
+      "F": 0,
+      "Br": 0,
+      "I": 0
+    },
+    "category": "Aromatics",
+    "smiles": "C=Cc1ccccc1",
+    "fact": "Vinylbenzene; monomer of polystyrene; JEE tests reactivity of its conjugated vinyl group toward electrophilic addition."
+  },
+  {
+    "id": "naphthalene",
+    "name": "Naphthalene",
+    "formula": "C10H8",
+    "elements": {
+      "C": 10,
+      "H": 8,
+      "O": 0,
+      "N": 0,
+      "Cl": 0,
+      "F": 0,
+      "Br": 0,
+      "I": 0
+    },
+    "category": "Aromatics",
+    "smiles": "c1ccc2ccccc2c1",
+    "fact": "Bicyclic aromatic (10 pi electrons); EAS favours C1 position; JEE uses it to illustrate fused aromatic ring reactivity."
+  },
+  {
+    "id": "chlorobenzene",
+    "name": "Chlorobenzene",
+    "formula": "C6H5Cl",
+    "elements": {
+      "C": 6,
+      "H": 5,
+      "O": 0,
+      "N": 0,
+      "Cl": 1,
+      "F": 0,
+      "Br": 0,
+      "I": 0
+    },
+    "category": "Aromatics",
+    "smiles": "Clc1ccccc1",
+    "fact": "Haloarene; Cl deactivates the ring but directs ortho/para; C-Cl bond strengthened by resonance, resists SN2 \u2014 classic JEE inductive vs resonance effect."
+  },
+  {
+    "id": "nitrobenzene",
+    "name": "Nitrobenzene",
+    "formula": "C6H5NO2",
+    "elements": {
+      "C": 6,
+      "H": 5,
+      "O": 2,
+      "N": 1,
+      "Cl": 0,
+      "F": 0,
+      "Br": 0,
+      "I": 0
+    },
+    "category": "Aromatics",
+    "smiles": "O=[N+]([O-])c1ccccc1",
+    "fact": "Nitro group strongly deactivates ring and directs meta; reduction with Fe/HCl gives aniline; central to JEE amine synthesis."
+  },
+  {
+    "id": "bromobenzene",
+    "name": "Bromobenzene",
+    "formula": "C6H5Br",
+    "elements": {
+      "C": 6,
+      "H": 5,
+      "O": 0,
+      "N": 0,
+      "Cl": 0,
+      "F": 0,
+      "Br": 1,
+      "I": 0
+    },
+    "category": "Aromatics",
+    "smiles": "Brc1ccccc1",
+    "fact": "Aryl bromide; reacts with Mg to give phenylmagnesium bromide (Grignard); JEE aromatic Grignard and cross-coupling reactions."
   }
 ]
