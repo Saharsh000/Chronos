@@ -7378,5 +7378,365 @@
     "category": "Phenols",
     "structure": "2,4,6-Br3C6H2OH",
     "fact": "White crystalline precipitate formed instantly upon adding bromine water to phenol in the qualitative analytical test."
+  },
+  {
+    "id": "pyrrole",
+    "name": "Pyrrole",
+    "formula": "C4H5N",
+    "elements": {
+      "C": 4,
+      "H": 5,
+      "O": 0,
+      "N": 1,
+      "Cl": 0,
+      "F": 0,
+      "Br": 0,
+      "I": 0
+    },
+    "category": "Heterocycles",
+    "structure": "C4H5N",
+    "fact": "Five-membered aromatic nitrogen heterocycle; 6-pi electron aromatic system where lone pair participates in ring resonance, making it extraordinarily weakly basic."
+  },
+  {
+    "id": "furan",
+    "name": "Furan",
+    "formula": "C4H4O",
+    "elements": {
+      "C": 4,
+      "H": 4,
+      "O": 1,
+      "N": 0,
+      "Cl": 0,
+      "F": 0,
+      "Br": 0,
+      "I": 0
+    },
+    "category": "Heterocycles",
+    "structure": "C4H4O",
+    "fact": "Five-membered aromatic oxygen heterocycle synthesized by decarbonylation of furfural; undergoes Diels-Alder cycloadditions as a diene."
+  },
+  {
+    "id": "indole",
+    "name": "Indole",
+    "formula": "C8H7N",
+    "elements": {
+      "C": 8,
+      "H": 7,
+      "O": 0,
+      "N": 1,
+      "Cl": 0,
+      "F": 0,
+      "Br": 0,
+      "I": 0
+    },
+    "category": "Heterocycles",
+    "structure": "C8H7N",
+    "fact": "Benzopyrrole; synthesized via the classic Fischer indole synthesis; core bicyclic scaffold of tryptophan, serotonin, and auxin hormones."
+  },
+  {
+    "id": "isoindole",
+    "name": "Isoindole",
+    "formula": "C8H7N",
+    "elements": {
+      "C": 8,
+      "H": 7,
+      "O": 0,
+      "N": 1,
+      "Cl": 0,
+      "F": 0,
+      "Br": 0,
+      "I": 0
+    },
+    "category": "Heterocycles",
+    "structure": "C8H7N",
+    "fact": "Benzo[c]pyrrole isomer; exists preferentially in its tautomeric form with high reactivity in Diels-Alder reactions."
+  },
+  {
+    "id": "imidazole",
+    "name": "Imidazole",
+    "formula": "C3H4N2",
+    "elements": {
+      "C": 3,
+      "H": 4,
+      "O": 0,
+      "N": 2,
+      "Cl": 0,
+      "F": 0,
+      "Br": 0,
+      "I": 0
+    },
+    "category": "Heterocycles",
+    "structure": "C3H4N2",
+    "fact": "1,3-Diazole; amphoteric aromatic heterocycle present in histidine; acts as both general acid and general base in enzymatic catalysis."
+  },
+  {
+    "id": "pyrazole",
+    "name": "Pyrazole",
+    "formula": "C3H4N2",
+    "elements": {
+      "C": 3,
+      "H": 4,
+      "O": 0,
+      "N": 2,
+      "Cl": 0,
+      "F": 0,
+      "Br": 0,
+      "I": 0
+    },
+    "category": "Heterocycles",
+    "structure": "C3H4N2",
+    "fact": "1,2-Diazole; aromatic ring prepared by condensation of 1,3-diketones with hydrazine; core of celecoxib and pyrazolone drugs."
+  },
+  {
+    "id": "oxazole",
+    "name": "Oxazole",
+    "formula": "C3H3NO",
+    "elements": {
+      "C": 3,
+      "H": 3,
+      "O": 1,
+      "N": 1,
+      "Cl": 0,
+      "F": 0,
+      "Br": 0,
+      "I": 0
+    },
+    "category": "Heterocycles",
+    "structure": "C3H3NO",
+    "fact": "1,3-Azole containing both oxygen and nitrogen heteroatoms; synthesized via Robinson-Gabriel cyclization of acylaminoketones."
+  },
+  {
+    "id": "isoxazole",
+    "name": "Isoxazole",
+    "formula": "C3H3NO",
+    "elements": {
+      "C": 3,
+      "H": 3,
+      "O": 1,
+      "N": 1,
+      "Cl": 0,
+      "F": 0,
+      "Br": 0,
+      "I": 0
+    },
+    "category": "Heterocycles",
+    "structure": "C3H3NO",
+    "fact": "1,2-Azole containing an adjacent N-O bond; weakly basic aromatic ring found in isoxazolyl penicillin antibiotics."
+  },
+  {
+    "id": "pyrrolidine",
+    "name": "Pyrrolidine",
+    "formula": "C4H9N",
+    "elements": {
+      "C": 4,
+      "H": 9,
+      "O": 0,
+      "N": 1,
+      "Cl": 0,
+      "F": 0,
+      "Br": 0,
+      "I": 0
+    },
+    "category": "Heterocycles",
+    "structure": "C4H9N",
+    "fact": "Fully saturated five-membered cyclic secondary amine; secondary amine organocatalyst utilized in enamine-mediated asymmetric aldol reactions."
+  },
+  {
+    "id": "carbazole",
+    "name": "Carbazole",
+    "formula": "C12H9N",
+    "elements": {
+      "C": 12,
+      "H": 9,
+      "O": 0,
+      "N": 1,
+      "Cl": 0,
+      "F": 0,
+      "Br": 0,
+      "I": 0
+    },
+    "category": "Heterocycles",
+    "structure": "C12H9N",
+    "fact": "Dibenzopyrrole tricyclic aromatic system isolated from coal tar; photoconductive polymer precursor (polyvinylcarbazole)."
+  },
+  {
+    "id": "2-methylfuran",
+    "name": "2-Methylfuran",
+    "formula": "C5H6O",
+    "elements": {
+      "C": 5,
+      "H": 6,
+      "O": 1,
+      "N": 0,
+      "Cl": 0,
+      "F": 0,
+      "Br": 0,
+      "I": 0
+    },
+    "category": "Heterocycles",
+    "structure": "2-CH3C4H3O",
+    "fact": "Sylvan; biofuel candidate produced by catalytic selective hydrogenation of biomass-derived furfural."
+  },
+  {
+    "id": "benzofuran",
+    "name": "Benzofuran",
+    "formula": "C8H6O",
+    "elements": {
+      "C": 8,
+      "H": 6,
+      "O": 1,
+      "N": 0,
+      "Cl": 0,
+      "F": 0,
+      "Br": 0,
+      "I": 0
+    },
+    "category": "Heterocycles",
+    "structure": "C8H6O",
+    "fact": "Coumarone; bicyclic ring formed by fusion of benzene and furan; core pharmacophore of amiodarone antiarrhythmic medication."
+  },
+  {
+    "id": "benzimidazole",
+    "name": "Benzimidazole",
+    "formula": "C7H6N2",
+    "elements": {
+      "C": 7,
+      "H": 6,
+      "O": 0,
+      "N": 2,
+      "Cl": 0,
+      "F": 0,
+      "Br": 0,
+      "I": 0
+    },
+    "category": "Heterocycles",
+    "structure": "C7H6N2",
+    "fact": "Fused bicyclic heterocycle synthesized by condensation of o-phenylenediamine with formic acid; essential component of Vitamin B12."
+  },
+  {
+    "id": "indoline",
+    "name": "Indoline",
+    "formula": "C8H9N",
+    "elements": {
+      "C": 8,
+      "H": 9,
+      "O": 0,
+      "N": 1,
+      "Cl": 0,
+      "F": 0,
+      "Br": 0,
+      "I": 0
+    },
+    "category": "Heterocycles",
+    "structure": "C8H9N",
+    "fact": "2,3-Dihydroindole; saturated five-membered ring intermediate in indole functionalization and alkaloid biosynthesis."
+  },
+  {
+    "id": "2-acetylpyrrole",
+    "name": "2-Acetylpyrrole",
+    "formula": "C6H7NO",
+    "elements": {
+      "C": 6,
+      "H": 7,
+      "O": 1,
+      "N": 1,
+      "Cl": 0,
+      "F": 0,
+      "Br": 0,
+      "I": 0
+    },
+    "category": "Heterocycles",
+    "structure": "2-CH3COC4H3NH",
+    "fact": "Formed exclusively at C-2 position upon Friedel-Crafts acylation of pyrrole with acetic anhydride."
+  },
+  {
+    "id": "skatole",
+    "name": "Skatole",
+    "formula": "C9H9N",
+    "elements": {
+      "C": 9,
+      "H": 9,
+      "O": 0,
+      "N": 1,
+      "Cl": 0,
+      "F": 0,
+      "Br": 0,
+      "I": 0
+    },
+    "category": "Heterocycles",
+    "structure": "3-CH3C8H6N",
+    "fact": "3-Methylindole; intensely fecal-smelling volatile metabolite of tryptophan, but pleasant floral orange-blossom odor at extreme dilutions."
+  },
+  {
+    "id": "oxazoline",
+    "name": "Oxazoline",
+    "formula": "C3H5NO",
+    "elements": {
+      "C": 3,
+      "H": 5,
+      "O": 1,
+      "N": 1,
+      "Cl": 0,
+      "F": 0,
+      "Br": 0,
+      "I": 0
+    },
+    "category": "Heterocycles",
+    "structure": "C3H5NO",
+    "fact": "4,5-Dihydrooxazole; cyclic imino ether used as chiral ligand (bisoxazolines / BOX) in asymmetric catalytic synthesis."
+  },
+  {
+    "id": "tetrazole",
+    "name": "Tetrazole",
+    "formula": "CH2N4",
+    "elements": {
+      "C": 1,
+      "H": 2,
+      "O": 0,
+      "N": 4,
+      "Cl": 0,
+      "F": 0,
+      "Br": 0,
+      "I": 0
+    },
+    "category": "Heterocycles",
+    "structure": "CH2N4",
+    "fact": "Planar aromatic five-membered ring containing four nitrogen atoms; bioisostere for carboxylic acids with comparable pKa (~4.9)."
+  },
+  {
+    "id": "isatin",
+    "name": "Isatin",
+    "formula": "C8H5NO2",
+    "elements": {
+      "C": 8,
+      "H": 5,
+      "O": 2,
+      "N": 1,
+      "Cl": 0,
+      "F": 0,
+      "Br": 0,
+      "I": 0
+    },
+    "category": "Heterocycles",
+    "structure": "C8H5NO2",
+    "fact": "1H-Indole-2,3-dione; red-orange crystalline diketo-indole formed by oxidation of indigo; forms blue indophenine dye with thiophene."
+  },
+  {
+    "id": "hydantoin",
+    "name": "Hydantoin",
+    "formula": "C3H4N2O2",
+    "elements": {
+      "C": 3,
+      "H": 4,
+      "O": 2,
+      "N": 2,
+      "Cl": 0,
+      "F": 0,
+      "Br": 0,
+      "I": 0
+    },
+    "category": "Heterocycles",
+    "structure": "C3H4N2O2",
+    "fact": "Imidazolidine-2,4-dione; cyclic urea derivative synthesized by reaction of amino acids with cyanates; core of phenytoin anticonvulsant."
   }
 ]
