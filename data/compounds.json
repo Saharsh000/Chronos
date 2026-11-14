@@ -1006,5 +1006,257 @@
     "category": "Ketones",
     "smiles": "O=C1CCCCC1",
     "fact": "Cyclic ketone; starting material for caprolactam (nylon-6); JEE Beckmann rearrangement produces caprolactam."
+  },
+  {
+    "id": "formic-acid",
+    "name": "Formic Acid",
+    "formula": "CH2O2",
+    "elements": {
+      "C": 1,
+      "H": 2,
+      "O": 2,
+      "N": 0,
+      "Cl": 0,
+      "F": 0,
+      "Br": 0,
+      "I": 0
+    },
+    "category": "Carboxylic-Acids",
+    "smiles": "OC=O",
+    "fact": "Methanoic acid; strongest simple carboxylic acid; reduces Tollens and Fehling reagents (has aldehyde-like H); JEE anomaly."
+  },
+  {
+    "id": "acetic-acid",
+    "name": "Acetic Acid",
+    "formula": "C2H4O2",
+    "elements": {
+      "C": 2,
+      "H": 4,
+      "O": 2,
+      "N": 0,
+      "Cl": 0,
+      "F": 0,
+      "Br": 0,
+      "I": 0
+    },
+    "category": "Carboxylic-Acids",
+    "smiles": "CC(O)=O",
+    "fact": "Ethanoic acid; forms dimers via H-bonding; reacts with PCl5 to give acetyl chloride; JEE nucleophilic acyl substitution."
+  },
+  {
+    "id": "propanoic-acid",
+    "name": "Propanoic Acid",
+    "formula": "C3H6O2",
+    "elements": {
+      "C": 3,
+      "H": 6,
+      "O": 2,
+      "N": 0,
+      "Cl": 0,
+      "F": 0,
+      "Br": 0,
+      "I": 0
+    },
+    "category": "Carboxylic-Acids",
+    "smiles": "CCC(O)=O",
+    "fact": "Three-carbon carboxylic acid; Hell-Volhard-Zelinsky reaction bromination at alpha-C; JEE functional group interconversion."
+  },
+  {
+    "id": "butanoic-acid",
+    "name": "Butanoic Acid",
+    "formula": "C4H8O2",
+    "elements": {
+      "C": 4,
+      "H": 8,
+      "O": 2,
+      "N": 0,
+      "Cl": 0,
+      "F": 0,
+      "Br": 0,
+      "I": 0
+    },
+    "category": "Carboxylic-Acids",
+    "smiles": "CCCC(O)=O",
+    "fact": "Butyric acid; found in rancid butter; JEE decarboxylation on heating with soda lime gives propane."
+  },
+  {
+    "id": "benzoic-acid",
+    "name": "Benzoic Acid",
+    "formula": "C7H6O2",
+    "elements": {
+      "C": 7,
+      "H": 6,
+      "O": 2,
+      "N": 0,
+      "Cl": 0,
+      "F": 0,
+      "Br": 0,
+      "I": 0
+    },
+    "category": "Carboxylic-Acids",
+    "smiles": "OC(=O)c1ccccc1",
+    "fact": "Aromatic carboxylic acid; decarboxylates on heating with soda lime to give benzene; JEE named reaction: Kolbe synthesis."
+  },
+  {
+    "id": "oxalic-acid",
+    "name": "Oxalic Acid",
+    "formula": "C2H2O4",
+    "elements": {
+      "C": 2,
+      "H": 2,
+      "O": 4,
+      "N": 0,
+      "Cl": 0,
+      "F": 0,
+      "Br": 0,
+      "I": 0
+    },
+    "category": "Carboxylic-Acids",
+    "smiles": "OC(=O)C(O)=O",
+    "fact": "Ethanedioic acid; reduces KMnO4 (used in JEE titrations); forms insoluble calcium oxalate precipitate as a qualitative test."
+  },
+  {
+    "id": "lactic-acid",
+    "name": "Lactic Acid",
+    "formula": "C3H6O3",
+    "elements": {
+      "C": 3,
+      "H": 6,
+      "O": 3,
+      "N": 0,
+      "Cl": 0,
+      "F": 0,
+      "Br": 0,
+      "I": 0
+    },
+    "category": "Carboxylic-Acids",
+    "smiles": "CC(O)C(O)=O",
+    "fact": "2-Hydroxypropanoic acid; has one chiral centre; classic JEE optical isomerism example with enantiomers."
+  },
+  {
+    "id": "citric-acid",
+    "name": "Citric Acid",
+    "formula": "C6H8O7",
+    "elements": {
+      "C": 6,
+      "H": 8,
+      "O": 7,
+      "N": 0,
+      "Cl": 0,
+      "F": 0,
+      "Br": 0,
+      "I": 0
+    },
+    "category": "Carboxylic-Acids",
+    "smiles": "OC(CC(O)=O)(CC(O)=O)C(O)=O",
+    "fact": "Tricarboxylic acid found in citrus fruits; meso-form; JEE uses it for counting acidic H and esterification equivalents."
+  },
+  {
+    "id": "methyl-acetate",
+    "name": "Methyl Acetate",
+    "formula": "C3H6O2",
+    "elements": {
+      "C": 3,
+      "H": 6,
+      "O": 2,
+      "N": 0,
+      "Cl": 0,
+      "F": 0,
+      "Br": 0,
+      "I": 0
+    },
+    "category": "Acid-Derivatives",
+    "smiles": "COC(C)=O",
+    "fact": "Simplest acetate ester; saponification with NaOH gives sodium acetate and methanol; JEE Fischer esterification mechanism."
+  },
+  {
+    "id": "ethyl-acetate",
+    "name": "Ethyl Acetate",
+    "formula": "C4H8O2",
+    "elements": {
+      "C": 4,
+      "H": 8,
+      "O": 2,
+      "N": 0,
+      "Cl": 0,
+      "F": 0,
+      "Br": 0,
+      "I": 0
+    },
+    "category": "Acid-Derivatives",
+    "smiles": "CCOC(C)=O",
+    "fact": "Common ester solvent with fruity smell; Claisen condensation with two molecules gives ethyl acetoacetate; JEE condensation reactions."
+  },
+  {
+    "id": "ethyl-formate",
+    "name": "Ethyl Formate",
+    "formula": "C3H6O2",
+    "elements": {
+      "C": 3,
+      "H": 6,
+      "O": 2,
+      "N": 0,
+      "Cl": 0,
+      "F": 0,
+      "Br": 0,
+      "I": 0
+    },
+    "category": "Acid-Derivatives",
+    "smiles": "CCOC=O",
+    "fact": "Formate ester with rum-like aroma; hydrolysis gives formic acid and ethanol; JEE isomers of C3H6O2 include this, methyl acetate, and propanoic acid."
+  },
+  {
+    "id": "acetyl-chloride",
+    "name": "Acetyl Chloride",
+    "formula": "C2H3ClO",
+    "elements": {
+      "C": 2,
+      "H": 3,
+      "O": 1,
+      "N": 0,
+      "Cl": 1,
+      "F": 0,
+      "Br": 0,
+      "I": 0
+    },
+    "category": "Acid-Derivatives",
+    "smiles": "CC(=O)Cl",
+    "fact": "Most reactive acyl chloride; reacts vigorously with water and alcohols; JEE acylation of amines and Friedel-Crafts acylation."
+  },
+  {
+    "id": "acetic-anhydride",
+    "name": "Acetic Anhydride",
+    "formula": "C4H6O3",
+    "elements": {
+      "C": 4,
+      "H": 6,
+      "O": 3,
+      "N": 0,
+      "Cl": 0,
+      "F": 0,
+      "Br": 0,
+      "I": 0
+    },
+    "category": "Acid-Derivatives",
+    "smiles": "CC(=O)OC(C)=O",
+    "fact": "Anhydride of acetic acid; acetylates aniline to acetanilide; JEE step in aspirin synthesis and amine protection."
+  },
+  {
+    "id": "acetamide",
+    "name": "Acetamide",
+    "formula": "C2H5NO",
+    "elements": {
+      "C": 2,
+      "H": 5,
+      "O": 1,
+      "N": 1,
+      "Cl": 0,
+      "F": 0,
+      "Br": 0,
+      "I": 0
+    },
+    "category": "Acid-Derivatives",
+    "smiles": "CC(N)=O",
+    "fact": "Simplest amide; Hofmann bromamide reaction converts it to methylamine; JEE amide hydrolysis and Hofmann degradation."
   }
 ]
