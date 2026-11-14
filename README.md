@@ -58,9 +58,9 @@
 ### 🧪 The Lab & Organic Chemistry DLC
 * **Premium Unlock** (`.lab unlock`): Requires 30 hours of all-time Chemistry study + 60,000 Chronocoins.
 * **Organic Chemistry Track** (`.start oc` / `.start organic`): Study organic chemistry to harvest 8 elemental precursors (`C, H, O, N, Cl, F, Br, I`) every credited minute.
-* **Chemical Synthesis** (`.synth <compound>`): Synthesize 100 authentic JEE syllabus organic compounds across 16 categories using exact elemental stoichiometry.
+* **Chemical Synthesis** (`.synth <compound>`): Synthesize **500 organic compounds** across 21 categories (Alkanes → Pharmaceuticals) using exact elemental stoichiometry — from simple methane to complex steroids and alkaloids.
 * **Comprehensive Compendium** (`.compounds`): Track discovered compounds with condensed structural formulas, JEE facts, and craft counters.
-* **Milestones & Prestige**: Earn first-time coin rewards (~45,000 coins total), repeat craft coins (1,000/day cap), category master titles, and the Grandmaster Chemist prestige badge.
+* **Milestones & Prestige**: Earn first-time coin rewards (200,000+ coins over all 500), repeat craft coins (5,000/day cap), 21 category master titles, and the **Grandmaster Chemist** prestige badge at 500 unique compounds.
 * **Chronoweb Twin**: Full browser interface with interactive element tray, live reaction flask, and filterable compendium.
 
 ---
