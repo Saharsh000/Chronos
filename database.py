@@ -981,14 +981,15 @@ class Database:
         channel_id: Optional[int],
         subject: Optional[str] = None,
         now: Optional[int] = None,
+        track: Optional[str] = None,
     ) -> int:
         now = now if now is not None else int(time.time())
         cur = await self.conn.execute(
             """
-            INSERT INTO sessions (user_id, guild_id, channel_id, subject, start_time, last_checkin, status)
-            VALUES (?, ?, ?, ?, ?, ?, 'active')
+            INSERT INTO sessions (user_id, guild_id, channel_id, subject, start_time, last_checkin, status, track)
+            VALUES (?, ?, ?, ?, ?, ?, 'active', ?)
             """,
-            (user_id, guild_id, channel_id, subject, now, now),
+            (user_id, guild_id, channel_id, subject, now, now, track),
         )
         await self.conn.commit()
         return cur.lastrowid
