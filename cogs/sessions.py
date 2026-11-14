@@ -284,10 +284,11 @@ class Sessions(commands.Cog, name="Sessions"):
                     await self._announce_level_up(credit)
                 if credit.get("pet_result"):
                     await self._announce_pet_progress(credit["user_id"], credit["guild_id"], credit["pet_result"])
-                if credit.get("hallo_box_drop"):
-                    await self._announce_box_drop(credit["user_id"], credit["guild_id"], credit["hallo_box_drop"], credit.get("subject"))
-                if credit.get("pass_level_up"):
-                    await self._announce_pass_level(credit["user_id"], credit["guild_id"], credit["pass_level_up"])
+                # Halloween drop announcements — COMPLETELY COMMENTED OUT (event ended)
+                # if credit.get("hallo_box_drop"):
+                #     await self._announce_box_drop(credit["user_id"], credit["guild_id"], credit["hallo_box_drop"], credit.get("subject"))
+                # if credit.get("pass_level_up"):
+                #     await self._announce_pass_level(credit["user_id"], credit["guild_id"], credit["pass_level_up"])
                 newly_unlocked = await self.db.check_achievements(credit["user_id"], credit["guild_id"], now)
                 if newly_unlocked:
                     await self._announce_achievements(credit["user_id"], credit["guild_id"], newly_unlocked)
@@ -322,11 +323,11 @@ class Sessions(commands.Cog, name="Sessions"):
                 nickname=pet["nickname"], species_id=pet["species_id"], new_level=pet["new_level"],
                 new_stage=pet["new_stage"]["name"],
             )
-        if credit.get("hallo_box_drop"):
-            self._emit(uid, gid, "box_drop", box_id=credit["hallo_box_drop"])
-        if credit.get("pass_level_up"):
-            lvl = credit["pass_level_up"]
-            self._emit(uid, gid, "pass_level", level=lvl["level"], name=lvl["level_name"])
+        # if credit.get("hallo_box_drop"):
+        #     self._emit(uid, gid, "box_drop", box_id=credit["hallo_box_drop"])
+        # if credit.get("pass_level_up"):
+        #     lvl = credit["pass_level_up"]
+        #     self._emit(uid, gid, "pass_level", level=lvl["level"], name=lvl["level_name"])
 
     async def _announce_streak_break(self, credit: dict) -> None:
         broken_from = credit.get("streak_broken_from", 0)

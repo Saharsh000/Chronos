@@ -23,7 +23,7 @@ INITIAL_EXTENSIONS = (
     "cogs.stats",
     "cogs.economy",
     "cogs.pets",
-    "cogs.halloween",  # Halloween event — drops disabled via HALLOWEEN_EVENT=0; keep loaded for 24h grace period for .openbox / .candyshop / .pumpkin claim
+    # "cogs.halloween",  # Halloween event — completely commented out
     "cogs.achievements",
     "cogs.social",
     "cogs.progress",
@@ -63,9 +63,6 @@ class ChronosBot(commands.Bot):
         # every cog grabs `bot.db` in its own __init__.
         await self.db.connect()
         for extension in INITIAL_EXTENSIONS:
-            if extension == "cogs.halloween" and not config.HALLOWEEN_COG_ENABLED:
-                log.info("Skipping extension: cogs.halloween (HALLOWEEN_COG_ENABLED=0)")
-                continue
             try:
                 await self.load_extension(extension)
                 log.info(f"Loaded extension: {extension}")

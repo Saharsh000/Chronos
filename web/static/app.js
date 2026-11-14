@@ -25,7 +25,7 @@ const NAV = [
     { path: '/leaderboard', view: 'leaderboard', label: 'Leaderboard', icon: 'trophy' },
     { path: '/compare', view: 'compare', label: 'Compare & Fame', icon: 'compass' },
     { path: '/shop', view: 'shop', label: 'Shop', icon: 'title_scroll' },
-    { path: '/halloween', view: 'halloween', label: 'Halloween', icon: 'halloween_candy' },
+    // { path: '/halloween', view: 'halloween', label: 'Halloween', icon: 'halloween_candy' },
   ] },
   { group: 'More', items: [
     { path: '/admin', view: 'admin', label: 'Admin', icon: 'streak_freeze', manager: true },

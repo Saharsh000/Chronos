@@ -162,13 +162,14 @@ async def claim_daily(c: Ctx):
         mi = r["milestone_item"]
         out["milestone"] = {"days": r["daily_streak"], "coins": r["milestone"]["coins"],
                             "item": ({"id": mi, "name": economy.SHOP_ITEMS.get(mi, {}).get("name", mi)} if mi else None)}
-    # Halloween extras, exactly as `.daily` does
-    candy = random.randint(30, 60)
-    await c.db.add_candy(c.uid, c.gid, candy)
+    # Halloween extras — COMPLETELY COMMENTED OUT (event ended)
+    # candy = random.randint(30, 60)
+    # await c.db.add_candy(c.uid, c.gid, candy)
+    # streak = r["daily_streak"]
+    # box = "hbox_epic" if streak >= 30 else "hbox_rare" if streak >= 7 else "hbox_uncommon" if random.random() < 0.35 else "hbox_common"
+    # await c.db.add_item(c.uid, c.gid, box, 1)
+    # out["hallo"] = {"box": box_info(box), "candy": candy}
     streak = r["daily_streak"]
-    box = "hbox_epic" if streak >= 30 else "hbox_rare" if streak >= 7 else "hbox_uncommon" if random.random() < 0.35 else "hbox_common"
-    await c.db.add_item(c.uid, c.gid, box, 1)
-    out["hallo"] = {"box": box_info(box), "candy": candy}
     log.info("DAILY CLAIM   | %s claimed in guild %s via web (streak=%s, coins=%s, xp=%s)", c.uid, c.gid, streak, r["coins"], r["xp"])
     level_events(c, r)
     out["achievements"] = [a.id for a in await c.after()]
@@ -181,12 +182,13 @@ async def claim_work(c: Ctx):
     if not r["success"]:
         raise fail("Not yet. Try again later.", 429, "cooldown", retry_after=r["retry_after"])
     out: dict[str, Any] = {k: r[k] for k in ("coins", "xp", "new_balance", "leveled_up", "old_level", "new_level")}
-    if random.random() < 0.35:
-        box = random.choices(["hbox_common", "hbox_uncommon", "hbox_rare"], weights=[0.75, 0.20, 0.05])[0]
-        candy = random.randint(8, 18)
-        await c.db.add_item(c.uid, c.gid, box, 1)
-        await c.db.add_candy(c.uid, c.gid, candy)
-        out["hallo"] = {"box": box_info(box), "candy": candy}
+    # Halloween box drops — COMPLETELY COMMENTED OUT (event ended)
+    # if random.random() < 0.35:
+    #     box = random.choices(["hbox_common", "hbox_uncommon", "hbox_rare"], weights=[0.75, 0.20, 0.05])[0]
+    #     candy = random.randint(8, 18)
+    #     await c.db.add_item(c.uid, c.gid, box, 1)
+    #     await c.db.add_candy(c.uid, c.gid, candy)
+    #     out["hallo"] = {"box": box_info(box), "candy": candy}
     log.info("WORK CLAIM    | %s claimed in guild %s via web (coins=%s)", c.uid, c.gid, r["coins"])
     level_events(c, r)
     out["achievements"] = [a.id for a in await c.after()]
@@ -209,12 +211,13 @@ async def claim_beg(c: Ctx):
     out: dict[str, Any] = {"success": is_success, "coins": payout, "new_balance": balance,
                            "scene": {"npc": scenario.npc, "role": scenario.role, "title": scenario.title,
                                      "story": scenario.story, "quote": scenario.quote, "emoji": scenario.emoji}}
-    if random.random() < 0.25:
-        box = "hbox_common" if random.random() < 0.85 else "hbox_uncommon"
-        candy = random.randint(4, 10)
-        await c.db.add_item(c.uid, c.gid, box, 1)
-        await c.db.add_candy(c.uid, c.gid, candy)
-        out["hallo"] = {"box": box_info(box), "candy": candy}
+    # Halloween surprise treat — COMPLETELY COMMENTED OUT (event ended)
+    # if random.random() < 0.25:
+    #     box = "hbox_common" if random.random() < 0.85 else "hbox_uncommon"
+    #     candy = random.randint(4, 10)
+    #     await c.db.add_item(c.uid, c.gid, box, 1)
+    #     await c.db.add_candy(c.uid, c.gid, candy)
+    #     out["hallo"] = {"box": box_info(box), "candy": candy}
     log.info("BEG CLAIM     | %s claimed in guild %s via web (npc=%r, coins=%s)", c.uid, c.gid, scenario.npc, payout)
     out["achievements"] = [a.id for a in await c.after()]
     return out
@@ -225,13 +228,14 @@ async def claim_weekly(c: Ctx):
     r = await c.db.claim_weekly(c.uid, c.gid)
     if not r["success"]:
         raise fail("Not yet. Try again later.", 429, "cooldown", retry_after=r["retry_after"])
-    box = "hbox_legendary" if random.random() < 0.20 else "hbox_epic"
-    candy = random.randint(180, 300)
-    await c.db.add_item(c.uid, c.gid, box, 1)
-    await c.db.add_candy(c.uid, c.gid, candy)
+    # Halloween box jackpot — COMPLETELY COMMENTED OUT (event ended)
+    # box = "hbox_legendary" if random.random() < 0.20 else "hbox_epic"
+    # candy = random.randint(180, 300)
+    # await c.db.add_item(c.uid, c.gid, box, 1)
+    # await c.db.add_candy(c.uid, c.gid, candy)
     log.info("WEEKLY CLAIM  | %s claimed in guild %s via web (coins=%s)", c.uid, c.gid, r["coins"])
     return {"coins": r["coins"], "new_balance": r["new_balance"], "mystery_box": True,
-            "hallo": {"box": box_info(box), "candy": candy}, "achievements": [a.id for a in await c.after()]}
+            "achievements": [a.id for a in await c.after()]}
 
 
 # ---------------------------------------------------------------------- #

@@ -367,13 +367,14 @@ async def answer(c: Ctx):
     st = await c.db.record_trivia_attempt(user_id=c.uid, guild_id=c.gid, correct=correct, marks=marks, coins_won=coins)   # credits the coins itself
     xp_res = await c.db.grant_xp(c.uid, c.gid, xp)
     candy = 0
-    if correct and random.random() < 0.35:
-        candy = random.randint(3, 10)
-        try:
-            await c.db.add_candy(c.uid, c.gid, candy)
-        except Exception:
-            candy = 0
-            log.exception("trivia candy drop failed")
+    # Halloween trivia candy drop — COMPLETELY COMMENTED OUT (event ended)
+    # if correct and random.random() < 0.35:
+    #     candy = random.randint(3, 10)
+    #     try:
+    #         await c.db.add_candy(c.uid, c.gid, candy)
+    #     except Exception:
+    #         candy = 0
+    #         log.exception("trivia candy drop failed")
     conclude(c, s)
     if xp_res.get("leveled_up"):
         c.emit("level_up", old_level=xp_res["old_level"], new_level=xp_res["new_level"])

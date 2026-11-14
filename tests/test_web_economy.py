@@ -25,9 +25,7 @@ class EconomyApiTests(WebCase):
         cur = await self.db.get_or_create_currency(UID, GID)
         self.assertGreaterEqual(cur["coins"], before + d["coins"])            # + any achievement coins c.after() paid out
         self.assertGreaterEqual(cur["coins"], d["new_balance"])
-        self.assertTrue(30 <= d["hallo"]["candy"] <= 60)                      # bot's Halloween daily candy
-        self.assertEqual(cur["candy"], d["hallo"]["candy"])
-        self.assertEqual(await self.db.get_item_qty(UID, GID, d["hallo"]["box"]["id"]), 1)
+        self.assertNotIn("hallo", d)                                          # Halloween ended
         st, again = await self.post("/api/rewards/daily")                     # once per IST day
         self.assertEqual((st, again["code"]), (409, "already_claimed"))
 
@@ -43,8 +41,7 @@ class EconomyApiTests(WebCase):
         self.assertIn("scene", b)
         st, wk = await self.post("/api/rewards/weekly")
         self.assertEqual(st, 200)
-        self.assertIn(wk["hallo"]["box"]["id"], ("hbox_epic", "hbox_legendary"))
-        self.assertTrue(180 <= wk["hallo"]["candy"] <= 300)
+        self.assertNotIn("hallo", wk)                                         # Halloween ended
         self.assertEqual(await self.db.get_item_qty(UID, GID, "mystery_box"), 1)
         self.assertEqual((await self.post("/api/rewards/weekly"))[0], 429)
 

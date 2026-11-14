@@ -1,9 +1,12 @@
 from __future__ import annotations
 
+import unittest
+
 from utils import halloween as hc
 from tests.web_helpers import GID, UID, WebCase
 
 
+@unittest.skip("Halloween event commented out")
 class HalloweenApiTests(WebCase):
     async def _study(self, secs: int) -> None:
         await self.db.get_or_create_halloween_pass(UID, GID)

@@ -22,6 +22,7 @@ from utils import embeds
 from utils import emojis
 from utils import food as food_catalog
 from utils import halloween as halloween_catalog
+from utils import pets as pet_catalog
 from utils.beg_scenarios import roll_beg_scenario
 from utils.stats_card import render_inventory_card_sync, render_shop_card_sync
 from utils.time_format import format_duration
@@ -810,6 +811,168 @@ class Economy(commands.Cog, name="Economy"):
             f"while you have an active `{ctx.prefix}start` session running.",
         ))
 
+    @commands.command(name="openbox", aliases=["open", "openboxes"])
+    @commands.guild_only()
+    async def openbox_cmd(self, ctx: commands.Context, tier_query: Optional[str] = None, qty: int = 1) -> None:
+        """Instantly open Hallo-Box(es) or Mystery Box(es) without waiting!
+
+        Usage:
+          .openbox                  — Open your best available box
+          .openbox common           — Open 1 Common Hallo-Box
+          .openbox rare 3           — Open 3 Rare Hallo-Boxes
+          .openbox all              — Open all Hallo-Boxes in inventory
+          .openbox mystery          — Open a Mystery Box
+        """
+        if qty < 1:
+            await ctx.send(embed=embeds.error_embed("Quantity must be at least 1."))
+            return
+
+        inv = await self.db.get_inventory(ctx.author.id, ctx.guild.id)
+
+        # Handle 'all' keyword: open all boxes owned across all tiers
+        if tier_query and tier_query.strip().lower() in ("all", "every", "everything"):
+            owned_boxes = [(bid, inv[bid]) for bid in halloween_catalog.HALLO_BOX_ORDER if inv.get(bid, 0) > 0]
+            if not owned_boxes:
+                await ctx.send(embed=embeds.error_embed(
+                    f"You don't have any Hallo-Boxes to open!"
+                ))
+                return
+            for bid, bqty in owned_boxes:
+                await self._do_open_box(ctx, bid, bqty)
+            return
+
+        # Handle no argument: intelligent auto-select
+        if tier_query is None:
+            chosen_box_id = None
+            for bid in reversed(halloween_catalog.HALLO_BOX_ORDER):
+                if inv.get(bid, 0) > 0:
+                    chosen_box_id = bid
+                    break
+
+            if chosen_box_id:
+                await self._do_open_box(ctx, chosen_box_id, 1)
+                return
+
+            if inv.get("mystery_box", 0) > 0:
+                await self._open_mystery_box(ctx)
+                return
+
+            await ctx.send(embed=embeds.error_embed(
+                f"You don't have any boxes to open!\nBuy a Mystery Box from `{ctx.prefix}shop`."
+            ))
+            return
+
+        clean_q = tier_query.strip().lower()
+        if clean_q in ("mystery", "mystery_box", "mysterybox", "gift"):
+            await self._open_mystery_box(ctx)
+            return
+
+        box_id = halloween_catalog.resolve_box_id(tier_query)
+        if not box_id:
+            await ctx.send(embed=embeds.error_embed(
+                f"Unknown box tier `{tier_query}`. Valid tiers: `common`, `uncommon`, `rare`, `epic`, `legendary`, `mystery`."
+            ))
+            return
+
+        await self._do_open_box(ctx, box_id, qty)
+
+    async def _do_open_box(self, ctx_or_interaction: Any, box_id: str, qty: int) -> None:
+        """Worker that executes the instant Hallo-Box opening."""
+        user = ctx_or_interaction.author if hasattr(ctx_or_interaction, "author") else ctx_or_interaction.user
+        guild_id = ctx_or_interaction.guild.id
+        prefix = config.PREFIX
+
+        result = await self.db.open_hallo_box(user.id, guild_id, box_id, qty)
+        if not result["success"]:
+            reason = result.get("reason")
+            if reason == "insufficient_qty":
+                owned = result.get("owned", 0)
+                msg = f"You only have **x{owned}** of that box (tried to open x{qty})."
+            else:
+                msg = "Failed to open box."
+            if hasattr(ctx_or_interaction, "followup"):
+                await ctx_or_interaction.followup.send(embed=embeds.error_embed(msg))
+            else:
+                await ctx_or_interaction.send(embed=embeds.error_embed(msg))
+            return
+
+        box = result["box"]
+        reward_lines = [
+            f"🍬 **+{result['candy']:,} Candy**",
+            f"🪙 **+{result['coins']:,} Chronocoins**",
+        ]
+
+        for pet_res in result["pets"]:
+            sid = pet_res["species_id"]
+            p_data = pet_catalog.PETS.get(sid, {})
+            p_name = p_data.get("name", sid.capitalize())
+            p_species = p_data.get("species", "Companion")
+            if pet_res["new_pet"]:
+                reward_lines.append(f"✨ 🐾 **NEW PET UNLOCKED! {p_name} the {p_species}!**")
+            else:
+                b_xp = pet_res.get("pet_xp_bonus", 500)
+                b_c = pet_res.get("coin_bonus", 500)
+                reward_lines.append(f"🐾 **Duplicate Pet ({p_name}):** +{b_xp} Pet XP & +{b_c} bonus Chronocoins!")
+
+        for fid, fqty in result["food"].items():
+            f = food_catalog.FOODS.get(fid, {})
+            fname = f.get("name", fid)
+            reward_lines.append(f"🍛 **x{fqty} {fname}**")
+
+        for iid, iqty in result["items"].items():
+            if iid == "sugar_rush":
+                reward_lines.append(f"⚡ **x{iqty} Sugar Rush Boost** (1h 2x Study XP)")
+            elif iid == "mystery_box":
+                reward_lines.append(f"🎁 **x{iqty} Mystery Box**")
+            else:
+                reward_lines.append(f"📦 **x{iqty} {iid.replace('_', ' ').capitalize()}**")
+
+        loot_str = "\n".join(reward_lines)
+        embed = embeds.base_embed(
+            title=f"{box['emoji']} {box['name']} Opened! (x{qty})",
+            description=f"**Spoils Revealed:**\n{loot_str}",
+            color=box["color"],
+        )
+
+        if result["pets"] and result["pets"][0].get("species_id"):
+            sid = result["pets"][0]["species_id"]
+            stages = pet_catalog.PETS.get(sid, {}).get("stages", [])
+            if stages:
+                embed.set_thumbnail(url=stages[0]["sprite"])
+
+        log.info(f"HALLO BOX OPEN | {user} opened {box_id} x{qty} in guild {guild_id}")
+        if hasattr(ctx_or_interaction, "followup"):
+            await ctx_or_interaction.followup.send(embed=embed)
+        else:
+            await ctx_or_interaction.send(embed=embed)
+
+    async def _open_mystery_box(self, ctx: commands.Context) -> None:
+        """Backwards-compatible Mystery Box opener."""
+        result = await self.db.open_mystery_box(ctx.author.id, ctx.guild.id)
+        if not result["success"]:
+            await ctx.send(embed=embeds.error_embed(
+                f"You don't have a Mystery Box. Buy one with `{ctx.prefix}buy mystery box`."
+            ))
+            return
+
+        reward = result["reward"]
+        if reward["kind"] == "coins":
+            desc = f"🪙 You got **{reward['amount']:,} Chronocoins**!"
+        elif reward["kind"] == "xp":
+            desc = f"✨ You got **{reward['amount']:,} XP**!"
+        else:
+            item = economy.SHOP_ITEMS.get(reward["item_id"], {})
+            desc = f"{item.get('emoji', '')} You got a **{item.get('name', reward['item_id'])}**!"
+
+        embed = embeds.base_embed(title="🎁 Mystery Box Opened!", description=desc, color=embeds.COLOR_LEVELUP)
+        if result.get("leveled_up"):
+            embed.add_field(
+                name="🎉 Level Up!",
+                value=f"Level {result['old_level']} → **Level {result['new_level']}**",
+                inline=False,
+            )
+        await ctx.send(embed=embed)
+
     @commands.command(name="settitle")
     @commands.guild_only()
     async def settitle_cmd(self, ctx: commands.Context, *, title: str) -> None:
@@ -893,28 +1056,26 @@ class Economy(commands.Cog, name="Economy"):
         elif result["bonus_box"]:
             embed.add_field(name="\U0001F381 Bonus!", value="A free Mystery Box was added to your inventory!", inline=False)
 
-        # HALLOWEEN EVENT: Daily Candy & Hallo-Box Reward
-        if config.HALLOWEEN_EVENT:
-            daily_candy = random.randint(30, 60)
-            await self.db.add_candy(ctx.author.id, ctx.guild.id, daily_candy)
-
-            streak = result["daily_streak"]
-            if streak >= 30:
-                daily_box = "hbox_epic"
-            elif streak >= 7:
-                daily_box = "hbox_rare"
-            elif random.random() < 0.35:
-                daily_box = "hbox_uncommon"
-            else:
-                daily_box = "hbox_common"
-
-            await self.db.add_item(ctx.author.id, ctx.guild.id, daily_box, 1)
-            box_info = halloween_catalog.get_box(daily_box)
-            embed.add_field(
-                name=f"{box_info['emoji']} Daily Hallo-Box & Candy!",
-                value=f"You received a **{box_info['name']}** + **+{daily_candy} \U0001F36C Candy**!\nOpen instantly with `{ctx.prefix}openbox {box_info['tier']}`.",
-                inline=False,
-            )
+        # HALLOWEEN EVENT: Daily Candy & Hallo-Box Reward — COMPLETELY COMMENTED OUT (event ended)
+        # if config.HALLOWEEN_EVENT:
+        #     daily_candy = random.randint(30, 60)
+        #     await self.db.add_candy(ctx.author.id, ctx.guild.id, daily_candy)
+        #     streak = result["daily_streak"]
+        #     if streak >= 30:
+        #         daily_box = "hbox_epic"
+        #     elif streak >= 7:
+        #         daily_box = "hbox_rare"
+        #     elif random.random() < 0.35:
+        #         daily_box = "hbox_uncommon"
+        #     else:
+        #         daily_box = "hbox_common"
+        #     await self.db.add_item(ctx.author.id, ctx.guild.id, daily_box, 1)
+        #     box_info = halloween_catalog.get_box(daily_box)
+        #     embed.add_field(
+        #         name=f"{box_info['emoji']} Daily Hallo-Box & Candy!",
+        #         value=f"You received a **{box_info['name']}** + **+{daily_candy} \U0001F36C Candy**!\nOpen instantly with `{ctx.prefix}openbox {box_info['tier']}`.",
+        #         inline=False,
+        #     )
 
         if result["leveled_up"]:
             embed.add_field(
@@ -1031,18 +1192,18 @@ class Economy(commands.Cog, name="Economy"):
         embed.add_field(name=f"{xp_e} XP earned", value=f"+{result['xp']} XP", inline=True)
         embed.add_field(name="💰 New balance", value=f"{result['new_balance']:,} {coin_e}", inline=True)
 
-        # HALLOWEEN EVENT: Chance to find a Hallo-Box + Candy while working
-        if config.HALLOWEEN_EVENT and random.random() < 0.35:
-            work_box = random.choices(["hbox_common", "hbox_uncommon", "hbox_rare"], weights=[0.75, 0.20, 0.05])[0]
-            work_candy = random.randint(8, 18)
-            await self.db.add_item(ctx.author.id, ctx.guild.id, work_box, 1)
-            await self.db.add_candy(ctx.author.id, ctx.guild.id, work_candy)
-            box_info = halloween_catalog.get_box(work_box)
-            embed.add_field(
-                name=f"{box_info['emoji']} Hallo-Box Found!",
-                value=f"You stumbled upon a **{box_info['name']}** + **+{work_candy} \U0001F36C Candy** on the job!\nOpen with `{ctx.prefix}openbox {box_info['tier']}`.",
-                inline=False,
-            )
+        # HALLOWEEN EVENT: Chance to find a Hallo-Box + Candy while working — COMPLETELY COMMENTED OUT (event ended)
+        # if config.HALLOWEEN_EVENT and random.random() < 0.35:
+        #     work_box = random.choices(["hbox_common", "hbox_uncommon", "hbox_rare"], weights=[0.75, 0.20, 0.05])[0]
+        #     work_candy = random.randint(8, 18)
+        #     await self.db.add_item(ctx.author.id, ctx.guild.id, work_box, 1)
+        #     await self.db.add_candy(ctx.author.id, ctx.guild.id, work_candy)
+        #     box_info = halloween_catalog.get_box(work_box)
+        #     embed.add_field(
+        #         name=f"{box_info['emoji']} Hallo-Box Found!",
+        #         value=f"You stumbled upon a **{box_info['name']}** + **+{work_candy} \U0001F36C Candy** on the job!\nOpen with `{ctx.prefix}openbox {box_info['tier']}`.",
+        #         inline=False,
+        #     )
 
         if result["leveled_up"]:
             embed.add_field(
@@ -1099,18 +1260,18 @@ class Economy(commands.Cog, name="Economy"):
 
         embeds.set_footer(embed, f"Role: {scenario.role} \u00B7 {ctx.prefix}beg")
 
-        # HALLOWEEN EVENT: Chance to receive a Hallo-Box + Candy while begging
-        if config.HALLOWEEN_EVENT and random.random() < 0.25:
-            beg_box = "hbox_common" if random.random() < 0.85 else "hbox_uncommon"
-            beg_candy = random.randint(4, 10)
-            await self.db.add_item(ctx.author.id, ctx.guild.id, beg_box, 1)
-            await self.db.add_candy(ctx.author.id, ctx.guild.id, beg_candy)
-            box_info = halloween_catalog.get_box(beg_box)
-            embed.add_field(
-                name=f"{box_info['emoji']} Surprise Treat!",
-                value=f"A kind stranger handed you a **{box_info['name']}** + **+{beg_candy} \U0001F36C Candy**!\nOpen with `{ctx.prefix}openbox {box_info['tier']}`.",
-                inline=False,
-            )
+        # HALLOWEEN EVENT: Chance to receive a Hallo-Box + Candy while begging — COMPLETELY COMMENTED OUT (event ended)
+        # if config.HALLOWEEN_EVENT and random.random() < 0.25:
+        #     beg_box = "hbox_common" if random.random() < 0.85 else "hbox_uncommon"
+        #     beg_candy = random.randint(4, 10)
+        #     await self.db.add_item(ctx.author.id, ctx.guild.id, beg_box, 1)
+        #     await self.db.add_candy(ctx.author.id, ctx.guild.id, beg_candy)
+        #     box_info = halloween_catalog.get_box(beg_box)
+        #     embed.add_field(
+        #         name=f"{box_info['emoji']} Surprise Treat!",
+        #         value=f"A kind stranger handed you a **{box_info['name']}** + **+{beg_candy} \U0001F36C Candy**!\nOpen with `{ctx.prefix}openbox {box_info['tier']}`.",
+        #         inline=False,
+        #     )
 
         log.info(f"BEG CLAIM     | {ctx.author} ({ctx.author.id}) claimed in guild {ctx.guild.id} (npc='{scenario.npc}', coins={payout})")
         await ctx.send(embed=embed)
@@ -1138,18 +1299,18 @@ class Economy(commands.Cog, name="Economy"):
         embed.add_field(name="💰 New balance", value=f"{result['new_balance']:,} {coin_e}", inline=True)
         embed.add_field(name="🎁 Bonus", value="Free Mystery Box", inline=True)
 
-        # HALLOWEEN EVENT: Guaranteed High-Tier Hallo-Box & Big Candy Stash
-        if config.HALLOWEEN_EVENT:
-            weekly_box = "hbox_legendary" if random.random() < 0.20 else "hbox_epic"
-            weekly_candy = random.randint(180, 300)
-            await self.db.add_item(ctx.author.id, ctx.guild.id, weekly_box, 1)
-            await self.db.add_candy(ctx.author.id, ctx.guild.id, weekly_candy)
-            box_info = halloween_catalog.get_box(weekly_box)
-            embed.add_field(
-                name=f"{box_info['emoji']} Weekly Hallo-Box Jackpot!",
-                value=f"Received a prestigious **{box_info['name']}** + **+{weekly_candy} \U0001F36C Candy**!\nOpen with `{ctx.prefix}openbox {box_info['tier']}`.",
-                inline=False,
-            )
+        # HALLOWEEN EVENT: Guaranteed High-Tier Hallo-Box & Big Candy Stash — COMPLETELY COMMENTED OUT (event ended)
+        # if config.HALLOWEEN_EVENT:
+        #     weekly_box = "hbox_legendary" if random.random() < 0.20 else "hbox_epic"
+        #     weekly_candy = random.randint(180, 300)
+        #     await self.db.add_item(ctx.author.id, ctx.guild.id, weekly_box, 1)
+        #     await self.db.add_candy(ctx.author.id, ctx.guild.id, weekly_candy)
+        #     box_info = halloween_catalog.get_box(weekly_box)
+        #     embed.add_field(
+        #         name=f"{box_info['emoji']} Weekly Hallo-Box Jackpot!",
+        #         value=f"Received a prestigious **{box_info['name']}** + **+{weekly_candy} \U0001F36C Candy**!\nOpen with `{ctx.prefix}openbox {box_info['tier']}`.",
+        #         inline=False,
+        #     )
 
         log.info(f"WEEKLY CLAIM  | {ctx.author} ({ctx.author.id}) claimed in guild {ctx.guild.id} (coins={result['coins']})")
         await ctx.send(embed=embed)

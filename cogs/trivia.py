@@ -698,17 +698,15 @@ class TriviaQuestionView(discord.ui.View):
             self.session_stats["marks"] += marks
             self.session_stats["coins"] += coins_won
 
-        # Halloween candy drop. Candy is a plain currency (user_currency.candy),
-        # so award a small random amount. This is a bonus only - it must never
-        # be able to break the answer flow, hence the try/except.
+        # Halloween candy drop — COMPLETELY COMMENTED OUT (event ended)
         candy_str = ""
-        if is_correct and random.random() < 0.35:
-            try:
-                candy_won = random.randint(3, 10)
-                await self.db.add_candy(user.id, self.guild_id, candy_won)
-                candy_str = f"\n🎃 **Bonus Drop:** Found **{candy_won} 🍬 Candy**!"
-            except Exception as e:
-                log.warning(f"Candy drop failed (ignored): {e}")
+        # if is_correct and random.random() < 0.35:
+        #     try:
+        #         candy_won = random.randint(3, 10)
+        #         await self.db.add_candy(user.id, self.guild_id, candy_won)
+        #         candy_str = f"\n🎃 **Bonus Drop:** Found **{candy_won} 🍬 Candy**!"
+        #     except Exception as e:
+        #         log.warning(f"Candy drop failed (ignored): {e}")
 
         self.results_summary.append({
             "user": user,
