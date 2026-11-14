@@ -370,6 +370,15 @@ CREATE TABLE IF NOT EXISTS lab_unlocks (
     unlocked_at INTEGER NOT NULL,
     PRIMARY KEY (user_id, guild_id)
 );
+
+-- Lab: element inventory (capped at 500 per element)
+CREATE TABLE IF NOT EXISTS lab_elements (
+    user_id  INTEGER NOT NULL,
+    guild_id INTEGER NOT NULL,
+    element  TEXT NOT NULL,
+    quantity INTEGER NOT NULL DEFAULT 0,
+    PRIMARY KEY (user_id, guild_id, element)
+);
 """
 
 # Columns added to `user_stats` after its original release. Applied by
