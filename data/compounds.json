@@ -6658,5 +6658,365 @@
     "category": "Nitrogen-Compounds",
     "structure": "4-NO2C6H4NH2",
     "fact": "Extremely weak base (pKb 13) due to extensive quinoid resonance delocalization into the para-nitro group."
+  },
+  {
+    "id": "anthracene",
+    "name": "Anthracene",
+    "formula": "C14H10",
+    "elements": {
+      "C": 14,
+      "H": 10,
+      "O": 0,
+      "N": 0,
+      "Cl": 0,
+      "F": 0,
+      "Br": 0,
+      "I": 0
+    },
+    "category": "Aromatics",
+    "structure": "C14H10",
+    "fact": "Linear tricyclic aromatic hydrocarbon; undergoes 9,10-addition across central ring in Diels-Alder with maleic anhydride."
+  },
+  {
+    "id": "phenanthrene",
+    "name": "Phenanthrene",
+    "formula": "C14H10",
+    "elements": {
+      "C": 14,
+      "H": 10,
+      "O": 0,
+      "N": 0,
+      "Cl": 0,
+      "F": 0,
+      "Br": 0,
+      "I": 0
+    },
+    "category": "Aromatics",
+    "structure": "C14H10",
+    "fact": "Angular tricyclic isomer more stable than anthracene by ~29 kJ/mol; backbone of steroids and morphine alkaloids."
+  },
+  {
+    "id": "pyrene",
+    "name": "Pyrene",
+    "formula": "C16H10",
+    "elements": {
+      "C": 16,
+      "H": 10,
+      "O": 0,
+      "N": 0,
+      "Cl": 0,
+      "F": 0,
+      "Br": 0,
+      "I": 0
+    },
+    "category": "Aromatics",
+    "structure": "C16H10",
+    "fact": "Tetracyclic peri-condensed polycyclic aromatic hydrocarbon with intense fluorescence; standard fluorescent probe in biophysics."
+  },
+  {
+    "id": "chrysene",
+    "name": "Chrysene",
+    "formula": "C18H12",
+    "elements": {
+      "C": 18,
+      "H": 12,
+      "O": 0,
+      "N": 0,
+      "Cl": 0,
+      "F": 0,
+      "Br": 0,
+      "I": 0
+    },
+    "category": "Aromatics",
+    "structure": "C18H12",
+    "fact": "Four-ring angular polycyclic aromatic hydrocarbon found in coal tar and cigarette smoke with strong UV absorbance."
+  },
+  {
+    "id": "tetracene",
+    "name": "Tetracene",
+    "formula": "C18H12",
+    "elements": {
+      "C": 18,
+      "H": 12,
+      "O": 0,
+      "N": 0,
+      "Cl": 0,
+      "F": 0,
+      "Br": 0,
+      "I": 0
+    },
+    "category": "Aromatics",
+    "structure": "C18H12",
+    "fact": "Naphthacene; orange linear acene consisting of four fused benzene rings; organic semiconductor with singlet fission capabilities."
+  },
+  {
+    "id": "perylene",
+    "name": "Perylene",
+    "formula": "C20H12",
+    "elements": {
+      "C": 20,
+      "H": 12,
+      "O": 0,
+      "N": 0,
+      "Cl": 0,
+      "F": 0,
+      "Br": 0,
+      "I": 0
+    },
+    "category": "Aromatics",
+    "structure": "C20H12",
+    "fact": "Peri-fused polycyclic aromatic hydrocarbon; core chromophore for perylene diimide industrial vat dyes and organic solar cells."
+  },
+  {
+    "id": "triphenylene",
+    "name": "Triphenylene",
+    "formula": "C18H12",
+    "elements": {
+      "C": 18,
+      "H": 12,
+      "O": 0,
+      "N": 0,
+      "Cl": 0,
+      "F": 0,
+      "Br": 0,
+      "I": 0
+    },
+    "category": "Aromatics",
+    "structure": "C18H12",
+    "fact": "Fully benzenoid polycyclic aromatic hydrocarbon with D3h symmetry; discotic liquid crystalline core."
+  },
+  {
+    "id": "biphenyl",
+    "name": "Biphenyl",
+    "formula": "C12H10",
+    "elements": {
+      "C": 12,
+      "H": 10,
+      "O": 0,
+      "N": 0,
+      "Cl": 0,
+      "F": 0,
+      "Br": 0,
+      "I": 0
+    },
+    "category": "Aromatics",
+    "structure": "C6H5-C6H5",
+    "fact": "Directly coupled benzene rings; undergoes restricted rotation around central C-C bond when substituted at ortho positions (atropisomerism)."
+  },
+  {
+    "id": "fluorene",
+    "name": "Fluorene",
+    "formula": "C13H10",
+    "elements": {
+      "C": 13,
+      "H": 10,
+      "O": 0,
+      "N": 0,
+      "Cl": 0,
+      "F": 0,
+      "Br": 0,
+      "I": 0
+    },
+    "category": "Aromatics",
+    "structure": "C13H10",
+    "fact": "Polycyclic hydrocarbon with an exceptionally acidic central cyclopentadiene methylene group (pKa ~22.6) forming aromatic 6-pi fluorenyl anion."
+  },
+  {
+    "id": "acenaphthene",
+    "name": "Acenaphthene",
+    "formula": "C12H10",
+    "elements": {
+      "C": 12,
+      "H": 10,
+      "O": 0,
+      "N": 0,
+      "Cl": 0,
+      "F": 0,
+      "Br": 0,
+      "I": 0
+    },
+    "category": "Aromatics",
+    "structure": "C12H10",
+    "fact": "Fused peri-ethylene naphthalene derivative produced from coal tar; oxidized industrially to naphthalic anhydride."
+  },
+  {
+    "id": "acenaphthylene",
+    "name": "Acenaphthylene",
+    "formula": "C12H8",
+    "elements": {
+      "C": 12,
+      "H": 8,
+      "O": 0,
+      "N": 0,
+      "Cl": 0,
+      "F": 0,
+      "Br": 0,
+      "I": 0
+    },
+    "category": "Aromatics",
+    "structure": "C12H8",
+    "fact": "Unsaturated peri-cyclopenta naphthalene derivative possessing an activated exocyclic double bond that readily polymerizes."
+  },
+  {
+    "id": "azulene",
+    "name": "Azulene",
+    "formula": "C10H8",
+    "elements": {
+      "C": 10,
+      "H": 8,
+      "O": 0,
+      "N": 0,
+      "Cl": 0,
+      "F": 0,
+      "Br": 0,
+      "I": 0
+    },
+    "category": "Aromatics",
+    "structure": "C10H8",
+    "fact": "Non-benzenoid aromatic bicyclic hydrocarbon with intense royal blue color and substantial dipole moment (1.08 D) due to 6-pi/6-pi aromatic charge separation."
+  },
+  {
+    "id": "coronene",
+    "name": "Coronene",
+    "formula": "C24H12",
+    "elements": {
+      "C": 24,
+      "H": 12,
+      "O": 0,
+      "N": 0,
+      "Cl": 0,
+      "F": 0,
+      "Br": 0,
+      "I": 0
+    },
+    "category": "Aromatics",
+    "structure": "C24H12",
+    "fact": "Superbenzene; circular hexagonal polycyclic aromatic hydrocarbon consisting of seven fused benzene rings; highly symmetric D6h."
+  },
+  {
+    "id": "corannulene",
+    "name": "Corannulene",
+    "formula": "C20H10",
+    "elements": {
+      "C": 20,
+      "H": 10,
+      "O": 0,
+      "N": 0,
+      "Cl": 0,
+      "F": 0,
+      "Br": 0,
+      "I": 0
+    },
+    "category": "Aromatics",
+    "structure": "C20H10",
+    "fact": "Bowl-shaped polar polycyclic aromatic hydrocarbon (buckybowl); represents one-third fragment of the C60 fullerene sphere."
+  },
+  {
+    "id": "helicene",
+    "name": "Helicene",
+    "formula": "C22H14",
+    "elements": {
+      "C": 22,
+      "H": 14,
+      "O": 0,
+      "N": 0,
+      "Cl": 0,
+      "F": 0,
+      "Br": 0,
+      "I": 0
+    },
+    "category": "Aromatics",
+    "structure": "C22H14",
+    "fact": "[5]Helicene (pentahelicene); non-planar screw-shaped polycyclic aromatic molecule exhibiting intrinsic molecular chirality without stereocenters."
+  },
+  {
+    "id": "diphenylmethane",
+    "name": "Diphenylmethane",
+    "formula": "C13H12",
+    "elements": {
+      "C": 13,
+      "H": 12,
+      "O": 0,
+      "N": 0,
+      "Cl": 0,
+      "F": 0,
+      "Br": 0,
+      "I": 0
+    },
+    "category": "Aromatics",
+    "structure": "(C6H5)2CH2",
+    "fact": "Aromatic hydrocarbon with central methylene group; synthesized by Friedel-Crafts benzylation of benzene with benzyl chloride."
+  },
+  {
+    "id": "triphenylmethane",
+    "name": "Triphenylmethane",
+    "formula": "C19H16",
+    "elements": {
+      "C": 19,
+      "H": 16,
+      "O": 0,
+      "N": 0,
+      "Cl": 0,
+      "F": 0,
+      "Br": 0,
+      "I": 0
+    },
+    "category": "Aromatics",
+    "structure": "(C6H5)3CH",
+    "fact": "Core carbon skeleton of triphenylmethane dyes (malachite green, rosaniline); central C-H has pKa ~31.5."
+  },
+  {
+    "id": "fluoranthene",
+    "name": "Fluoranthene",
+    "formula": "C16H10",
+    "elements": {
+      "C": 16,
+      "H": 10,
+      "O": 0,
+      "N": 0,
+      "Cl": 0,
+      "F": 0,
+      "Br": 0,
+      "I": 0
+    },
+    "category": "Aromatics",
+    "structure": "C16H10",
+    "fact": "Tetracyclic non-alternant aromatic hydrocarbon with five-membered ring fused between naphthalene and benzene subunits."
+  },
+  {
+    "id": "annulene-18",
+    "name": "Annulene-18",
+    "formula": "C18H18",
+    "elements": {
+      "C": 18,
+      "H": 18,
+      "O": 0,
+      "N": 0,
+      "Cl": 0,
+      "F": 0,
+      "Br": 0,
+      "I": 0
+    },
+    "category": "Aromatics",
+    "structure": "C18H18",
+    "fact": "[18]Annulene; completely conjugated monocyclic 18-pi aromatic ring conforming to Huckel's rule (4n+2 with n=4); classic diamagnetic ring current demonstration in 1H NMR."
+  },
+  {
+    "id": "bibenzyl",
+    "name": "Bibenzyl",
+    "formula": "C14H14",
+    "elements": {
+      "C": 14,
+      "H": 14,
+      "O": 0,
+      "N": 0,
+      "Cl": 0,
+      "F": 0,
+      "Br": 0,
+      "I": 0
+    },
+    "category": "Aromatics",
+    "structure": "C6H5CH2CH2C6H5",
+    "fact": "1,2-Diphenylethane; formed by Wurtz coupling of benzyl chloride with sodium metal or catalytic dimerization of benzyl radicals."
   }
 ]
