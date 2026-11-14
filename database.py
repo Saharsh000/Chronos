@@ -3674,6 +3674,52 @@ class Database:
             "new_achievements": [a.id for a in new_achievements],
         }
 
+    async def credit_lab_elements(
+        self,
+        session_id: int,
+        user_id: int,
+        guild_id: int,
+        new_minutes: int,
+        now: Optional[int] = None,
+    ) -> tuple[dict[str, int], list[str]]:
+        """Idempotent per-minute element crediting for an active OC session.
+        Applies full rates for first 6 hours of OC time in an IST day, 50% rate after.
+        Enforces 500 element inventory cap. Updates sessions.credited_elements JSON.
+        """
+        if new_minutes <= 0:
+            return {e: 0 for e in lab_catalog.ELEMENT_LIST}, []
+
+        cur = await self.conn.execute("SELECT credited_elements FROM sessions WHERE session_id = ?", (session_id,))
+        row = await cur.fetchone()
+        raw_credited = row["credited_elements"] if row else None
+        cur_cumulative = json.loads(raw_credited) if raw_credited else {e: 0 for e in lab_catalog.ELEMENT_LIST}
+
+        daily = await self.get_lab_daily(user_id, guild_id)
+        start_min = daily["oc_minutes"]
+
+        session_deltas = {e: 0 for e in lab_catalog.ELEMENT_LIST}
+        for i in range(new_minutes):
+            is_half = (start_min + i) >= lab_catalog.OC_FULL_RATE_MINUTES
+            m_roll = lab_catalog.roll_minute_elements(half_rate=is_half)
+            for e, val in m_roll.items():
+                session_deltas[e] += val
+
+        # Increment daily OC minutes
+        await self.add_lab_daily_oc_minutes(user_id, guild_id, new_minutes)
+
+        # Deposit to user inventory (with 500 cap)
+        actual_added, capped = await self.add_lab_elements(user_id, guild_id, session_deltas)
+
+        # Update sessions.credited_elements
+        new_cumulative = {e: cur_cumulative.get(e, 0) + session_deltas.get(e, 0) for e in lab_catalog.ELEMENT_LIST}
+        await self.conn.execute(
+            "UPDATE sessions SET credited_elements = ? WHERE session_id = ?",
+            (json.dumps(new_cumulative), session_id),
+        )
+        await self.conn.commit()
+        return session_deltas, capped
+
+
 
 
 
