@@ -188,8 +188,8 @@ textarea.input { min-height: 110px; resize: vertical; }
 .dial .tick { stroke: var(--line-2); stroke-width: 2; stroke-linecap: round; transition: stroke .3s; } .dial .tick.lit { stroke: var(--c); filter: drop-shadow(0 0 4px var(--c)); }
 .dial .track { fill: none; stroke: var(--s3); stroke-width: 10; } .dial .arc { fill: none; stroke: var(--c); stroke-width: 10; stroke-linecap: round; transition: stroke-dashoffset 1s linear; }
 .dial .face { position: absolute; inset: 15%; display: grid; place-content: center; justify-items: center; gap: 6px; text-align: center; }
-.digits { display: inline-flex; font: 800 clamp(2rem, 8vw, 3.3rem) var(--display); letter-spacing: -.04em; line-height: 1; }
-.digits .d { display: inline-block; width: .66em; text-align: center; } .digits .c { display: inline-block; width: .32em; text-align: center; color: var(--c); }
+.digits { display: inline-flex; font: 800 clamp(2rem, 8vw, 3.3rem) var(--display); letter-spacing: 0; line-height: 1; gap: 0; }
+.digits .d { display: inline-block; width: .72em; text-align: center; } .digits .c { display: inline-block; width: .36em; text-align: center; color: var(--c); padding: 0 .02em; }
 .digits .c.blink { animation: blink 1s steps(2, jump-none) infinite; } @keyframes blink { 50% { opacity: .25; } }
 .dial .sub { font-size: .86rem; color: var(--mute); }
 .dial.idle .digits { color: var(--mute); }
