@@ -3508,5 +3508,365 @@
     "category": "Haloalkanes",
     "structure": "CF3CHBrCl",
     "fact": "2-Bromo-2-chloro-1,1,1-trifluoroethane; milestone non-flammable general inhalational anesthetic containing four distinct halogens."
+  },
+  {
+    "id": "pentan-1-ol",
+    "name": "Pentan-1-ol",
+    "formula": "C5H12O",
+    "elements": {
+      "C": 5,
+      "H": 12,
+      "O": 1,
+      "N": 0,
+      "Cl": 0,
+      "F": 0,
+      "Br": 0,
+      "I": 0
+    },
+    "category": "Alcohols",
+    "structure": "CH3(CH2)4OH",
+    "fact": "1-Pentanol; primary amyl alcohol used as solvent in pharmaceutical coatings."
+  },
+  {
+    "id": "pentan-2-ol",
+    "name": "Pentan-2-ol",
+    "formula": "C5H12O",
+    "elements": {
+      "C": 5,
+      "H": 12,
+      "O": 1,
+      "N": 0,
+      "Cl": 0,
+      "F": 0,
+      "Br": 0,
+      "I": 0
+    },
+    "category": "Alcohols",
+    "structure": "CH3CH(OH)CH2CH2CH3",
+    "fact": "Secondary alcohol that yields pentan-2-one upon oxidation with acidified K2Cr2O7."
+  },
+  {
+    "id": "pentan-3-ol",
+    "name": "Pentan-3-ol",
+    "formula": "C5H12O",
+    "elements": {
+      "C": 5,
+      "H": 12,
+      "O": 1,
+      "N": 0,
+      "Cl": 0,
+      "F": 0,
+      "Br": 0,
+      "I": 0
+    },
+    "category": "Alcohols",
+    "structure": "(CH3CH2)2CHOH",
+    "fact": "Symmetrical secondary alcohol that gives negative iodoform test despite secondary hydroxyl."
+  },
+  {
+    "id": "2-methylbutan-1-ol",
+    "name": "2-Methylbutan-1-ol",
+    "formula": "C5H12O",
+    "elements": {
+      "C": 5,
+      "H": 12,
+      "O": 1,
+      "N": 0,
+      "Cl": 0,
+      "F": 0,
+      "Br": 0,
+      "I": 0
+    },
+    "category": "Alcohols",
+    "structure": "CH3CH2CH(CH3)CH2OH",
+    "fact": "Optically active component of industrial fermentation fusel oil."
+  },
+  {
+    "id": "2-methylbutan-2-ol",
+    "name": "2-Methylbutan-2-ol",
+    "formula": "C5H12O",
+    "elements": {
+      "C": 5,
+      "H": 12,
+      "O": 1,
+      "N": 0,
+      "Cl": 0,
+      "F": 0,
+      "Br": 0,
+      "I": 0
+    },
+    "category": "Alcohols",
+    "structure": "CH3CH2C(CH3)2OH",
+    "fact": "tert-Amyl alcohol; tertiary alcohol with sedative properties, resistant to mild oxidants."
+  },
+  {
+    "id": "3-methylbutan-1-ol",
+    "name": "3-Methylbutan-1-ol",
+    "formula": "C5H12O",
+    "elements": {
+      "C": 5,
+      "H": 12,
+      "O": 1,
+      "N": 0,
+      "Cl": 0,
+      "F": 0,
+      "Br": 0,
+      "I": 0
+    },
+    "category": "Alcohols",
+    "structure": "(CH3)2CHCH2CH2OH",
+    "fact": "Isoamyl alcohol; chief component of fusel oil responsible for characteristic whiskey aroma."
+  },
+  {
+    "id": "hexan-1-ol",
+    "name": "Hexan-1-ol",
+    "formula": "C6H14O",
+    "elements": {
+      "C": 6,
+      "H": 14,
+      "O": 1,
+      "N": 0,
+      "Cl": 0,
+      "F": 0,
+      "Br": 0,
+      "I": 0
+    },
+    "category": "Alcohols",
+    "structure": "CH3(CH2)5OH",
+    "fact": "Fatty alcohol with fresh grassy fragrance; utilized in perfumery and plasticizer manufacturing."
+  },
+  {
+    "id": "heptan-1-ol",
+    "name": "Heptan-1-ol",
+    "formula": "C7H16O",
+    "elements": {
+      "C": 7,
+      "H": 16,
+      "O": 1,
+      "N": 0,
+      "Cl": 0,
+      "F": 0,
+      "Br": 0,
+      "I": 0
+    },
+    "category": "Alcohols",
+    "structure": "CH3(CH2)6OH",
+    "fact": "Linear 7-carbon alcohol used in cosmetics as fragrance fixative."
+  },
+  {
+    "id": "octan-1-ol",
+    "name": "Octan-1-ol",
+    "formula": "C8H18O",
+    "elements": {
+      "C": 8,
+      "H": 18,
+      "O": 1,
+      "N": 0,
+      "Cl": 0,
+      "F": 0,
+      "Br": 0,
+      "I": 0
+    },
+    "category": "Alcohols",
+    "structure": "CH3(CH2)7OH",
+    "fact": "1-Octanol; hydrophobic standard solvent used to determine 1-octanol/water partition coefficients (log P)."
+  },
+  {
+    "id": "propane-1,2-diol",
+    "name": "Propane-1,2-diol",
+    "formula": "C3H8O2",
+    "elements": {
+      "C": 3,
+      "H": 8,
+      "O": 2,
+      "N": 0,
+      "Cl": 0,
+      "F": 0,
+      "Br": 0,
+      "I": 0
+    },
+    "category": "Alcohols",
+    "structure": "CH3CH(OH)CH2OH",
+    "fact": "Propylene glycol; non-toxic antifreeze and pharmaceutical humectant synthesized by hydration of propylene oxide."
+  },
+  {
+    "id": "propane-1,3-diol",
+    "name": "Propane-1,3-diol",
+    "formula": "C3H8O2",
+    "elements": {
+      "C": 3,
+      "H": 8,
+      "O": 2,
+      "N": 0,
+      "Cl": 0,
+      "F": 0,
+      "Br": 0,
+      "I": 0
+    },
+    "category": "Alcohols",
+    "structure": "HOCH2CH2CH2OH",
+    "fact": "Trimethylene glycol; bio-derived monomer used with terephthalic acid to produce polytrimethylene terephthalate (PTT)."
+  },
+  {
+    "id": "butane-1,4-diol",
+    "name": "Butane-1,4-diol",
+    "formula": "C4H10O2",
+    "elements": {
+      "C": 4,
+      "H": 10,
+      "O": 2,
+      "N": 0,
+      "Cl": 0,
+      "F": 0,
+      "Br": 0,
+      "I": 0
+    },
+    "category": "Alcohols",
+    "structure": "HO(CH2)4OH",
+    "fact": "1,4-Butanediol; industrial precursor to tetrahydrofuran (THF) and polybutylene terephthalate (PBT)."
+  },
+  {
+    "id": "butane-2,3-diol",
+    "name": "Butane-2,3-diol",
+    "formula": "C4H10O2",
+    "elements": {
+      "C": 4,
+      "H": 10,
+      "O": 2,
+      "N": 0,
+      "Cl": 0,
+      "F": 0,
+      "Br": 0,
+      "I": 0
+    },
+    "category": "Alcohols",
+    "structure": "CH3CH(OH)CH(OH)CH3",
+    "fact": "Vicinal diol existing in dextro, levo, and optically inactive meso diastereomeric forms."
+  },
+  {
+    "id": "pinacol",
+    "name": "Pinacol",
+    "formula": "C6H14O2",
+    "elements": {
+      "C": 6,
+      "H": 14,
+      "O": 2,
+      "N": 0,
+      "Cl": 0,
+      "F": 0,
+      "Br": 0,
+      "I": 0
+    },
+    "category": "Alcohols",
+    "structure": "(CH3)2C(OH)C(OH)(CH3)2",
+    "fact": "2,3-Dimethylbutane-2,3-diol; undergoes classic acid-catalyzed pinacol-pinacolone carbocation rearrangement."
+  },
+  {
+    "id": "pentaerythritol",
+    "name": "Pentaerythritol",
+    "formula": "C5H12O4",
+    "elements": {
+      "C": 5,
+      "H": 12,
+      "O": 4,
+      "N": 0,
+      "Cl": 0,
+      "F": 0,
+      "Br": 0,
+      "I": 0
+    },
+    "category": "Alcohols",
+    "structure": "C(CH2OH)4",
+    "fact": "Neopentyl tetra-ol produced by multiple aldol condensations of formaldehyde with acetaldehyde; nitrated to PETN explosive."
+  },
+  {
+    "id": "allyl-alcohol",
+    "name": "Allyl Alcohol",
+    "formula": "C3H6O",
+    "elements": {
+      "C": 3,
+      "H": 6,
+      "O": 1,
+      "N": 0,
+      "Cl": 0,
+      "F": 0,
+      "Br": 0,
+      "I": 0
+    },
+    "category": "Alcohols",
+    "structure": "CH2=CHCH2OH",
+    "fact": "Prop-2-en-1-ol; allylic alcohol that selectively oxidizes to acrolein using active manganese dioxide (MnO2)."
+  },
+  {
+    "id": "propargyl-alcohol",
+    "name": "Propargyl Alcohol",
+    "formula": "C3H4O",
+    "elements": {
+      "C": 3,
+      "H": 4,
+      "O": 1,
+      "N": 0,
+      "Cl": 0,
+      "F": 0,
+      "Br": 0,
+      "I": 0
+    },
+    "category": "Alcohols",
+    "structure": "HC\u2261CCH2OH",
+    "fact": "Prop-2-yn-1-ol; terminal alkyne alcohol synthesized by high-pressure ethynylation of formaldehyde."
+  },
+  {
+    "id": "benzyl-alcohol",
+    "name": "Benzyl Alcohol",
+    "formula": "C7H8O",
+    "elements": {
+      "C": 7,
+      "H": 8,
+      "O": 1,
+      "N": 0,
+      "Cl": 0,
+      "F": 0,
+      "Br": 0,
+      "I": 0
+    },
+    "category": "Alcohols",
+    "structure": "C6H5CH2OH",
+    "fact": "Primary benzylic alcohol formed alongside benzoate salt via disproportionation in the Cannizzaro reaction of benzaldehyde."
+  },
+  {
+    "id": "2-phenylethanol",
+    "name": "2-Phenylethanol",
+    "formula": "C8H10O",
+    "elements": {
+      "C": 8,
+      "H": 10,
+      "O": 1,
+      "N": 0,
+      "Cl": 0,
+      "F": 0,
+      "Br": 0,
+      "I": 0
+    },
+    "category": "Alcohols",
+    "structure": "C6H5CH2CH2OH",
+    "fact": "Phenethyl alcohol; major aroma constituent of rose petals, synthesized by reacting phenylmagnesium bromide with oxirane."
+  },
+  {
+    "id": "cinnamyl-alcohol",
+    "name": "Cinnamyl Alcohol",
+    "formula": "C9H10O",
+    "elements": {
+      "C": 9,
+      "H": 10,
+      "O": 1,
+      "N": 0,
+      "Cl": 0,
+      "F": 0,
+      "Br": 0,
+      "I": 0
+    },
+    "category": "Alcohols",
+    "structure": "C6H5CH=CHCH2OH",
+    "fact": "3-Phenylprop-2-en-1-ol; aromatic allylic alcohol with sweet floral balsamic odor occurring in storax and Peru balsam."
   }
 ]
