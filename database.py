@@ -1082,6 +1082,14 @@ class Database:
         # (returns None) if the user has no pet equipped in this guild.
         pet_result = await self.grant_pet_xp(session["user_id"], session["guild_id"], delta_pet_xp)
 
+        # The Lab: Element drops for Organic Chemistry (OC) mode sessions
+        element_drops: dict[str, int] = {}
+        capped_elements: list[str] = []
+        if session.get("track") == "oc":
+            element_drops, capped_elements = await self.credit_lab_elements(
+                session_id, session["user_id"], session["guild_id"], new_minutes, now=now
+            )
+
         # Jack-o'-Lantern Season Pass & study drops — COMPLETELY COMMENTED OUT (event ended)
         pass_res: dict = {}
         hallo_box_dropped: str | None = None
@@ -1102,6 +1110,9 @@ class Database:
             "user_id": session["user_id"],
             "guild_id": session["guild_id"],
             "subject": session["subject"],
+            "track": session.get("track"),
+            "element_drops": element_drops,
+            "capped_elements": capped_elements,
             "delta_seconds": delta_seconds,
             "delta_xp": delta_xp,
             "delta_coins": delta_coins,
