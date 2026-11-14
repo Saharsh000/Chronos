@@ -2518,5 +2518,275 @@
     "category": "Alkenes",
     "structure": "C10H16",
     "fact": "Bicyclic monoterpene alkene found in pine resin; contains a strained four-membered cyclobutane ring."
+  },
+  {
+    "id": "2-butyne",
+    "name": "2-Butyne",
+    "formula": "C4H6",
+    "elements": {
+      "C": 4,
+      "H": 6,
+      "O": 0,
+      "N": 0,
+      "Cl": 0,
+      "F": 0,
+      "Br": 0,
+      "I": 0
+    },
+    "category": "Alkynes",
+    "structure": "CH3C\u2261CCH3",
+    "fact": "Dimethylacetylene; internal symmetrical alkyne that undergoes Birch reduction to trans-2-butene."
+  },
+  {
+    "id": "1-pentyne",
+    "name": "1-Pentyne",
+    "formula": "C5H8",
+    "elements": {
+      "C": 5,
+      "H": 8,
+      "O": 0,
+      "N": 0,
+      "Cl": 0,
+      "F": 0,
+      "Br": 0,
+      "I": 0
+    },
+    "category": "Alkynes",
+    "structure": "HC\u2261CCH2CH2CH3",
+    "fact": "Terminal alkyne that forms a red precipitate of cuprous acetylide with ammoniacal CuCl."
+  },
+  {
+    "id": "2-pentyne",
+    "name": "2-Pentyne",
+    "formula": "C5H8",
+    "elements": {
+      "C": 5,
+      "H": 8,
+      "O": 0,
+      "N": 0,
+      "Cl": 0,
+      "F": 0,
+      "Br": 0,
+      "I": 0
+    },
+    "category": "Alkynes",
+    "structure": "CH3C\u2261CCH2CH3",
+    "fact": "Unsymmetrical internal alkyne; hydration with HgSO4/H2SO4 gives a mixture of pentan-2-one and pentan-3-one."
+  },
+  {
+    "id": "1-hexyne",
+    "name": "1-Hexyne",
+    "formula": "C6H10",
+    "elements": {
+      "C": 6,
+      "H": 10,
+      "O": 0,
+      "N": 0,
+      "Cl": 0,
+      "F": 0,
+      "Br": 0,
+      "I": 0
+    },
+    "category": "Alkynes",
+    "structure": "HC\u2261C(CH2)3CH3",
+    "fact": "Six-carbon terminal alkyne; reacts with sodamide (NaNH2) in liquid ammonia to form a nucleophilic sodium acetylide."
+  },
+  {
+    "id": "2-hexyne",
+    "name": "2-Hexyne",
+    "formula": "C6H10",
+    "elements": {
+      "C": 6,
+      "H": 10,
+      "O": 0,
+      "N": 0,
+      "Cl": 0,
+      "F": 0,
+      "Br": 0,
+      "I": 0
+    },
+    "category": "Alkynes",
+    "structure": "CH3C\u2261C(CH2)2CH3",
+    "fact": "Internal alkyne isomer; undergoes Lindlar catalyst hydrogenation to stereospecifically yield cis-2-hexene."
+  },
+  {
+    "id": "3-hexyne",
+    "name": "3-Hexyne",
+    "formula": "C6H10",
+    "elements": {
+      "C": 6,
+      "H": 10,
+      "O": 0,
+      "N": 0,
+      "Cl": 0,
+      "F": 0,
+      "Br": 0,
+      "I": 0
+    },
+    "category": "Alkynes",
+    "structure": "CH3CH2C\u2261CCH2CH3",
+    "fact": "Diethylacetylene; symmetrical internal alkyne producing solely hexan-3-one upon oxymercuration-hydration."
+  },
+  {
+    "id": "1-heptyne",
+    "name": "1-Heptyne",
+    "formula": "C7H12",
+    "elements": {
+      "C": 7,
+      "H": 12,
+      "O": 0,
+      "N": 0,
+      "Cl": 0,
+      "F": 0,
+      "Br": 0,
+      "I": 0
+    },
+    "category": "Alkynes",
+    "structure": "HC\u2261C(CH2)4CH3",
+    "fact": "Seven-carbon terminal alkyne used in transition-metal catalyzed Sonogashira cross-coupling reactions."
+  },
+  {
+    "id": "1-octyne",
+    "name": "1-Octyne",
+    "formula": "C8H14",
+    "elements": {
+      "C": 8,
+      "H": 14,
+      "O": 0,
+      "N": 0,
+      "Cl": 0,
+      "F": 0,
+      "Br": 0,
+      "I": 0
+    },
+    "category": "Alkynes",
+    "structure": "HC\u2261C(CH2)5CH3",
+    "fact": "Standard terminal long-chain alkyne employed in click chemistry azido-alkyne cycloadditions."
+  },
+  {
+    "id": "phenylacetylene",
+    "name": "Phenylacetylene",
+    "formula": "C8H6",
+    "elements": {
+      "C": 8,
+      "H": 6,
+      "O": 0,
+      "N": 0,
+      "Cl": 0,
+      "F": 0,
+      "Br": 0,
+      "I": 0
+    },
+    "category": "Alkynes",
+    "structure": "C6H5C\u2261CH",
+    "fact": "Terminal aryl alkyne exhibiting acidic sp C-H bond (pKa ~28.8); trimerizes to 1,2,4- and 1,3,5-triphenylbenzene."
+  },
+  {
+    "id": "tolan",
+    "name": "Tolan",
+    "formula": "C14H10",
+    "elements": {
+      "C": 14,
+      "H": 10,
+      "O": 0,
+      "N": 0,
+      "Cl": 0,
+      "F": 0,
+      "Br": 0,
+      "I": 0
+    },
+    "category": "Alkynes",
+    "structure": "C6H5C\u2261CC6H5",
+    "fact": "Diphenylacetylene; rigid rod-like diarylalkyne synthesized by double dehydrobromination of stilbene dibromide."
+  },
+  {
+    "id": "vinylacetylene",
+    "name": "Vinylacetylene",
+    "formula": "C4H4",
+    "elements": {
+      "C": 4,
+      "H": 4,
+      "O": 0,
+      "N": 0,
+      "Cl": 0,
+      "F": 0,
+      "Br": 0,
+      "I": 0
+    },
+    "category": "Alkynes",
+    "structure": "CH2=CHC\u2261CH",
+    "fact": "But-1-en-3-yne; formed by copper-catalyzed dimerization of acetylene; industrial precursor to chloroprene."
+  },
+  {
+    "id": "2-methyl-1-buten-3-yne",
+    "name": "2-Methyl-1-buten-3-yne",
+    "formula": "C5H6",
+    "elements": {
+      "C": 5,
+      "H": 6,
+      "O": 0,
+      "N": 0,
+      "Cl": 0,
+      "F": 0,
+      "Br": 0,
+      "I": 0
+    },
+    "category": "Alkynes",
+    "structure": "CH2=C(CH3)C\u2261CH",
+    "fact": "Branched conjugated enyne intermediate in the industrial synthesis of synthetic rubber monomers."
+  },
+  {
+    "id": "1,7-octadiyne",
+    "name": "1,7-Octadiyne",
+    "formula": "C8H10",
+    "elements": {
+      "C": 8,
+      "H": 10,
+      "O": 0,
+      "N": 0,
+      "Cl": 0,
+      "F": 0,
+      "Br": 0,
+      "I": 0
+    },
+    "category": "Alkynes",
+    "structure": "HC\u2261C(CH2)4C\u2261CH",
+    "fact": "Terminal dialkyne capable of intramolecular cyclotrimerization to bicyclic aromatic rings."
+  },
+  {
+    "id": "1,4-pentadiyne",
+    "name": "1,4-Pentadiyne",
+    "formula": "C5H4",
+    "elements": {
+      "C": 5,
+      "H": 4,
+      "O": 0,
+      "N": 0,
+      "Cl": 0,
+      "F": 0,
+      "Br": 0,
+      "I": 0
+    },
+    "category": "Alkynes",
+    "structure": "HC\u2261CCH2C\u2261CH",
+    "fact": "Skipped diynes with active central methylene protons flanked by two electron-withdrawing triple bonds."
+  },
+  {
+    "id": "ethynylcyclohexane",
+    "name": "Ethynylcyclohexane",
+    "formula": "C8H12",
+    "elements": {
+      "C": 8,
+      "H": 12,
+      "O": 0,
+      "N": 0,
+      "Cl": 0,
+      "F": 0,
+      "Br": 0,
+      "I": 0
+    },
+    "category": "Alkynes",
+    "structure": "C6H11C\u2261CH",
+    "fact": "Terminal alkyne bearing a bulky cyclohexyl substituent used in steric studies of hydroboration."
   }
 ]
