@@ -399,6 +399,15 @@ CREATE TABLE IF NOT EXISTS lab_daily (
     oc_minutes   INTEGER NOT NULL DEFAULT 0,  -- credited OC minutes today (for 6h/day cap)
     PRIMARY KEY (user_id, guild_id, date_ist)
 );
+
+-- Lab: server-wide first discoverer per compound
+CREATE TABLE IF NOT EXISTS lab_discoveries (
+    guild_id      INTEGER NOT NULL,
+    compound_id   TEXT NOT NULL,
+    user_id       INTEGER NOT NULL,
+    discovered_at INTEGER NOT NULL,
+    PRIMARY KEY (guild_id, compound_id)
+);
 """
 
 # Columns added to `user_stats` after its original release. Applied by
