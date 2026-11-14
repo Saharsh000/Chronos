@@ -44,6 +44,7 @@ drops or rewrites a column, so old data is preserved untouched.
 """
 from __future__ import annotations
 
+import datetime as dt
 import json
 import logging
 import os
@@ -57,6 +58,7 @@ import config
 from utils import economy, streaks
 from utils import food as food_catalog
 from utils import halloween as halloween_catalog
+from utils import lab as lab_catalog
 from utils import pets as pet_catalog
 from utils.achievements import Achievement
 from utils.achievements import evaluate as evaluate_achievements
@@ -3320,6 +3322,63 @@ class Database:
             (key, str(value)),
         )
         await self.conn.commit()
+
+    # ------------------------------------------------------------------ #
+    # The Lab DLC & Organic Chemistry Mode
+    # ------------------------------------------------------------------ #
+    async def get_lab_chemistry_hours(self, user_id: int, guild_id: int) -> float:
+        """Total all-time study hours in Chemistry for this user in this guild."""
+        cur = await self.conn.execute(
+            "SELECT total_seconds FROM subject_stats WHERE user_id = ? AND guild_id = ? AND subject = 'chemistry'",
+            (user_id, guild_id),
+        )
+        row = await cur.fetchone()
+        return (row["total_seconds"] / 3600.0) if row else 0.0
+
+    async def get_lab_unlock(self, user_id: int, guild_id: int) -> Optional[dict[str, Any]]:
+        """Return unlock record if user has unlocked The Lab in this guild, else None."""
+        cur = await self.conn.execute(
+            "SELECT * FROM lab_unlocks WHERE user_id = ? AND guild_id = ?",
+            (user_id, guild_id),
+        )
+        row = await cur.fetchone()
+        return dict(row) if row else None
+
+    async def set_lab_unlock(
+        self, user_id: int, guild_id: int, now: Optional[int] = None
+    ) -> dict[str, Any]:
+        """Unlock The Lab DLC. Requires >=30h chemistry study and 60,000 coins.
+        Deducts 60,000 coins atomically and records the unlock.
+        """
+        now = now if now is not None else int(time.time())
+        existing = await self.get_lab_unlock(user_id, guild_id)
+        if existing:
+            return {"success": True, "already_unlocked": True, "unlocked_at": existing["unlocked_at"]}
+
+        chem_hours = await self.get_lab_chemistry_hours(user_id, guild_id)
+        if chem_hours < lab_catalog.LAB_CHEMISTRY_HOURS_REQUIRED:
+            raise ValueError(
+                f"Insufficient chemistry hours: {chem_hours:.1f}h / {lab_catalog.LAB_CHEMISTRY_HOURS_REQUIRED:.1f}h"
+            )
+
+        curr = await self.get_or_create_currency(user_id, guild_id)
+        if curr["coins"] < lab_catalog.LAB_UNLOCK_PRICE:
+            raise ValueError(
+                f"Insufficient Chronocoins: {curr['coins']:,} / {lab_catalog.LAB_UNLOCK_PRICE:,}"
+            )
+
+        # Atomic deduction and unlock insertion
+        await self.conn.execute(
+            "UPDATE user_currency SET coins = coins - ? WHERE user_id = ? AND guild_id = ?",
+            (lab_catalog.LAB_UNLOCK_PRICE, user_id, guild_id),
+        )
+        await self.conn.execute(
+            "INSERT OR IGNORE INTO lab_unlocks (user_id, guild_id, unlocked_at) VALUES (?, ?, ?)",
+            (user_id, guild_id, now),
+        )
+        await self.conn.commit()
+        return {"success": True, "already_unlocked": False, "unlocked_at": now}
+
 
 
 
