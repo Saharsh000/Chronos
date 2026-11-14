@@ -426,6 +426,7 @@ USER_STATS_MIGRATIONS: dict[str, str] = {
 SESSIONS_MIGRATIONS: dict[str, str] = {
     "credited_coins": "ALTER TABLE sessions ADD COLUMN credited_coins INTEGER NOT NULL DEFAULT 0",
     "track": "ALTER TABLE sessions ADD COLUMN track TEXT",
+    "credited_elements": "ALTER TABLE sessions ADD COLUMN credited_elements TEXT",
 }
 
 # Halloween Event: Seasonal currency (Candy)
