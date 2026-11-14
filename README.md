@@ -55,6 +55,14 @@
   * **Hallo-Boxes** (`.boxes` / `.openbox`): 100% drop-only loot boxes opened instantly without incubation.
   * **Candy Currency & Shop** (`.candyshop`): Spend study-earned 🍬 Candy on exclusive pets (*Pumpkaboo*), JEE titles, and Sugar Rush boosts.
 
+### 🧪 The Lab & Organic Chemistry DLC
+* **Premium Unlock** (`.lab unlock`): Requires 30 hours of all-time Chemistry study + 60,000 Chronocoins.
+* **Organic Chemistry Track** (`.start oc` / `.start organic`): Study organic chemistry to harvest 8 elemental precursors (`C, H, O, N, Cl, F, Br, I`) every credited minute.
+* **Chemical Synthesis** (`.synth <compound>`): Synthesize 100 authentic JEE syllabus organic compounds across 16 categories using exact elemental stoichiometry.
+* **Comprehensive Compendium** (`.compounds`): Track discovered compounds with condensed structural formulas, JEE facts, and craft counters.
+* **Milestones & Prestige**: Earn first-time coin rewards (~45,000 coins total), repeat craft coins (1,000/day cap), category master titles, and the Grandmaster Chemist prestige badge.
+* **Chronoweb Twin**: Full browser interface with interactive element tray, live reaction flask, and filterable compendium.
+
 ---
 
 ## 🕹️ Command Reference
@@ -115,6 +123,15 @@
 | `.nickname <new>` | `.nick` | Rename your equipped pet |
 | `.foodshop` | `.fshop` | Browse nutritional pet treats & meals |
 | `.feed <food> [qty]`| — | Feed your equipped companion to award instant pet XP |
+
+### 🧪 The Lab & Organic Chemistry Mode
+| Command | Aliases | Description |
+| :--- | :--- | :--- |
+| `.lab` | `.thelab` | Open The Lab hub, check unlock requirements & element tray |
+| `.lab unlock` | — | Permanently unlock The Lab (30h Chemistry + 60,000 coins) |
+| `.start oc` | `.start organic` | Begin an Organic Chemistry session to harvest elements |
+| `.synth <name\|formula>`| `.synthesize`, `.craft-compound` | Synthesize an organic compound with interactive confirmation |
+| `.compounds [category]` | — | Browse the 100-compound JEE organic chemistry compendium |
 
 ### 🎃 Seasonal Event (Halloween)
 | Command | Aliases | Description |
@@ -208,6 +225,7 @@ Chronos/
 │   ├── sessions.py    # Live session monitor loop & VC checkins
 │   ├── stats.py       # User profile cards, leaderboards & metrics
 │   ├── economy.py     # Chronocoin wallet, shop, inventory, daily/work/weekly
+│   ├── lab.py         # The Lab DLC hub, chemical synthesis & compendium
 │   ├── pets.py        # Companions, evolution engine & feeding
 │   ├── halloween.py   # Jack-o'-Lantern season pass & Hallo-Boxes
 │   ├── progress.py    # Syllabus tracker & chapter logs
@@ -218,7 +236,10 @@ Chronos/
 │   ├── dev.py         # Diagnostic utilities & data backup commands
 │   └── web.py         # Starts Chronoweb inside the bot process
 ├── web/               # Chronoweb: aiohttp API (api_*.py), SSE events, auth, static frontend
+├── tools/             # Simulation and offline testing tools
+│   └── lab_sim.py     # Monte Carlo balance & drop-rate simulation engine
 └── utils/             # Pure catalogs & data models (Zero DB dependency)
+    ├── lab.py         # 100 JEE compounds, element roll engine, reward math
     ├── pets.py        # 40+ species definitions & evolution paths
     ├── food.py        # Treat catalog & XP yield values
     ├── halloween.py   # Hallo-Box loot tables & Season Pass curves
