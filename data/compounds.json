@@ -6388,5 +6388,275 @@
     "category": "Nitrogen-Compounds",
     "structure": "C6H5CH2CN",
     "fact": "Phenylacetonitrile; features reactive benzylic methylene protons that undergo base-catalyzed condensations with aldehydes."
+  },
+  {
+    "id": "1-nitropropane",
+    "name": "1-Nitropropane",
+    "formula": "C3H7NO2",
+    "elements": {
+      "C": 3,
+      "H": 7,
+      "O": 2,
+      "N": 1,
+      "Cl": 0,
+      "F": 0,
+      "Br": 0,
+      "I": 0
+    },
+    "category": "Nitrogen-Compounds",
+    "structure": "CH3CH2CH2NO2",
+    "fact": "Primary nitroalkane; dissolves in aqueous NaOH by forming resonance-stabilized nitronate aci-form salt."
+  },
+  {
+    "id": "2-nitropropane",
+    "name": "2-Nitropropane",
+    "formula": "C3H7NO2",
+    "elements": {
+      "C": 3,
+      "H": 7,
+      "O": 2,
+      "N": 1,
+      "Cl": 0,
+      "F": 0,
+      "Br": 0,
+      "I": 0
+    },
+    "category": "Nitrogen-Compounds",
+    "structure": "(CH3)2CHNO2",
+    "fact": "Secondary nitroalkane; reacts with nitrous acid to give blue pseudo-nitrol soluble in chloroform."
+  },
+  {
+    "id": "1-nitrobutane",
+    "name": "1-Nitrobutane",
+    "formula": "C4H9NO2",
+    "elements": {
+      "C": 4,
+      "H": 9,
+      "O": 2,
+      "N": 1,
+      "Cl": 0,
+      "F": 0,
+      "Br": 0,
+      "I": 0
+    },
+    "category": "Nitrogen-Compounds",
+    "structure": "CH3(CH2)3NO2",
+    "fact": "Used in Victor Meyer test; reacts with HNO2 to yield red-colored nitrolic acid salt in alkali."
+  },
+  {
+    "id": "2,4-dinitrotoluene",
+    "name": "2,4-Dinitrotoluene",
+    "formula": "C7H6N2O4",
+    "elements": {
+      "C": 7,
+      "H": 6,
+      "O": 4,
+      "N": 2,
+      "Cl": 0,
+      "F": 0,
+      "Br": 0,
+      "I": 0
+    },
+    "category": "Nitrogen-Compounds",
+    "structure": "2,4-(NO2)2C6H3CH3",
+    "fact": "2,4-DNT; key industrial precursor hydrogenated to toluene diamine for polyurethane manufacturing."
+  },
+  {
+    "id": "tnt",
+    "name": "TNT",
+    "formula": "C7H5N3O6",
+    "elements": {
+      "C": 7,
+      "H": 5,
+      "O": 6,
+      "N": 3,
+      "Cl": 0,
+      "F": 0,
+      "Br": 0,
+      "I": 0
+    },
+    "category": "Nitrogen-Compounds",
+    "structure": "2,4,6-(NO2)3C6H2CH3",
+    "fact": "2,4,6-Trinitrotoluene; standard explosive benchmark; relatively insensitive to friction and impact."
+  },
+  {
+    "id": "1,3,5-trinitrobenzene",
+    "name": "1,3,5-Trinitrobenzene",
+    "formula": "C6H3N3O6",
+    "elements": {
+      "C": 6,
+      "H": 3,
+      "O": 6,
+      "N": 3,
+      "Cl": 0,
+      "F": 0,
+      "Br": 0,
+      "I": 0
+    },
+    "category": "Nitrogen-Compounds",
+    "structure": "1,3,5-(NO2)3C6H3",
+    "fact": "Symmetrical high explosive with greater detonation velocity and lower sensitivity than TNT."
+  },
+  {
+    "id": "azobenzene",
+    "name": "Azobenzene",
+    "formula": "C12H10N2",
+    "elements": {
+      "C": 12,
+      "H": 10,
+      "O": 0,
+      "N": 2,
+      "Cl": 0,
+      "F": 0,
+      "Br": 0,
+      "I": 0
+    },
+    "category": "Nitrogen-Compounds",
+    "structure": "C6H5N=NC6H5",
+    "fact": "Parent aromatic azo compound; photoisomerizes reversibly between trans (orange) and cis (non-planar) states."
+  },
+  {
+    "id": "hydrazobenzene",
+    "name": "Hydrazobenzene",
+    "formula": "C12H12N2",
+    "elements": {
+      "C": 12,
+      "H": 12,
+      "O": 0,
+      "N": 2,
+      "Cl": 0,
+      "F": 0,
+      "Br": 0,
+      "I": 0
+    },
+    "category": "Nitrogen-Compounds",
+    "structure": "C6H5NHNHC6H5",
+    "fact": "1,2-Diphenylhydrazine; undergoes acid-catalyzed benzidine rearrangement to 4,4'-diaminobiphenyl."
+  },
+  {
+    "id": "phenylhydrazine",
+    "name": "Phenylhydrazine",
+    "formula": "C6H8N2",
+    "elements": {
+      "C": 6,
+      "H": 8,
+      "O": 0,
+      "N": 2,
+      "Cl": 0,
+      "F": 0,
+      "Br": 0,
+      "I": 0
+    },
+    "category": "Nitrogen-Compounds",
+    "structure": "C6H5NHNH2",
+    "fact": "Emil Fischer's reagent for characterizing sugars via crystalline yellow osazone formation."
+  },
+  {
+    "id": "bradys-reagent",
+    "name": "Brady's Reagent",
+    "formula": "C6H6N4O4",
+    "elements": {
+      "C": 6,
+      "H": 6,
+      "O": 4,
+      "N": 4,
+      "Cl": 0,
+      "F": 0,
+      "Br": 0,
+      "I": 0
+    },
+    "category": "Nitrogen-Compounds",
+    "structure": "2,4-(NO2)2C6H3NHNH2",
+    "fact": "2,4-Dinitrophenylhydrazine (2,4-DNP); forms bright yellow/orange crystalline hydrazones with aldehydes and ketones."
+  },
+  {
+    "id": "diazomethane",
+    "name": "Diazomethane",
+    "formula": "CH2N2",
+    "elements": {
+      "C": 1,
+      "H": 2,
+      "O": 0,
+      "N": 2,
+      "Cl": 0,
+      "F": 0,
+      "Br": 0,
+      "I": 0
+    },
+    "category": "Nitrogen-Compounds",
+    "structure": "CH2=N+=N-",
+    "fact": "Potent yellow gaseous methylating agent and precursor to singlet methylene carbene (:CH2) upon photolysis."
+  },
+  {
+    "id": "methylhydrazine",
+    "name": "Methylhydrazine",
+    "formula": "CH6N2",
+    "elements": {
+      "C": 1,
+      "H": 6,
+      "O": 0,
+      "N": 2,
+      "Cl": 0,
+      "F": 0,
+      "Br": 0,
+      "I": 0
+    },
+    "category": "Nitrogen-Compounds",
+    "structure": "CH3NHNH2",
+    "fact": "Monomethylhydrazine (MMH); hypergolic rocket propellant used in orbital maneuvering and attitude control thrusters."
+  },
+  {
+    "id": "1,1-dimethylhydrazine",
+    "name": "1,1-Dimethylhydrazine",
+    "formula": "C2H8N2",
+    "elements": {
+      "C": 2,
+      "H": 8,
+      "O": 0,
+      "N": 2,
+      "Cl": 0,
+      "F": 0,
+      "Br": 0,
+      "I": 0
+    },
+    "category": "Nitrogen-Compounds",
+    "structure": "(CH3)2NNH2",
+    "fact": "Unsymmetrical dimethylhydrazine (UDMH); liquid storable hypergolic fuel oxidized by dinitrogen tetroxide."
+  },
+  {
+    "id": "nitroethane",
+    "name": "Nitroethane",
+    "formula": "C2H5NO2",
+    "elements": {
+      "C": 2,
+      "H": 5,
+      "O": 2,
+      "N": 1,
+      "Cl": 0,
+      "F": 0,
+      "Br": 0,
+      "I": 0
+    },
+    "category": "Nitrogen-Compounds",
+    "structure": "CH3CH2NO2",
+    "fact": "Classic reagent in Henry nitroaldol reactions for extending carbon chains with nitroalkyl nucleophiles."
+  },
+  {
+    "id": "p-nitroaniline",
+    "name": "p-Nitroaniline",
+    "formula": "C6H6N2O2",
+    "elements": {
+      "C": 6,
+      "H": 6,
+      "O": 2,
+      "N": 2,
+      "Cl": 0,
+      "F": 0,
+      "Br": 0,
+      "I": 0
+    },
+    "category": "Nitrogen-Compounds",
+    "structure": "4-NO2C6H4NH2",
+    "fact": "Extremely weak base (pKb 13) due to extensive quinoid resonance delocalization into the para-nitro group."
   }
 ]
