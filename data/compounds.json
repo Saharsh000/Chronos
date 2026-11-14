@@ -3148,5 +3148,365 @@
     "category": "Cycloalkanes",
     "structure": "C7H8",
     "fact": "Highly strained tetracyclic valence isomer of norbornadiene formed upon UV irradiation; candidate for solar thermal fuels."
+  },
+  {
+    "id": "1-chloropropane",
+    "name": "1-Chloropropane",
+    "formula": "C3H7Cl",
+    "elements": {
+      "C": 3,
+      "H": 7,
+      "O": 0,
+      "N": 0,
+      "Cl": 1,
+      "F": 0,
+      "Br": 0,
+      "I": 0
+    },
+    "category": "Haloalkanes",
+    "structure": "CH3CH2CH2Cl",
+    "fact": "Primary alkyl chloride synthesized by treating propan-1-ol with thionyl chloride (SOCl2) in pyridine."
+  },
+  {
+    "id": "2-chloropropane",
+    "name": "2-Chloropropane",
+    "formula": "C3H7Cl",
+    "elements": {
+      "C": 3,
+      "H": 7,
+      "O": 0,
+      "N": 0,
+      "Cl": 1,
+      "F": 0,
+      "Br": 0,
+      "I": 0
+    },
+    "category": "Haloalkanes",
+    "structure": "(CH3)2CHCl",
+    "fact": "Isopropyl chloride; undergoes SN1 solvolysis faster than 1-chloropropane due to secondary carbocation stability."
+  },
+  {
+    "id": "1-bromopropane",
+    "name": "1-Bromopropane",
+    "formula": "C3H7Br",
+    "elements": {
+      "C": 3,
+      "H": 7,
+      "O": 0,
+      "N": 0,
+      "Cl": 0,
+      "F": 0,
+      "Br": 1,
+      "I": 0
+    },
+    "category": "Haloalkanes",
+    "structure": "CH3CH2CH2Br",
+    "fact": "Industrial solvent and cleaning agent prepared by free radical addition of HBr to propene in the presence of peroxides."
+  },
+  {
+    "id": "2-bromopropane",
+    "name": "2-Bromopropane",
+    "formula": "C3H7Br",
+    "elements": {
+      "C": 3,
+      "H": 7,
+      "O": 0,
+      "N": 0,
+      "Cl": 0,
+      "F": 0,
+      "Br": 1,
+      "I": 0
+    },
+    "category": "Haloalkanes",
+    "structure": "(CH3)2CHBr",
+    "fact": "Formed as Markovnikov addition product of HBr to propene without peroxides."
+  },
+  {
+    "id": "1-iodopropane",
+    "name": "1-Iodopropane",
+    "formula": "C3H7I",
+    "elements": {
+      "C": 3,
+      "H": 7,
+      "O": 0,
+      "N": 0,
+      "Cl": 0,
+      "F": 0,
+      "Br": 0,
+      "I": 1
+    },
+    "category": "Haloalkanes",
+    "structure": "CH3CH2CH2I",
+    "fact": "Prepared by Finkelstein reaction of 1-chloropropane with sodium iodide in dry acetone."
+  },
+  {
+    "id": "2-iodopropane",
+    "name": "2-Iodopropane",
+    "formula": "C3H7I",
+    "elements": {
+      "C": 3,
+      "H": 7,
+      "O": 0,
+      "N": 0,
+      "Cl": 0,
+      "F": 0,
+      "Br": 0,
+      "I": 1
+    },
+    "category": "Haloalkanes",
+    "structure": "(CH3)2CHI",
+    "fact": "Readily undergoes E2 dehydrohalogenation with alcoholic KOH to regenerate propene."
+  },
+  {
+    "id": "1-chlorobutane",
+    "name": "1-Chlorobutane",
+    "formula": "C4H9Cl",
+    "elements": {
+      "C": 4,
+      "H": 9,
+      "O": 0,
+      "N": 0,
+      "Cl": 1,
+      "F": 0,
+      "Br": 0,
+      "I": 0
+    },
+    "category": "Haloalkanes",
+    "structure": "CH3(CH2)3Cl",
+    "fact": "Primary butyl chloride used to synthesize organolithium reagent n-butyllithium (n-BuLi)."
+  },
+  {
+    "id": "2-chlorobutane",
+    "name": "2-Chlorobutane",
+    "formula": "C4H9Cl",
+    "elements": {
+      "C": 4,
+      "H": 9,
+      "O": 0,
+      "N": 0,
+      "Cl": 1,
+      "F": 0,
+      "Br": 0,
+      "I": 0
+    },
+    "category": "Haloalkanes",
+    "structure": "CH3CH2CH(Cl)CH3",
+    "fact": "Chiral secondary alkyl chloride illustrating Walden inversion during SN2 substitution."
+  },
+  {
+    "id": "1-bromo-2-methylpropane",
+    "name": "1-Bromo-2-methylpropane",
+    "formula": "C4H9Br",
+    "elements": {
+      "C": 4,
+      "H": 9,
+      "O": 0,
+      "N": 0,
+      "Cl": 0,
+      "F": 0,
+      "Br": 1,
+      "I": 0
+    },
+    "category": "Haloalkanes",
+    "structure": "(CH3)2CHCH2Br",
+    "fact": "Isobutyl bromide; primary halide that undergoes rearrangement during SN1 solvolysis to form tert-butyl carbocation."
+  },
+  {
+    "id": "2-bromo-2-methylpropane",
+    "name": "2-Bromo-2-methylpropane",
+    "formula": "C4H9Br",
+    "elements": {
+      "C": 4,
+      "H": 9,
+      "O": 0,
+      "N": 0,
+      "Cl": 0,
+      "F": 0,
+      "Br": 1,
+      "I": 0
+    },
+    "category": "Haloalkanes",
+    "structure": "(CH3)3CBr",
+    "fact": "tert-Butyl bromide; classic benchmark substrate for tertiary SN1 and E1 reaction mechanisms."
+  },
+  {
+    "id": "1,2-dichloroethane",
+    "name": "1,2-Dichloroethane",
+    "formula": "C2H4Cl2",
+    "elements": {
+      "C": 2,
+      "H": 4,
+      "O": 0,
+      "N": 0,
+      "Cl": 2,
+      "F": 0,
+      "Br": 0,
+      "I": 0
+    },
+    "category": "Haloalkanes",
+    "structure": "ClCH2CH2Cl",
+    "fact": "Ethylene dichloride; major industrial intermediate produced by chlorine addition to ethene for PVC manufacturing."
+  },
+  {
+    "id": "1,1-dichloroethane",
+    "name": "1,1-Dichloroethane",
+    "formula": "C2H4Cl2",
+    "elements": {
+      "C": 2,
+      "H": 4,
+      "O": 0,
+      "N": 0,
+      "Cl": 2,
+      "F": 0,
+      "Br": 0,
+      "I": 0
+    },
+    "category": "Haloalkanes",
+    "structure": "CH3CHCl2",
+    "fact": "Ethylidene chloride; geminal dihalide that undergoes alkaline hydrolysis to yield acetaldehyde."
+  },
+  {
+    "id": "1,2-dibromoethane",
+    "name": "1,2-Dibromoethane",
+    "formula": "C2H4Br2",
+    "elements": {
+      "C": 2,
+      "H": 4,
+      "O": 0,
+      "N": 0,
+      "Cl": 0,
+      "F": 0,
+      "Br": 2,
+      "I": 0
+    },
+    "category": "Haloalkanes",
+    "structure": "BrCH2CH2Br",
+    "fact": "Vicinal dibromide formed by decolorizing reddish-brown bromine water with ethylene."
+  },
+  {
+    "id": "1,1,2,2-tetrachloroethane",
+    "name": "1,1,2,2-Tetrachloroethane",
+    "formula": "C2H2Cl4",
+    "elements": {
+      "C": 2,
+      "H": 2,
+      "O": 0,
+      "N": 0,
+      "Cl": 4,
+      "F": 0,
+      "Br": 0,
+      "I": 0
+    },
+    "category": "Haloalkanes",
+    "structure": "CHCl2CHCl2",
+    "fact": "Acetylene tetrachloride (Westron); non-flammable solvent synthesized by catalytic addition of chlorine to acetylene."
+  },
+  {
+    "id": "hexachloroethane",
+    "name": "Hexachloroethane",
+    "formula": "C2Cl6",
+    "elements": {
+      "C": 2,
+      "H": 0,
+      "O": 0,
+      "N": 0,
+      "Cl": 6,
+      "F": 0,
+      "Br": 0,
+      "I": 0
+    },
+    "category": "Haloalkanes",
+    "structure": "CCl3CCl3",
+    "fact": "Camphor-like subliming solid chlorocarbon used in military smoke grenades and pyrotechnics."
+  },
+  {
+    "id": "chloral",
+    "name": "Chloral",
+    "formula": "C2HCl3O",
+    "elements": {
+      "C": 2,
+      "H": 1,
+      "O": 1,
+      "N": 0,
+      "Cl": 3,
+      "F": 0,
+      "Br": 0,
+      "I": 0
+    },
+    "category": "Haloalkanes",
+    "structure": "CCl3CHO",
+    "fact": "Trichloroacetaldehyde; reacts with chlorobenzene in conc. H2SO4 to yield the pesticide DDT."
+  },
+  {
+    "id": "iodoform",
+    "name": "Iodoform",
+    "formula": "CHI3",
+    "elements": {
+      "C": 1,
+      "H": 1,
+      "O": 0,
+      "N": 0,
+      "Cl": 0,
+      "F": 0,
+      "Br": 0,
+      "I": 3
+    },
+    "category": "Haloalkanes",
+    "structure": "CHI3",
+    "fact": "Triiodomethane; canary yellow crystalline precipitate formed in the iodoform test for methyl ketones and ethanols."
+  },
+  {
+    "id": "bromoform",
+    "name": "Bromoform",
+    "formula": "CHBr3",
+    "elements": {
+      "C": 1,
+      "H": 1,
+      "O": 0,
+      "N": 0,
+      "Cl": 0,
+      "F": 0,
+      "Br": 3,
+      "I": 0
+    },
+    "category": "Haloalkanes",
+    "structure": "CHBr3",
+    "fact": "Tribromomethane; heavy liquid (density 2.89 g/cm3) used as mineral separation heavy liquid and sedative precursor."
+  },
+  {
+    "id": "trichloroethylene",
+    "name": "Trichloroethylene",
+    "formula": "C2HCl3",
+    "elements": {
+      "C": 2,
+      "H": 1,
+      "O": 0,
+      "N": 0,
+      "Cl": 3,
+      "F": 0,
+      "Br": 0,
+      "I": 0
+    },
+    "category": "Haloalkanes",
+    "structure": "Cl2C=CHCl",
+    "fact": "Industrial degreaser (Westrosol) synthesized by dehydrochlorination of 1,1,2,2-tetrachloroethane with Ca(OH)2."
+  },
+  {
+    "id": "halothane",
+    "name": "Halothane",
+    "formula": "C2HBrClF3",
+    "elements": {
+      "C": 2,
+      "H": 1,
+      "O": 0,
+      "N": 0,
+      "Cl": 1,
+      "F": 3,
+      "Br": 1,
+      "I": 0
+    },
+    "category": "Haloalkanes",
+    "structure": "CF3CHBrCl",
+    "fact": "2-Bromo-2-chloro-1,1,1-trifluoroethane; milestone non-flammable general inhalational anesthetic containing four distinct halogens."
   }
 ]
