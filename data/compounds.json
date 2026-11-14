@@ -1,0 +1,182 @@
+[
+  {
+    "id": "methane",
+    "name": "Methane",
+    "formula": "CH4",
+    "elements": {
+      "C": 1,
+      "H": 4,
+      "O": 0,
+      "N": 0,
+      "Cl": 0,
+      "F": 0,
+      "Br": 0,
+      "I": 0
+    },
+    "category": "Alkanes",
+    "smiles": "C",
+    "fact": "Simplest alkane; major component of natural gas; used in JEE as the base case for sp3 hybridization."
+  },
+  {
+    "id": "ethane",
+    "name": "Ethane",
+    "formula": "C2H6",
+    "elements": {
+      "C": 2,
+      "H": 6,
+      "O": 0,
+      "N": 0,
+      "Cl": 0,
+      "F": 0,
+      "Br": 0,
+      "I": 0
+    },
+    "category": "Alkanes",
+    "smiles": "CC",
+    "fact": "Two-carbon alkane; formed by coupling of two methyl radicals; illustrates free rotation about C-C single bond."
+  },
+  {
+    "id": "propane",
+    "name": "Propane",
+    "formula": "C3H8",
+    "elements": {
+      "C": 3,
+      "H": 8,
+      "O": 0,
+      "N": 0,
+      "Cl": 0,
+      "F": 0,
+      "Br": 0,
+      "I": 0
+    },
+    "category": "Alkanes",
+    "smiles": "CCC",
+    "fact": "Three-carbon alkane stored as LPG; important JEE topic for isomer counting starting from C4."
+  },
+  {
+    "id": "butane",
+    "name": "Butane",
+    "formula": "C4H10",
+    "elements": {
+      "C": 4,
+      "H": 10,
+      "O": 0,
+      "N": 0,
+      "Cl": 0,
+      "F": 0,
+      "Br": 0,
+      "I": 0
+    },
+    "category": "Alkanes",
+    "smiles": "CCCC",
+    "fact": "First alkane with a structural isomer (isobutane); used in JEE to introduce constitutional isomerism."
+  },
+  {
+    "id": "pentane",
+    "name": "Pentane",
+    "formula": "C5H12",
+    "elements": {
+      "C": 5,
+      "H": 12,
+      "O": 0,
+      "N": 0,
+      "Cl": 0,
+      "F": 0,
+      "Br": 0,
+      "I": 0
+    },
+    "category": "Alkanes",
+    "smiles": "CCCCC",
+    "fact": "Five-carbon alkane with three structural isomers; important for practising IUPAC nomenclature in JEE."
+  },
+  {
+    "id": "hexane",
+    "name": "Hexane",
+    "formula": "C6H14",
+    "elements": {
+      "C": 6,
+      "H": 14,
+      "O": 0,
+      "N": 0,
+      "Cl": 0,
+      "F": 0,
+      "Br": 0,
+      "I": 0
+    },
+    "category": "Alkanes",
+    "smiles": "CCCCCC",
+    "fact": "Common non-polar solvent with five structural isomers; used in JEE problems on liquid-liquid extraction."
+  },
+  {
+    "id": "heptane",
+    "name": "Heptane",
+    "formula": "C7H16",
+    "elements": {
+      "C": 7,
+      "H": 16,
+      "O": 0,
+      "N": 0,
+      "Cl": 0,
+      "F": 0,
+      "Br": 0,
+      "I": 0
+    },
+    "category": "Alkanes",
+    "smiles": "CCCCCCC",
+    "fact": "Seven-carbon alkane; octane rating reference (heptane = 0 octane) tested in JEE fuel-chemistry questions."
+  },
+  {
+    "id": "octane",
+    "name": "Octane",
+    "formula": "C8H18",
+    "elements": {
+      "C": 8,
+      "H": 18,
+      "O": 0,
+      "N": 0,
+      "Cl": 0,
+      "F": 0,
+      "Br": 0,
+      "I": 0
+    },
+    "category": "Alkanes",
+    "smiles": "CCCCCCCC",
+    "fact": "Eight-carbon alkane; iso-octane defines octane-100 rating; used in JEE combustion enthalpy calculations."
+  },
+  {
+    "id": "isobutane",
+    "name": "Isobutane",
+    "formula": "C4H10",
+    "elements": {
+      "C": 4,
+      "H": 10,
+      "O": 0,
+      "N": 0,
+      "Cl": 0,
+      "F": 0,
+      "Br": 0,
+      "I": 0
+    },
+    "category": "Alkanes",
+    "smiles": "CC(C)C",
+    "fact": "Branched isomer of butane (2-methylpropane); classic JEE example of a structural isomer with a tertiary carbon."
+  },
+  {
+    "id": "neopentane",
+    "name": "Neopentane",
+    "formula": "C5H12",
+    "elements": {
+      "C": 5,
+      "H": 12,
+      "O": 0,
+      "N": 0,
+      "Cl": 0,
+      "F": 0,
+      "Br": 0,
+      "I": 0
+    },
+    "category": "Alkanes",
+    "smiles": "CC(C)(C)C",
+    "fact": "2,2-dimethylpropane; has only primary C-H bonds and a single quaternary carbon; important JEE isomer example."
+  }
+]
